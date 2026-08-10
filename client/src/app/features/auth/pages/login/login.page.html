@@ -1,0 +1,86 @@
+<main class="flex min-h-dvh flex-col bg-background px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] text-foreground sm:justify-center">
+  <section class="mx-auto w-full max-w-md" aria-labelledby="login-title">
+    <header class="mb-9 text-center">
+      <div class="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-on-primary shadow-soft" aria-hidden="true">
+        A
+      </div>
+      <p class="mb-2 text-sm font-semibold tracking-wide text-primary">STADTAPOTHEKE TROFAIACH</p>
+      <h1 id="login-title" class="text-3xl font-bold tracking-tight">Willkommen zurück</h1>
+      <p class="mt-3 text-base text-muted">Melden Sie sich an, um Ihre Vorteile zu nutzen.</p>
+    </header>
+
+    <div class="rounded-3xl border border-border bg-surface p-6 shadow-card sm:p-8">
+      <form class="space-y-5" [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
+        <div>
+          <label for="username" class="mb-2 block text-sm font-semibold">Benutzername</label>
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-focus"
+            [attr.aria-invalid]="loginForm.controls.username.invalid && loginForm.controls.username.touched"
+            aria-describedby="username-error"
+          />
+          @if (loginForm.controls.username.invalid && loginForm.controls.username.touched) {
+            <p id="username-error" class="mt-2 text-sm text-danger">Bitte geben Sie Ihren Benutzernamen ein.</p>
+          }
+        </div>
+
+        <div>
+          <label for="password" class="mb-2 block text-sm font-semibold">Passwort</label>
+          <div class="relative">
+            <input
+              id="password"
+              [type]="passwordVisible() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="current-password"
+              class="min-h-12 w-full rounded-xl border border-border bg-background px-4 pr-20 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-focus"
+              [attr.aria-invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+              aria-describedby="password-error"
+            />
+            <button
+              type="button"
+              class="absolute inset-y-0 right-1 min-w-16 rounded-lg px-3 text-sm font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="passwordVisible() ? 'Passwort verbergen' : 'Passwort anzeigen'"
+            >
+              {{ passwordVisible() ? 'Aus' : 'Anzeigen' }}
+            </button>
+          </div>
+          @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
+            <p id="password-error" class="mt-2 text-sm text-danger">Bitte geben Sie Ihr Passwort ein.</p>
+          }
+        </div>
+
+        @if (loginFailed()) {
+          <div class="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+            Benutzername oder Passwort ist nicht korrekt.
+          </div>
+        }
+
+        <button
+          type="submit"
+          class="min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Anmelden
+        </button>
+      </form>
+
+      <a routerLink="/login" class="mt-5 block min-h-11 py-3 text-center text-sm font-semibold text-primary underline-offset-4 hover:underline">
+        Passwort vergessen?
+      </a>
+    </div>
+
+    <p class="mt-7 text-center text-sm text-muted">
+      Noch kein Konto?
+      <a routerLink="/login" class="font-semibold text-primary underline-offset-4 hover:underline">Jetzt registrieren</a>
+    </p>
+
+    <aside class="mt-8 rounded-2xl bg-accent px-4 py-3 text-center text-sm text-accent-foreground" aria-label="Zugangsdaten für den Prototyp">
+      Demo-Zugang: <strong>kunde</strong> / <strong>trofaiach</strong>
+    </aside>
+  </section>
+</main>

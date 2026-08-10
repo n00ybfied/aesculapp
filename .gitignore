@@ -1,0 +1,6 @@
+# Local backup of the Angular CLI repository metadata
+/.client-git-backup/
+
+# System files
+.DS_Store
+Thumbs.db
