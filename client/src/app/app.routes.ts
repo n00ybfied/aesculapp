@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guards';
+import { AppShellComponent } from './shared/layout/app-shell.component';
 
 export const routes: Routes = [
   {
@@ -10,12 +11,36 @@ export const routes: Routes = [
     title: 'Anmelden | Aesculapp',
   },
   {
-    path: 'dashboard',
-    canMatch: [authGuard],
-    loadComponent: () =>
-      import('./features/dashboard/dashboard.page').then((module) => module.DashboardPage),
-    title: 'Übersicht | Aesculapp',
+    path: '',
+    component: AppShellComponent,
+    canActivateChild: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.page').then((module) => module.DashboardPage),
+        title: 'Übersicht | Aesculapp',
+      },
+      {
+        path: 'punkte',
+        loadComponent: () =>
+          import('./features/placeholder/placeholder.page').then((module) => module.PlaceholderPage),
+        data: { title: 'Punkte & Prämien', description: 'Ihre Punktewelt entsteht gerade.' },
+      },
+      {
+        path: 'scanner',
+        loadComponent: () =>
+          import('./features/placeholder/placeholder.page').then((module) => module.PlaceholderPage),
+        data: { title: 'Rechnung scannen', description: 'Der Scanner wird als Nächstes vorbereitet.' },
+      },
+      {
+        path: 'profil',
+        loadComponent: () =>
+          import('./features/placeholder/placeholder.page').then((module) => module.PlaceholderPage),
+        data: { title: 'Mein Profil', description: 'Ihre persönlichen Einstellungen folgen bald.' },
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+    ],
   },
-  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: '**', redirectTo: 'dashboard' },
 ];

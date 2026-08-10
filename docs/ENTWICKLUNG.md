@@ -281,6 +281,12 @@ Die Anwendung soll wie eine eigenständige Gesundheits-App wirken und nicht wie 
 
 Mobile Nutzung wird als primärer Anwendungsfall betrachtet. Desktop und Tablet bleiben vollständig nutzbar, werden jedoch ausgehend von einer mobilen Informationsarchitektur entwickelt.
 
+### Arbeitsviewport im Prototyp
+
+Während der ersten Prototyping-Phase wird die App auch auf Desktop-Bildschirmen in einem maximal 500 px breiten App-Viewport dargestellt. Dadurch werden die zentralen Kundenabläufe konsequent für Smartphone-Breiten einschließlich größerer Geräte gestaltet und getestet.
+
+Diese Begrenzung ist eine Darstellungsvorgabe für die aktuelle Phase und keine dauerhafte technische Einschränkung. Layouts werden weiterhin mobile-first, mit klaren Layout-Containern, sinnvollen Spaltenstrukturen und erweiterbaren Breakpoints aufgebaut. Fachliche Komponenten dürfen deshalb nicht auf eine unveränderliche Einzelspalte oder fixe Bildschirmbreite fest verdrahtet werden. Spätere Tablet- und Desktop-Layouts können so ergänzt werden, ohne die Informationsarchitektur neu aufzubauen.
+
 Das Designsystem soll konsistent, zugänglich und wiederverwendbar aufgebaut werden, damit spätere neue Module und kundenspezifische Themes ohne grundlegende Neugestaltung ergänzt werden können.
 
 

@@ -1,0 +1,61 @@
+<div class="mx-auto min-h-dvh w-full max-w-[500px] bg-background text-foreground shadow-[0_0_40px_rgb(23_36_33_/_8%)]">
+  <header class="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-surface/95 px-5 backdrop-blur" aria-label="Kopfbereich">
+    <button
+      type="button"
+      class="grid size-11 place-items-center rounded-xl text-foreground transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      (click)="navigationOpen.set(true)"
+      aria-label="Hauptmenü öffnen"
+      [attr.aria-expanded]="navigationOpen()"
+      aria-controls="main-navigation"
+    >
+      <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16" />
+      </svg>
+    </button>
+    <a routerLink="/dashboard" class="flex items-center gap-2 rounded-lg px-2 py-1 font-bold tracking-tight focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Zur Übersicht">
+      <span class="grid size-8 place-items-center rounded-lg bg-primary text-sm text-on-primary">A</span>
+      <span>aesculapp</span>
+    </a>
+    <a routerLink="/profil" class="grid size-11 place-items-center rounded-full bg-accent text-sm font-bold text-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Mein Profil">
+      K
+    </a>
+  </header>
+
+  @if (navigationOpen()) {
+    <div class="fixed inset-0 z-40 bg-foreground/35" (click)="closeNavigation()" aria-hidden="true"></div>
+    <aside id="main-navigation" class="fixed inset-y-0 left-0 z-50 flex w-[min(21rem,calc(100vw-2rem))] flex-col bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] shadow-2xl" aria-label="Hauptmenü">
+      <div class="flex items-center justify-between">
+        <span class="flex items-center gap-2 text-lg font-bold"><span class="grid size-9 place-items-center rounded-xl bg-primary text-sm text-on-primary">A</span> aesculapp</span>
+        <button type="button" class="grid size-11 place-items-center rounded-xl hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeNavigation()" aria-label="Hauptmenü schließen">
+          <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
+      <nav class="mt-8 space-y-2" aria-label="Seitennavigation">
+        <a routerLink="/dashboard" routerLinkActive="bg-accent text-primary" [routerLinkActiveOptions]="{ exact: true }" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Übersicht</a>
+        <a routerLink="/punkte" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Punkte &amp; Prämien</a>
+        <a routerLink="/scanner" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Rechnung scannen</a>
+        <a routerLink="/profil" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Mein Profil</a>
+      </nav>
+      <button type="button" class="mt-auto min-h-12 rounded-xl border border-border px-4 text-left font-semibold text-muted hover:bg-accent" (click)="logout()">Abmelden</button>
+    </aside>
+  }
+
+  <div class="min-h-[calc(100dvh-8.5rem)] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <router-outlet />
+  </div>
+
+  <nav class="fixed bottom-0 left-1/2 z-20 grid w-full max-w-[500px] -translate-x-1/2 grid-cols-3 items-end border-t border-border bg-surface px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2" aria-label="Schnellnavigation">
+    <a routerLink="/dashboard" routerLinkActive="text-primary" [routerLinkActiveOptions]="{ exact: true }" class="justify-self-start flex min-h-14 min-w-16 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-semibold text-muted focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary">
+      <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" /></svg>
+      Home
+    </a>
+    <a routerLink="/scanner" routerLinkActive="text-primary" class="justify-self-center -mt-7 flex min-h-18 min-w-18 flex-col items-center justify-center gap-1 rounded-full bg-primary px-3 text-xs font-bold text-on-primary shadow-soft focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary">
+      <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3M4 16v3a1 1 0 0 0 1 1h3m8 0h3a1 1 0 0 0 1-1v-3M8 12h8" /></svg>
+      Scannen
+    </a>
+    <a routerLink="/punkte" routerLinkActive="text-primary" class="justify-self-end flex min-h-14 min-w-16 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-semibold text-muted focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary">
+      <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-5-4h8a3 3 0 1 0 0-6H9a3 3 0 1 1 0-6h8" /></svg>
+      Prämien
+    </a>
+  </nav>
+</div>
