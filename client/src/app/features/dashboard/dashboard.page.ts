@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { NgIcon } from '@ng-icons/core';
 
 interface PharmacyNews {
   readonly title: string;
@@ -10,7 +11,7 @@ interface PharmacyNews {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [RouterLink],
+  imports: [NgIcon, RouterLink],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage {

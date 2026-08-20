@@ -146,6 +146,27 @@ Das erste Theme ist ein helles Standard-Theme mit folgenden Grundprinzipien:
 
 Die konkrete Farbpalette wird separat festgelegt.
 
+#### Theme STA
+
+Das erste konkrete Mandanten-Theme trägt den technischen Namen `sta` und orientiert sich am Erscheinungsbild der Stadt-Apotheke Trofaiach.
+
+- Primärfarbe: STA-Blau (`#4b86b0`)
+- dunkle Vordergrundfarbe: Schieferblau (`#223645`)
+- heller Hintergrund: Eisblau (`#f1f6fa`)
+- Überschriften: Google Font Nunito
+- Fließtext und Bedienelemente: Google Font Rubik
+- Logo und Favicon: lokale Tenant-Assets unter `assets/tenants/sta/`
+
+Die Google Fonts werden über lokale Font-Pakete gebündelt und nicht zur Laufzeit von Google geladen. Das Theme wird über `data-theme="sta"` aktiviert; Komponenten verwenden weiterhin ausschließlich semantische Tokens und enthalten keine STA-spezifischen Farbwerte.
+
+### Auswahl und Auslieferung von Themes
+
+Eine Kundeninstallation liefert grundsätzlich genau ein Theme aus. Endkundinnen und Endkunden erhalten keine Theme-Auswahl in der App.
+
+Während der Entwicklung wird das auszuliefernde Theme zentral in `client/src/app/core/theme/theme.config.ts` festgelegt. Für ein neues Theme genügt es, den dort definierten Theme-Namen und die zugehörigen Assets aus dem jeweiligen Tenant-Ordner auszuwählen. Komponenten greifen ausschließlich über den `ThemeService` auf Theme-Metadaten wie Logo und Apothekenname zu; Browser- und Apple-Touch-Icon werden ebenfalls aus dieser Theme-Konfiguration gesetzt.
+
+Langfristig darf ausschließlich die Admin-Oberfläche die Theme-Konfiguration ändern. Diese administrative Änderung bestimmt die Konfiguration einer Installation beziehungsweise eines neuen Builds; sie wird nicht als frei verfügbare Umschaltfunktion in der Kunden-App umgesetzt.
+
 ### Theme-Fähigkeit von Beginn an
 
 Farben, Abstände, Typografie, Radien, Schatten und andere wiederkehrende Designwerte werden nicht direkt in Komponenten fest codiert.
@@ -220,6 +241,10 @@ Dadurch bleiben folgende Erweiterungen möglich:
 - zentrale Anpassung des Designs ohne Änderungen an den Fachkomponenten
 
 Tailwind wird damit als Styling-Werkzeug verwendet, während die eigentliche visuelle Identität über das zentrale Theme-System definiert wird.
+
+### Icon-System
+
+Für Bedien- und Statusicons wird Lucide verwendet. Die Angular-22-kompatible Integration erfolgt über `@ng-icons/core` und `@ng-icons/lucide`; benötigte Icons werden zentral in `client/src/app/core/icons/lucide-icons.ts` registriert. Dadurch werden ausschließlich verwendete Icons gebündelt und ihre Farbe folgt weiterhin den semantischen Theme-Token der jeweiligen Komponente. Neue handgezeichnete Inline-SVGs für Standard-UI-Icons sollen nicht ergänzt werden.
 
 ### Vorbereitung für Dark Mode
 
