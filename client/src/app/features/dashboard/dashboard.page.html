@@ -1,4 +1,22 @@
+@if (isLoading()) {
+  <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center bg-background" aria-label="Übersicht wird geladen">
+    <span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary" aria-hidden="true"></span>
+  </main>
+} @else {
 <main class="px-5 pb-7 pt-6">
+  @if (activeRedemption(); as redemption) {
+    <a routerLink="/punkte/einloesung" class="mb-7 flex items-center gap-4 rounded-2xl border-2 border-danger bg-danger-soft p-4 text-danger shadow-soft transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-danger" aria-label="Aktive Prämieneinlösung dem Apotheken-Team zeigen">
+      <span class="grid size-12 shrink-0 place-items-center rounded-2xl border border-danger bg-surface" aria-hidden="true">
+        <ng-icon name="lucideGift" size="1.5rem" />
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-bold tracking-wide">AKTIVE PRÄMIEN</span>
+        <span class="mt-1 block font-bold">{{ activeRewardCount(redemption) }} {{ activeRewardCount(redemption) === 1 ? 'Prämie' : 'Prämien' }} jetzt vorzeigen</span>
+        <span class="mt-1 block text-sm">Zum Apotheken-Team</span>
+      </span>
+    </a>
+  }
+
   <section aria-labelledby="welcome-title">
     <p class="text-sm font-semibold text-primary">GUTEN MORGEN</p>
     <h1 id="welcome-title" class="mt-1 text-3xl font-bold tracking-tight">Schön, dass Sie da sind.</h1>
@@ -66,3 +84,4 @@
     </div>
   </section>
 </main>
+}

@@ -22,10 +22,16 @@ export const routes: Routes = [
         title: 'Übersicht | Aesculapp',
       },
       {
+        path: 'punkte/einloesung',
+        loadComponent: () =>
+          import('./features/rewards/active-redemption.page').then((module) => module.ActiveRedemptionPage),
+        title: 'Einlösung vorzeigen | Aesculapp',
+      },
+      {
         path: 'punkte',
         loadComponent: () =>
-          import('./features/placeholder/placeholder.page').then((module) => module.PlaceholderPage),
-        data: { title: 'Punkte & Prämien', description: 'Ihre Punktewelt entsteht gerade.' },
+          import('./features/rewards/rewards.page').then((module) => module.RewardsPage),
+        title: 'Punkte & Prämien | Aesculapp',
       },
       {
         path: 'scanner',

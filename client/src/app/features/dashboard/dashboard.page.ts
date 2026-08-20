@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
+import { RewardRepository, type ActiveRedemption } from '../../core/rewards/reward.repository';
 
 interface PharmacyNews {
   readonly title: string;
@@ -14,7 +15,11 @@ interface PharmacyNews {
   imports: [NgIcon, RouterLink],
   templateUrl: './dashboard.page.html',
 })
-export class DashboardPage {
+export class DashboardPage implements OnInit {
+  private readonly rewardRepository = inject(RewardRepository);
+
+  protected readonly activeRedemption = signal<ActiveRedemption | null>(null);
+  protected readonly isLoading = signal(true);
   protected readonly news: readonly PharmacyNews[] = [
     {
       category: 'Gesund durch den Sommer',
@@ -29,4 +34,16 @@ export class DashboardPage {
       date: '2. August',
     },
   ];
+
+  async ngOnInit(): Promise<void> {
+    try {
+      this.activeRedemption.set(await this.rewardRepository.getActiveRedemption());
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  protected activeRewardCount(redemption: ActiveRedemption): number {
+    return redemption.items.reduce((total, item) => total + item.quantity, 0);
+  }
 }

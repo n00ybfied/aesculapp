@@ -52,24 +52,36 @@
   <p class="mt-5 text-center text-sm leading-6 text-muted">Die Kamera startet automatisch. Alternativ können Sie ein Bild mit QR-Code auswählen.</p>
 </main>
 
-@if (scanResult(); as result) {
+@if (receiptPreview(); as receipt) {
   <div class="fixed inset-0 z-50 grid place-items-center bg-foreground/45 p-5" role="presentation">
     <section class="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="scan-result-title">
       <div class="grid size-12 place-items-center rounded-2xl bg-accent text-primary" aria-hidden="true">
         <ng-icon name="lucideQrCode" size="1.5rem" />
       </div>
-      <p class="mt-5 text-sm font-semibold tracking-wide text-primary">SCAN ERKANNT</p>
-      <h2 id="scan-result-title" class="mt-1 text-2xl font-bold">QR-Code-Inhalt</h2>
-
-      <code class="mt-4 block break-all rounded-xl bg-background p-4 text-sm leading-6 text-foreground">{{ result.rawValue }}</code>
+      <p class="mt-5 text-sm font-semibold tracking-wide text-primary">BELEG ERKANNT</p>
+      <h2 id="scan-result-title" class="mt-1 text-2xl font-bold">Punkte gutschreiben?</h2>
+      <div class="mt-5 rounded-2xl bg-background p-4">
+        <p class="font-bold">{{ receipt.pharmacyName }}</p>
+        <p class="mt-1 text-sm text-muted">Einkauf vom {{ receipt.purchasedAt }}</p>
+        <div class="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
+          <span class="text-sm font-semibold text-muted">Ihre Punkte</span>
+          <span class="rounded-full bg-accent px-3 py-1 text-sm font-bold text-primary">+{{ receipt.earnedPoints }} Punkte</span>
+        </div>
+      </div>
+      <details class="mt-4 text-sm text-muted">
+        <summary class="cursor-pointer font-semibold">QR-Code-Inhalt anzeigen</summary>
+        <code class="mt-3 block break-all rounded-xl bg-background p-3 text-xs leading-5 text-foreground">{{ receipt.rawQrValue }}</code>
+      </details>
       <button
         type="button"
-        class="mt-6 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        (click)="closeResult()"
+        class="mt-6 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+        (click)="importReceipt()"
+        [disabled]="isImporting()"
         autofocus
       >
-        Schließen
+        {{ isImporting() ? 'Wird gutgeschrieben …' : receipt.earnedPoints + ' Punkte gutschreiben' }}
       </button>
+      <button type="button" class="mt-3 min-h-11 w-full rounded-xl px-5 font-bold text-muted transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeResult()">Abbrechen</button>
     </section>
   </div>
 }

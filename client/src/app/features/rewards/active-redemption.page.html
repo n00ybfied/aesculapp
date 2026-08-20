@@ -1,0 +1,26 @@
+<main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center px-5 py-8">
+  @if (redemption(); as activeRedemption) {
+    <section class="w-full rounded-3xl bg-primary p-7 text-center text-on-primary shadow-soft" aria-labelledby="active-redemption-title">
+      <span class="mx-auto grid size-16 place-items-center rounded-3xl bg-white/15" aria-hidden="true">
+        <ng-icon name="lucideGift" size="2rem" />
+      </span>
+      @if (remainingSeconds() > 0) {
+        <p class="mt-6 text-sm font-bold tracking-wide text-on-primary/80">DEM APOTHEKEN-TEAM ZEIGEN</p>
+        <h1 id="active-redemption-title" class="mt-2 text-3xl font-bold">Ihre Prämien</h1>
+        <ul class="mt-4 space-y-1 text-sm font-semibold text-on-primary/90">
+          @for (item of activeRedemption.items; track item.rewardId) {
+            <li>{{ item.quantity }}× {{ item.title }}</li>
+          }
+        </ul>
+        <p class="mt-4 text-sm leading-6 text-on-primary/85">Diese Einlösung ist noch gültig für</p>
+        <p class="mt-2 text-6xl font-bold tracking-tight tabular-nums">{{ remainingTime() }}</p>
+        <p class="mt-5 text-sm font-semibold text-on-primary/85">{{ activeRedemption.totalPoints }} Punkte eingelöst</p>
+      } @else {
+        <p class="mt-6 text-sm font-bold tracking-wide text-on-primary/80">EINLÖSUNG ABGELAUFEN</p>
+        <h1 id="active-redemption-title" class="mt-2 text-3xl font-bold">Leider zu spät</h1>
+        <p class="mt-4 text-sm leading-6 text-on-primary/85">Diese Einlösung kann nicht mehr vorgezeigt werden.</p>
+      }
+      <button type="button" class="mt-8 min-h-12 w-full rounded-xl bg-white px-5 font-bold text-primary transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-on-primary" (click)="backToRewards()">Zurück zu Prämien</button>
+    </section>
+  }
+</main>

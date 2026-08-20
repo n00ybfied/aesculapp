@@ -100,6 +100,8 @@ Für den ersten grafischen Prototypen werden folgende Bereiche umgesetzt:
 - grafische Darstellung des Fortschritts
 - Einlösung im Prototyp nur simuliert
 
+Die Seite verwendet `RewardRepository` als fachliche Grenze. Der aktuelle `MockRewardRepository` liefert Punktestand, Bewegungen und verfügbare Prämien, simuliert deren Einlösung und speichert diesen Testzustand vorübergehend im browserseitigen Local Storage. Prämien können als Auswahl mit mehreren Positionen und Mengen gesammelt werden; dieselbe Prämie ist mehrfach wählbar. Die Gesamtpunktzahl wird vor der Bestätigung sowie im Repository geprüft. Während fachlicher Lese-, Berechnungs- und Schreibvorgänge ersetzt ein seitenweiter Loading-Spinner die Bedienelemente, damit keine parallelen Nutzeraktionen mit veraltetem Punktestand möglich sind. Das Dashboard ruft eine noch gültige aktive Einlösung über dasselbe Repository ab und zeigt sie ganz oben als auffälligen Link zur Mitarbeiteransicht. Eine bestätigte Einlösung erzeugt beziehungsweise ergänzt einen zeitlich auf fünf Minuten begrenzten, persistenten Einlösebeleg; die verbleibende Zeit wird aus `validUntil` berechnet und bleibt dadurch nach App-Neustart korrekt. Scanner-Gutschriften verwenden dasselbe Repository. Der als Debug markierte Reset setzt den lokalen Testzustand zurück. Ein späterer REST-Adapter ersetzt ausschließlich dieses Repository; Local Storage ist ausdrücklich keine produktive Persistenz und keine Berechtigungsgrundlage.
+
 #### Rechnungsscanner
 - Oberfläche zum Scannen beziehungsweise Hochladen eines Belegs
 - Simulation eines erkannten QR-Codes
@@ -108,7 +110,7 @@ Für den ersten grafischen Prototypen werden folgende Bereiche umgesetzt:
 - Bestätigung des erfolgreichen Imports
 - noch keine echte Anbindung an Kassensystem oder QR-Code-Auswertung
 
-Die Scanner-Seite verwendet `QrScannerService` als Abstraktion für die QR-Erkennung. Im Browser greift der Service über ZXing auf die rückwärtige Kamera zu und kann alternativ eine vom Benutzer gewählte Bilddatei auswerten. Bei einem erfolgreichen Scan wird die Erkennung beendet, bevor der rohe QR-Inhalt angezeigt wird. Ein späterer nativer Adapter verwendet bevorzugt das offizielle Capacitor-Barcode-Scanner-Plugin, ohne die Fachkomponente zu ändern.
+Die Scanner-Seite verwendet `QrScannerService` als Abstraktion für die QR-Erkennung. Im Browser greift der Service über ZXing auf die rückwärtige Kamera zu und kann alternativ eine vom Benutzer gewählte Bilddatei auswerten. Bei einem erfolgreichen Scan wird die Erkennung beendet und über `ReceiptRepository` eine Beleg- und Punkte-Vorschau geladen. Der aktuelle `MockReceiptRepository` simuliert die spätere REST-API; die Fachkomponente kennt weder Mock-Daten noch eine technische API-Implementierung. Nach Bestätigung wird eine Erfolgsmeldung angezeigt und der Scanner erneut aktiviert. Ein späterer nativer Adapter verwendet bevorzugt das offizielle Capacitor-Barcode-Scanner-Plugin, ohne die Fachkomponente zu ändern.
 
 ### Ziel der ersten Phase
 

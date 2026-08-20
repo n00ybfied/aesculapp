@@ -1,6 +1,10 @@
 {
   "locale": "de",
   "translations": {
-    "status.error.qr-image-unreadable": "Im gewählten Bild wurde kein lesbarer QR-Code gefunden."
+    "status.error.qr-image-unreadable": "Im gewählten Bild wurde kein lesbarer QR-Code gefunden.",
+    "status.success.receipt-imported": "{$points} Punkte wurden gutgeschrieben.",
+    "status.success.reward-redeemed": "{$rewardTitle} wurde eingelöst.",
+    "status.error.not-enough-points": "Für diese Auswahl reichen Ihre Punkte nicht aus.",
+    "status.info.points-reset": "Punktestand wurde zurückgesetzt."
   }
 }
