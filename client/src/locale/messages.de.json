@@ -1,0 +1,6 @@
+{
+  "locale": "de",
+  "translations": {
+    "status.error.qr-image-unreadable": "Im gewählten Bild wurde kein lesbarer QR-Code gefunden."
+  }
+}

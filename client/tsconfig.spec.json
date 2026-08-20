@@ -4,6 +4,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "types": [
+      "@angular/localize",
       "vitest/globals"
     ]
   },

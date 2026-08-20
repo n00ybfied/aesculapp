@@ -30,8 +30,8 @@ export const routes: Routes = [
       {
         path: 'scanner',
         loadComponent: () =>
-          import('./features/placeholder/placeholder.page').then((module) => module.PlaceholderPage),
-        data: { title: 'Rechnung scannen', description: 'Der Scanner wird als Nächstes vorbereitet.' },
+          import('./features/scanner/qr-scanner.page').then((module) => module.QrScannerPage),
+        title: 'QR-Code scannen | Aesculapp',
       },
       {
         path: 'profil',

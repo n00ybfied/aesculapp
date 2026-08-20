@@ -1,19 +1,23 @@
 import { provideIcons } from '@ng-icons/core';
 import {
-  lucideCircleDollarSign,
+  lucideCircleAlert,
+  lucideGem,
+  lucideFolderOpen,
   lucideClock,
   lucideHouse,
   lucideMenu,
-  lucideScanLine,
+  lucideQrCode,
   lucideX,
 } from '@ng-icons/lucide';
 
 export const provideLucideIcons = () =>
   provideIcons({
-    lucideCircleDollarSign,
+    lucideCircleAlert,
+    lucideGem,
+    lucideFolderOpen,
     lucideClock,
     lucideHouse,
     lucideMenu,
-    lucideScanLine,
+    lucideQrCode,
     lucideX,
   });

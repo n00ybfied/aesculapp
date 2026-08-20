@@ -108,6 +108,8 @@ Für den ersten grafischen Prototypen werden folgende Bereiche umgesetzt:
 - Bestätigung des erfolgreichen Imports
 - noch keine echte Anbindung an Kassensystem oder QR-Code-Auswertung
 
+Die Scanner-Seite verwendet `QrScannerService` als Abstraktion für die QR-Erkennung. Im Browser greift der Service über ZXing auf die rückwärtige Kamera zu und kann alternativ eine vom Benutzer gewählte Bilddatei auswerten. Bei einem erfolgreichen Scan wird die Erkennung beendet, bevor der rohe QR-Inhalt angezeigt wird. Ein späterer nativer Adapter verwendet bevorzugt das offizielle Capacitor-Barcode-Scanner-Plugin, ohne die Fachkomponente zu ändern.
+
 ### Ziel der ersten Phase
 
 Der Prototyp soll insbesondere dazu dienen:
@@ -420,6 +422,14 @@ Der Loader bezieht sich auf den jeweiligen Seiteninhalt und nicht auf die gesamt
 Auch diese Darstellung muss theme-fähig umgesetzt werden. Statt eines fest codierten weißen Hintergrunds wird langfristig ein semantischer Hintergrundwert wie `--color-background` beziehungsweise ein entsprechender Tailwind-Theme-Token verwendet.
 
 Ziel ist ein ruhiger, stabiler Seitenwechsel ohne sichtbares Nachladen einzelner Komponenten oder nachträgliche Größenänderungen.
+
+### Globale Statusmeldungen
+
+Kurze, nicht blockierende Status- und Fehlermeldungen werden zentral über `StatusMessageService` ausgelöst und in der App Shell als Snackbar angezeigt. Die Snackbar erscheint oberhalb der Bottom Navigation, verschwindet nach kurzer Zeit automatisch und kann durch seitliches Wischen oder über eine zugängliche Schließen-Aktion beendet werden. Fachkomponenten dürfen keine eigenen, dauerhaften Snackbar-Implementierungen erzeugen.
+
+Interaktive Layer wie Seitennavigation und Snackbar verwenden kurze, sanfte CSS-Transitions für Ein- und Ausblendungen. Beim Wischen verlässt eine Snackbar die Ansicht in Wischrichtung; bei automatischem Schließen blendet sie nach unten aus. `prefers-reduced-motion` verkürzt alle diese Übergänge für Nutzerinnen und Nutzer mit reduzierter Bewegungseinstellung.
+
+Texte für Status- und Fehlermeldungen werden als `$localize`-Nachrichten mit stabilen benutzerdefinierten IDs gepflegt. Die deutsche Ausgangssprache (`de`) ist in `angular.json` definiert; die extrahierte Übersetzungsdatei liegt unter `client/src/locale/messages.de.json` und wird mit `npm run extract-i18n` aktualisiert. Fachkomponenten verwenden zentrale i18n-Nachrichten statt sichtbare Meldungstexte direkt zu hinterlegen.
 
 
 ## Mandantenstrategie
