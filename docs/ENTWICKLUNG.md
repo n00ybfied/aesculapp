@@ -125,6 +125,18 @@ Der Prototyp soll insbesondere dazu dienen:
 
 Der Prototyp ist ausdrücklich noch keine produktive Anwendung. Persistenz, echte Authentifizierung, serverseitige Validierung, Rechteprüfung und integrationsabhängige Funktionen folgen in späteren Entwicklungsphasen.
 
+## Entwicklungsphase 2: Symfony API
+
+Nach dem ersten validierten Frontend-Ablauf beginnt der Aufbau einer Symfony-API im Projektordner server. Sie ersetzt die temporären Local-Storage-Repositories schrittweise durch REST-Endpunkte; Fachkomponenten bleiben dabei unverändert und greifen weiterhin nur über ihre Angular-Repositories zu.
+
+Für die lokale Entwicklung und die spätere produktive Datenhaltung wird MariaDB beziehungsweise MySQL verwendet. Zugangsdaten sind lokale Konfiguration und gehören ausschließlich in server/.env.local, niemals in versionierte Dateien. Die Datenbank wird zunächst manuell über Laragon angelegt.
+
+Die erste persistente Sicherheitsgrundlage besteht aus drei getrennten Entitäten: Tenant, User und TenantMembership. User enthält globale, eindeutige Login-Identitäten (Benutzername und E-Mail), den Anzeigenamen und den Passwort-Hash; TenantMembership ordnet einen Benutzer einer Apotheke zu und hält die mandantenspezifischen Rollen. Dadurch kann ein Benutzer zukünftig mehreren Mandanten angehören. Mandantenrollen dürfen nicht als globale Rollen im User gespeichert werden. Der idempotente Entwicklungs-Seed app:seed:sta legt den Partner-Mandanten Stadtapotheke Trofaiach und den Prototyp-Kunden an.
+
+Der erste echte Authentifizierungsschritt verwendet signierte JWT Access Tokens mit einer Laufzeit von 15 Minuten. POST /api/v1/auth/login prüft Benutzername und Passwort gegen die Datenbank und liefert Token sowie minimale Profildaten. Angular speichert den Access Token nur im Arbeitsspeicher; ein langlebiger Refresh Token und seine sichere native Speicherung werden erst im nächsten Schritt ergänzt. Private JWT-Schlüssel und ihre Passphrase sind ausschließlich lokale, unversionierte Konfiguration.
+
+Die klassische Authentifizierung besteht zusätzlich aus Registrierung sowie Passwort-Zurücksetzen. POST /api/v1/auth/register legt User und TenantMembership atomar für den durch die Server-Deployment-Konfiguration APP_TENANT_SLUG bestimmten Mandanten an und meldet den neuen Nutzer direkt an. Die Mandantenkennung kommt niemals aus dem Client. Passwort-Reset-Tokens werden ausschließlich gehasht gespeichert, sind einmalig verwendbar und nach 60 Minuten ungültig. Die Anforderung antwortet unabhängig davon, ob eine E-Mail existiert, gleichartig; dadurch kann sie keine Konten preisgeben. Der E-Mail-Versand verwendet Symfony Mailer und wird pro Umgebung über MAILER_DSN konfiguriert. In der lokalen Standardkonfiguration null://null werden E-Mails absichtlich nicht ausgeliefert.
+
 
 ## UX- und Theme-Grundlagen
 

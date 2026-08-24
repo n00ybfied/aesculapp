@@ -62,19 +62,20 @@
         <button
           type="submit"
           class="min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
+          [disabled]="isSubmitting()"
         >
-          Anmelden
+          {{ isSubmitting() ? 'Anmeldung wird geprüft …' : 'Anmelden' }}
         </button>
       </form>
 
-      <a routerLink="/login" class="mt-5 block min-h-11 py-3 text-center text-sm font-semibold text-primary underline-offset-4 hover:underline">
+      <a routerLink="/passwort-vergessen" class="mt-5 block min-h-11 py-3 text-center text-sm font-semibold text-primary underline-offset-4 hover:underline">
         Passwort vergessen?
       </a>
     </div>
 
     <p class="mt-7 text-center text-sm text-muted">
       Noch kein Konto?
-      <a routerLink="/login" class="font-semibold text-primary underline-offset-4 hover:underline">Jetzt registrieren</a>
+      <a routerLink="/registrierung" class="font-semibold text-primary underline-offset-4 hover:underline">Jetzt registrieren</a>
     </p>
 
     <aside class="mt-8 rounded-2xl bg-accent px-4 py-3 text-center text-sm text-accent-foreground" aria-label="Zugangsdaten für den Prototyp">

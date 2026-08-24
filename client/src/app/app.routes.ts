@@ -11,6 +11,27 @@ export const routes: Routes = [
     title: 'Anmelden | Aesculapp',
   },
   {
+    path: 'registrierung',
+    canMatch: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/registration/registration.page').then((module) => module.RegistrationPage),
+    title: 'Konto erstellen | Aesculapp',
+  },
+  {
+    path: 'passwort-vergessen',
+    canMatch: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/password-reset-request/password-reset-request.page').then((module) => module.PasswordResetRequestPage),
+    title: 'Passwort vergessen | Aesculapp',
+  },
+  {
+    path: 'passwort-zuruecksetzen',
+    canMatch: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/password-reset-confirm/password-reset-confirm.page').then((module) => module.PasswordResetConfirmPage),
+    title: 'Passwort zurücksetzen | Aesculapp',
+  },
+  {
     path: '',
     component: AppShellComponent,
     canActivateChild: [authGuard],
