@@ -137,6 +137,12 @@ Der erste echte Authentifizierungsschritt verwendet signierte JWT Access Tokens 
 
 Die klassische Authentifizierung besteht zusätzlich aus Registrierung sowie Passwort-Zurücksetzen. POST /api/v1/auth/register legt User und TenantMembership atomar für den durch die Server-Deployment-Konfiguration APP_TENANT_SLUG bestimmten Mandanten an und meldet den neuen Nutzer direkt an. Die Mandantenkennung kommt niemals aus dem Client. Passwort-Reset-Tokens werden ausschließlich gehasht gespeichert, sind einmalig verwendbar und nach 60 Minuten ungültig. Die Anforderung antwortet unabhängig davon, ob eine E-Mail existiert, gleichartig; dadurch kann sie keine Konten preisgeben. Der E-Mail-Versand verwendet Symfony Mailer und wird pro Umgebung über MAILER_DSN konfiguriert. In der lokalen Standardkonfiguration null://null werden E-Mails absichtlich nicht ausgeliefert.
 
+### Demo-Bereitstellung
+
+Die öffentliche Demo trennt Frontend und API über zwei HTTPS-Subdomains. `aesculapp.floatbox.at` liefert ausschließlich den Angular-Build aus `/var/www/html/aesculapp/client`; `api.aesculapp.floatbox.at` liefert Symfony ausschließlich über `/var/www/html/aesculapp/server/public` aus. Die zugehörige Nginx-Vorlage liegt versioniert unter `ops/nginx/api.aesculapp.floatbox.at.conf`. Der Deployment-Mechanismus darf lokale Server-Konfiguration (`server/.env.local`), JWT-Schlüssel (`server/config/jwt/`) sowie Laufzeitdaten (`server/var/`) nicht überschreiben.
+
+Der Demo-Build wird mit `npm run build:demo --prefix client` erzeugt. Die API-Basisadresse wird in der aktuellen Einzel-Demo anhand des Hosts aufgelöst: `localhost` und `127.0.0.1` verwenden `http://localhost:6080/api/v1`; alle anderen Hosts – einschließlich der öffentlichen Demo und nativer Builds – verwenden `https://api.aesculapp.floatbox.at/api/v1`. Der GitHub-Workflow `.github/workflows/deploy-demo.yml` baut die Abhängigkeiten auf dem GitHub-Runner und überträgt anschließend nur den Angular-Build sowie den produktionsbereiten Symfony-Code einschließlich `vendor/`. Der alte Composer auf dem Demo-Server wird dadurch nicht verwendet.
+
 
 ## UX- und Theme-Grundlagen
 

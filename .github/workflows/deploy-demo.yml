@@ -1,0 +1,74 @@
+name: Deploy demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: aesculapp-demo
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy demo
+    runs-on: ubuntu-latest
+    environment: demo
+    permissions:
+      contents: read
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install and test frontend
+        working-directory: client
+        run: |
+          npm ci
+          npm test
+          npm run build:demo
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ctype, iconv, pdo_mysql
+          tools: composer:v2
+
+      - name: Install production PHP dependencies
+        working-directory: server
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --no-interaction
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy build artifacts
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/client' '$DEPLOY_ROOT/server'"
+          rsync -az --delete client/dist/aesculapp/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/client/"
+          rsync -az --delete \
+            --exclude='.env.local' \
+            --exclude='config/jwt/' \
+            --exclude='var/' \
+            server/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/server/"
+
+      - name: Run database migrations and warm cache
+        run: |
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"

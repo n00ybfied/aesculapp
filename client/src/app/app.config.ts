@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import { API_BASE_URL, localApiBaseUrl } from './core/api/api.config';
+import { API_BASE_URL, apiBaseUrl } from './core/api/api.config';
 import { AuthService } from './core/auth/auth.service';
 import { provideLucideIcons } from './core/icons/lucide-icons';
 import { ThemeService } from './core/theme/theme.service';
@@ -15,7 +15,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideHttpClient(),
     provideRouter(routes),
-    { provide: API_BASE_URL, useValue: localApiBaseUrl },
+    { provide: API_BASE_URL, useValue: apiBaseUrl },
     provideLucideIcons(),
     provideAppInitializer(() => inject(ThemeService).initialize()),
     AuthService,
