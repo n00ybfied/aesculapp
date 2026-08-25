@@ -71,4 +71,4 @@ jobs:
 
       - name: Run database migrations and warm cache
         run: |
-          ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var && chmod -R g+rwX var && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
