@@ -1,0 +1,22 @@
+:root {
+  --admin-background: #f1f6fa;
+  --admin-surface: #ffffff;
+  --admin-text: #223645;
+  --admin-muted: #597181;
+  --admin-primary: #4b86b0;
+  --admin-primary-strong: #39739c;
+  --admin-border: #d7e4ec;
+  --admin-danger: #b34848;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--admin-background);
+  color: var(--admin-text);
+  font-family: Rubik, Arial, sans-serif;
+}
+
+button, input { font: inherit; }

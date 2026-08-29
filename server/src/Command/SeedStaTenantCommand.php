@@ -24,6 +24,9 @@ final class SeedStaTenantCommand extends Command
     private const USERNAME = 'kunde';
     private const USER_EMAIL = 'kunde@stadtapotheke-trofaiach.test';
     private const USER_PASSWORD = 'trofaiach';
+    private const ADMIN_USERNAME = 'portaladmin';
+    private const ADMIN_EMAIL = 'portaladmin@stadtapotheke-trofaiach.test';
+    private const ADMIN_PASSWORD = 'trofaiach-admin';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -55,13 +58,30 @@ final class SeedStaTenantCommand extends Command
         ]);
         if (!$membership instanceof TenantMembership) {
             $this->entityManager->persist(new TenantMembership($tenant, $user));
-            $this->entityManager->flush();
         }
 
+        $admin = $this->entityManager->getRepository(User::class)->findOneBy(['username' => self::ADMIN_USERNAME]);
+        if (!$admin instanceof User) {
+            $admin = new User(self::ADMIN_USERNAME, self::ADMIN_EMAIL, 'Portal-Administration');
+            $admin->setPassword($this->passwordHasher->hashPassword($admin, self::ADMIN_PASSWORD));
+            $this->entityManager->persist($admin);
+        }
+
+        $adminMembership = $this->entityManager->getRepository(TenantMembership::class)->findOneBy([
+            'tenant' => $tenant,
+            'user' => $admin,
+        ]);
+        if (!$adminMembership instanceof TenantMembership) {
+            $this->entityManager->persist(new TenantMembership($tenant, $admin, ['ROLE_TENANT_ADMIN']));
+        }
+
+        $this->entityManager->flush();
+
         $output->writeln(sprintf(
-            'Tenant #%d and prototype user "%s" are ready.',
+            'Tenant #%d, prototype user "%s" and portal admin "%s" are ready.',
             $tenant->getId(),
             $user->getUsername(),
+            $admin->getUsername(),
         ));
 
         return Command::SUCCESS;

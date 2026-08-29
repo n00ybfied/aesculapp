@@ -22,8 +22,12 @@ final class TenantMembershipRepository extends ServiceEntityRepository
 
     public function hasActiveMembershipFor(User $user, Tenant $tenant): bool
     {
-        return null !== $this->createQueryBuilder('membership')
-            ->select('membership.id')
+        return null !== $this->findForUserAndTenant($user, $tenant);
+    }
+
+    public function findForUserAndTenant(User $user, Tenant $tenant): ?TenantMembership
+    {
+        return $this->createQueryBuilder('membership')
             ->andWhere('membership.user = :user')
             ->andWhere('membership.tenant = :tenant')
             ->setParameter('user', $user)

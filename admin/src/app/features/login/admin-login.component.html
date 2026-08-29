@@ -1,0 +1,26 @@
+<main class="login-page">
+  <section class="login-card" aria-labelledby="login-title">
+    <div class="brand-mark" aria-hidden="true">A</div>
+    <p class="eyebrow">Stadtapotheke Trofaiach</p>
+    <h1 id="login-title">Adminbereich</h1>
+    <p class="intro">Verwalten Sie Inhalte und Zugänge Ihrer Apotheken-App.</p>
+
+    <form (ngSubmit)="submit()">
+      <label for="username">Benutzername</label>
+      <input id="username" name="username" [(ngModel)]="username" autocomplete="username" required />
+
+      <label for="password">Passwort</label>
+      <input id="password" name="password" [(ngModel)]="password" autocomplete="current-password" type="password" required />
+
+      @if (errorMessage()) {
+        <p class="error" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <button type="submit" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Anmeldung läuft …' : 'Anmelden' }}
+      </button>
+    </form>
+
+    <p class="hint">Neue Zugänge werden ausschließlich durch die Administration angelegt.</p>
+  </section>
+</main>

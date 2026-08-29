@@ -1,0 +1,21 @@
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" routerLink="/dashboard"><span>A</span><strong>AesculApp</strong></a>
+    <p class="tenant">Stadtapotheke Trofaiach</p>
+    <nav aria-label="Hauptnavigation">
+      <a routerLink="/dashboard" routerLinkActive="active">Übersicht</a>
+      <span aria-disabled="true">Inhalte <small>demnächst</small></span>
+      <span aria-disabled="true">Prämien <small>demnächst</small></span>
+      <span aria-disabled="true">Benutzer <small>demnächst</small></span>
+      <span aria-disabled="true">Einstellungen <small>demnächst</small></span>
+    </nav>
+  </aside>
+
+  <div class="main-area">
+    <header>
+      <div><p class="eyebrow">Apothekenportal</p><h1>Verwaltung</h1></div>
+      <div class="account"><span>{{ displayName() }}</span><button type="button" (click)="logout()">Abmelden</button></div>
+    </header>
+    <main><router-outlet /></main>
+  </div>
+</div>

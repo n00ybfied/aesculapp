@@ -1,0 +1,15 @@
+.login-page { display: grid; min-height: 100vh; place-items: center; padding: 2rem; }
+.login-card { width: min(100%, 28rem); padding: 2.75rem; border: 1px solid var(--admin-border); border-radius: 1.25rem; background: var(--admin-surface); box-shadow: 0 1.5rem 4rem rgb(34 54 69 / 10%); }
+.brand-mark { display: grid; width: 3rem; height: 3rem; place-items: center; border-radius: .9rem; background: var(--admin-primary); color: white; font-size: 1.35rem; font-weight: 700; }
+.eyebrow { margin: 1.75rem 0 .4rem; color: var(--admin-primary-strong); font-size: .9rem; font-weight: 600; }
+h1 { margin: 0; font-size: 2rem; }
+.intro { margin: .75rem 0 2rem; color: var(--admin-muted); line-height: 1.5; }
+form { display: grid; gap: .6rem; }
+label { margin-top: .6rem; font-weight: 600; }
+input { width: 100%; min-height: 2.9rem; padding: .65rem .8rem; border: 1px solid var(--admin-border); border-radius: .55rem; color: var(--admin-text); }
+input:focus { outline: 3px solid rgb(75 134 176 / 25%); border-color: var(--admin-primary); }
+button { min-height: 3rem; margin-top: 1.2rem; border: 0; border-radius: .6rem; background: var(--admin-primary); color: white; cursor: pointer; font-weight: 700; }
+button:hover:not(:disabled) { background: var(--admin-primary-strong); }
+button:disabled { cursor: wait; opacity: .65; }
+.error { margin: .8rem 0 0; color: var(--admin-danger); line-height: 1.4; }
+.hint { margin: 1.75rem 0 0; color: var(--admin-muted); font-size: .85rem; line-height: 1.5; }

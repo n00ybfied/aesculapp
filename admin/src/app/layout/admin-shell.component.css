@@ -1,0 +1,18 @@
+.shell { display: grid; min-height: 100vh; grid-template-columns: 16.5rem minmax(0, 1fr); }
+.sidebar { display: flex; flex-direction: column; padding: 1.75rem 1rem; background: #223645; color: white; }
+.brand { display: inline-flex; align-items: center; gap: .75rem; color: white; text-decoration: none; font-size: 1.1rem; }
+.brand span { display: grid; width: 2.3rem; height: 2.3rem; place-items: center; border-radius: .7rem; background: var(--admin-primary); }
+.tenant { margin: .75rem .5rem 2rem; color: #bdd4e3; font-size: .85rem; }
+nav { display: grid; gap: .35rem; }
+nav a, nav span { padding: .8rem .75rem; border-radius: .5rem; color: #d8e7f0; text-decoration: none; }
+nav a:hover, nav a.active { background: rgb(255 255 255 / 12%); color: white; }
+nav span { color: #9cb5c5; cursor: not-allowed; }
+nav small { display: block; margin-top: .2rem; font-size: .7rem; }
+.main-area { min-width: 0; }
+header { display: flex; align-items: center; justify-content: space-between; min-height: 7rem; padding: 1.5rem clamp(1.5rem, 4vw, 4rem); border-bottom: 1px solid var(--admin-border); background: var(--admin-surface); }
+.eyebrow { margin: 0 0 .25rem; color: var(--admin-primary-strong); font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+h1 { margin: 0; font-size: 1.55rem; }
+.account { display: flex; align-items: center; gap: 1rem; color: var(--admin-muted); }
+.account button { border: 1px solid var(--admin-border); border-radius: .45rem; background: white; color: var(--admin-text); cursor: pointer; padding: .55rem .75rem; }
+main { padding: clamp(1.5rem, 4vw, 4rem); }
+@media (max-width: 760px) { .shell { grid-template-columns: 1fr; } .sidebar { display: none; } header { min-height: 5.5rem; } .account span { display: none; } }
