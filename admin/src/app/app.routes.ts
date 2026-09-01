@@ -21,6 +21,7 @@ export const routes: Routes = [
       { path: 'inhalte/:id', loadComponent: () => import('./features/news/news-editor.component').then((module) => module.NewsEditorComponent) },
       { path: 'einloesungen', loadComponent: () => import('./features/redemptions/active-redemptions.component').then((module) => module.ActiveRedemptionsComponent) },
       { path: 'buchungen', loadComponent: () => import('./features/transactions/point-transactions.component').then((module) => module.PointTransactionsComponent) },
+      { path: 'einstellungen', loadComponent: () => import('./features/settings/tenant-branding.component').then((module) => module.TenantBrandingComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

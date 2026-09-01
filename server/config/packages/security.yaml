@@ -38,6 +38,7 @@ security:
         - { path: ^/api/v1/(auth/(login|register|password-reset/(request|confirm)|refresh|logout)|admin/auth/login)$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/rewards$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/news$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/branding$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1, roles: ROLE_USER }
 
 when@test:

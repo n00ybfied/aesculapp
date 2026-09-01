@@ -11,7 +11,7 @@
       <ng-icon name="lucideMenu" size="1.5rem" aria-hidden="true" />
     </button>
     <a routerLink="/dashboard" class="rounded-lg px-2 py-1 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Zur Übersicht">
-      <img [ngSrc]="theme.logoPath" width="530" height="174" class="h-auto w-34" [alt]="theme.pharmacyName" priority />
+      <img [src]="theme.logoPath" width="530" height="174" class="h-auto w-34" [alt]="theme.pharmacyName" />
     </a>
     <a routerLink="/profil" class="grid size-11 place-items-center overflow-hidden rounded-full bg-accent text-sm font-bold text-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Mein Profil">
       @if (profile()?.profileImageUrl; as imageUrl) {
@@ -26,7 +26,7 @@
     <div class="fixed inset-0 z-40 bg-foreground/35 transition-opacity duration-200 ease-out" [class.opacity-0]="!navigationOpen()" [class.pointer-events-none]="!navigationOpen()" (click)="closeNavigation()" aria-hidden="true"></div>
     <aside id="main-navigation" class="fixed inset-y-0 left-0 z-50 flex w-[min(21rem,calc(100vw-2rem))] flex-col bg-surface px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] shadow-2xl transition-transform duration-200 ease-out" [class.-translate-x-full]="!navigationOpen()" [class.pointer-events-none]="!navigationOpen()" [attr.aria-hidden]="!navigationOpen()" [attr.inert]="navigationOpen() ? null : ''" aria-label="Hauptmenü">
       <div class="flex items-center justify-between">
-        <img [ngSrc]="theme.logoPath" width="530" height="174" class="h-auto w-42" [alt]="theme.pharmacyName" />
+        <img [src]="theme.logoPath" width="530" height="174" class="h-auto w-42" [alt]="theme.pharmacyName" />
         <button type="button" class="grid size-11 place-items-center rounded-xl hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeNavigation()" aria-label="Hauptmenü schließen">
           <ng-icon name="lucideX" size="1.5rem" aria-hidden="true" />
         </button>

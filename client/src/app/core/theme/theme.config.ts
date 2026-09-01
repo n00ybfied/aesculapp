@@ -2,6 +2,7 @@ export interface ThemeDefinition {
   readonly id: string;
   readonly pharmacyName: string;
   readonly logoPath: string;
+  readonly squareLogoPath: string;
   readonly faviconPath: string;
 }
 
@@ -15,6 +16,7 @@ export interface ThemeDefinition {
 export const activeTheme: ThemeDefinition = {
   id: 'sta',
   pharmacyName: 'Stadt-Apotheke Trofaiach',
-  logoPath: 'assets/tenants/sta/logo.png',
+  logoPath: 'assets/tenants/sta/logo-fallback.svg',
+  squareLogoPath: 'assets/tenants/sta/logo-square-fallback.svg',
   faviconPath: 'assets/tenants/sta/favicon.png',
 };

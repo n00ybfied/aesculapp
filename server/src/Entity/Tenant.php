@@ -28,6 +28,15 @@ class Tenant
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $logoPath = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $squareLogoPath = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $faviconPath = null;
+
     public function __construct(string $name, string $slug)
     {
         $this->name = $name;
@@ -54,4 +63,11 @@ class Tenant
     {
         return $this->isActive;
     }
+
+    public function getLogoPath(): ?string { return $this->logoPath; }
+    public function getSquareLogoPath(): ?string { return $this->squareLogoPath; }
+    public function getFaviconPath(): ?string { return $this->faviconPath; }
+    public function setLogoPath(?string $path): void { $this->logoPath = $path; }
+    public function setSquareLogoPath(?string $path): void { $this->squareLogoPath = $path; }
+    public function setFaviconPath(?string $path): void { $this->faviconPath = $path; }
 }

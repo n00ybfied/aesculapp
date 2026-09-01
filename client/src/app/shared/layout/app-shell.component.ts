@@ -1,4 +1,3 @@
-import { NgOptimizedImage } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
@@ -9,7 +8,7 @@ import { SnackbarComponent } from '../feedback/snackbar.component';
 
 @Component({
   selector: 'app-shell',
-  imports: [NgIcon, NgOptimizedImage, RouterLink, RouterLinkActive, RouterOutlet, SnackbarComponent],
+  imports: [NgIcon, RouterLink, RouterLinkActive, RouterOutlet, SnackbarComponent],
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent implements OnInit {

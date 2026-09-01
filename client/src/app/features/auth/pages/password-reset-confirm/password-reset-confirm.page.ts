@@ -1,4 +1,3 @@
-import { NgOptimizedImage } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,7 +7,7 @@ import { ThemeService } from '../../../../core/theme/theme.service';
 
 @Component({
   selector: 'app-password-reset-confirm-page',
-  imports: [NgOptimizedImage, ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './password-reset-confirm.page.html',
 })
 export class PasswordResetConfirmPage {
