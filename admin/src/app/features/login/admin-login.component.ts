@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
+import { TenantBrandingService } from '../../core/settings/tenant-branding.service';
 
 @Component({
   selector: 'app-admin-login',
@@ -13,12 +14,19 @@ import { AdminAuthService } from '../../core/auth/admin-auth.service';
 })
 export class AdminLoginComponent {
   private readonly auth = inject(AdminAuthService);
+  private readonly brandingService = inject(TenantBrandingService);
   private readonly router = inject(Router);
+
+  protected readonly branding = this.brandingService.branding;
 
   protected username = '';
   protected password = '';
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
+
+  constructor() {
+    void this.brandingService.getPublic().catch(() => undefined);
+  }
 
   protected submit(): void {
     if (this.isSubmitting() || this.username.trim() === '' || this.password === '') {

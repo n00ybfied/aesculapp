@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AdminAuthService } from '../core/auth/admin-auth.service';
+import { TenantBrandingService } from '../core/settings/tenant-branding.service';
 
 @Component({
   selector: 'app-admin-shell',
@@ -11,8 +12,14 @@ import { AdminAuthService } from '../core/auth/admin-auth.service';
 export class AdminShellComponent {
   private readonly auth = inject(AdminAuthService);
   private readonly router = inject(Router);
+  private readonly brandingService = inject(TenantBrandingService);
 
   protected readonly displayName = this.auth.displayName;
+  protected readonly branding = this.brandingService.branding;
+
+  constructor() {
+    void this.brandingService.get();
+  }
 
   protected logout(): void {
     this.auth.logout();

@@ -8,6 +8,7 @@ use App\Entity\Reward;
 use App\Entity\User;
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
+use App\Service\ImageProcessor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,6 +28,7 @@ final class ApiRewardController
         private readonly TenantMembershipRepository $memberships,
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ImageProcessor $imageProcessor,
     ) {
     }
 
@@ -166,8 +168,8 @@ final class ApiRewardController
             return null;
         }
 
-        $filename = $slugger->slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)).'-'.bin2hex(random_bytes(8)).'.'.$extension;
-        $image->move($directory, $filename);
+        $filename = $slugger->slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)).'-'.bin2hex(random_bytes(8)).'.jpg';
+        if (!$this->imageProcessor->saveAdminImage($image, $directory.'/'.$filename)) { return null; }
         return '/uploads/rewards/'.$filename;
     }
 

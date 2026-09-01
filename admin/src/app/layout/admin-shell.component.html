@@ -1,6 +1,12 @@
 <div class="shell">
   <aside class="sidebar">
-    <a class="brand" routerLink="/dashboard"><span>A</span><strong>AesculApp</strong></a>
+    <a class="brand" routerLink="/dashboard">
+      @if (branding().logoUrl; as logoUrl) {
+        <img [src]="logoUrl" alt="Logo der Stadtapotheke Trofaiach" />
+      } @else {
+        <span aria-label="Logo-Platzhalter">LOGO</span>
+      }
+    </a>
     <p class="tenant">Stadtapotheke Trofaiach</p>
     <nav aria-label="Hauptnavigation">
       <a routerLink="/dashboard" routerLinkActive="active">Übersicht</a>

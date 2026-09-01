@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
+use App\Service\ImageProcessor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
@@ -23,6 +24,7 @@ final class ApiProfileController
         private readonly ActiveTenantProvider $activeTenant,
         private readonly TenantMembershipRepository $memberships,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ImageProcessor $imageProcessor,
     ) {
     }
 
@@ -92,8 +94,10 @@ final class ApiProfileController
             return new JsonResponse(['message' => 'Das Profilbild konnte nicht gespeichert werden.'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        $filename = 'profile-'.$user->getId().'-'.bin2hex(random_bytes(8)).'.'.$extension;
-        $photo->move($directory, $filename);
+        $filename = 'profile-'.$user->getId().'-'.bin2hex(random_bytes(8)).'.jpg';
+        if (!$this->imageProcessor->saveProfileJpeg($photo, $directory.'/'.$filename)) {
+            return new JsonResponse(['message' => 'Das Profilbild konnte nicht verarbeitet werden.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
         $previousPath = $user->getProfileImagePath();
         $user->setProfileImagePath('/uploads/profiles/'.$filename);
         $this->entityManager->flush();

@@ -8,6 +8,7 @@ use App\Entity\NewsPost;
 use App\Entity\User;
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
+use App\Service\ImageProcessor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -27,6 +28,7 @@ final class ApiNewsController
         private readonly TenantMembershipRepository $memberships,
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ImageProcessor $imageProcessor,
     ) {
     }
 
@@ -219,8 +221,8 @@ final class ApiNewsController
         $relativeDirectory = '/uploads/news'.($directoryName === '' ? '' : '/'.$directoryName);
         $directory = dirname(__DIR__, 2).'/public'.$relativeDirectory;
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) { return null; }
-        $filename = $slugger->slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)).'-'.bin2hex(random_bytes(8)).'.'.$extension;
-        $image->move($directory, $filename);
+        $filename = $slugger->slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)).'-'.bin2hex(random_bytes(8)).'.jpg';
+        if (!$this->imageProcessor->saveAdminImage($image, $directory.'/'.$filename)) { return null; }
         return $relativeDirectory.'/'.$filename;
     }
 

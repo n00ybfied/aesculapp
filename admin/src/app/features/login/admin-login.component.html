@@ -1,6 +1,10 @@
 <main class="login-page">
   <section class="login-card" aria-labelledby="login-title">
-    <div class="brand-mark" aria-hidden="true">A</div>
+    @if (branding().logoUrl; as logoUrl) {
+      <img class="brand-logo" [src]="logoUrl" alt="Logo der Stadtapotheke Trofaiach" />
+    } @else {
+      <div class="brand-mark" aria-label="Logo-Platzhalter">LOGO</div>
+    }
     <p class="eyebrow">Stadtapotheke Trofaiach</p>
     <h1 id="login-title">Adminbereich</h1>
     <p class="intro">Verwalten Sie Inhalte und Zugänge Ihrer Apotheken-App.</p>

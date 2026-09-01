@@ -1,6 +1,7 @@
 .login-page { display: grid; min-height: 100vh; place-items: center; padding: 2rem; }
 .login-card { width: min(100%, 28rem); padding: 2.75rem; border: 1px solid var(--admin-border); border-radius: 1.25rem; background: var(--admin-surface); box-shadow: 0 1.5rem 4rem rgb(34 54 69 / 10%); }
-.brand-mark { display: grid; width: 3rem; height: 3rem; place-items: center; border-radius: .9rem; background: var(--admin-primary); color: white; font-size: 1.35rem; font-weight: 700; }
+.brand-mark { display: grid; width: 7rem; height: 3rem; place-items: center; border-radius: .9rem; background: var(--admin-primary); color: white; font-size: .85rem; font-weight: 700; letter-spacing: .08em; }
+.brand-logo { display: block; width: 100%; max-width: 14rem; max-height: 4rem; object-fit: contain; object-position: left center; }
 .eyebrow { margin: 1.75rem 0 .4rem; color: var(--admin-primary-strong); font-size: .9rem; font-weight: 600; }
 h1 { margin: 0; font-size: 2rem; }
 .intro { margin: .75rem 0 2rem; color: var(--admin-muted); line-height: 1.5; }

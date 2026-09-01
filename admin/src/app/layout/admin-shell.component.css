@@ -1,7 +1,8 @@
 .shell { display: grid; min-height: 100vh; grid-template-columns: 16.5rem minmax(0, 1fr); }
 .sidebar { display: flex; flex-direction: column; padding: 1.75rem 1rem; background: #223645; color: white; }
-.brand { display: inline-flex; align-items: center; gap: .75rem; color: white; text-decoration: none; font-size: 1.1rem; }
-.brand span { display: grid; width: 2.3rem; height: 2.3rem; place-items: center; border-radius: .7rem; background: var(--admin-primary); }
+.brand { display: block; color: white; text-decoration: none; }
+.brand img { display: block; width: 100%; max-width: 12.5rem; max-height: 4rem; object-fit: contain; object-position: left center; }
+.brand span { display: grid; width: 8rem; height: 3rem; place-items: center; border-radius: .7rem; background: var(--admin-primary); font-size: .85rem; font-weight: 700; letter-spacing: .08em; }
 .tenant { margin: .75rem .5rem 2rem; color: #bdd4e3; font-size: .85rem; }
 nav { display: grid; gap: .35rem; }
 nav a, nav span { padding: .8rem .75rem; border-radius: .5rem; color: #d8e7f0; text-decoration: none; }
