@@ -1,9 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { tap } from 'rxjs';
+import { Router } from '@angular/router';
 
 interface AdminLoginResponse {
   accessToken: string;
+  expiresIn: number;
   user: {
     displayName: string;
     username: string;
@@ -14,9 +16,12 @@ interface AdminLoginResponse {
 export class AdminAuthService {
   private readonly http = inject(HttpClient);
   private readonly storageKey = 'aesculapp.admin.session';
+  private readonly router = inject(Router);
+  private expiryTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly session = signal<AdminLoginResponse | null>(this.readSession());
 
   readonly isAuthenticated = this.session.asReadonly();
+  readonly accessToken = () => this.session()?.accessToken ?? '';
   readonly displayName = () => this.session()?.user.displayName ?? '';
 
   login(username: string, password: string) {
@@ -26,6 +31,10 @@ export class AdminAuthService {
   }
 
   logout(): void {
+    if (this.expiryTimer !== undefined) {
+      clearTimeout(this.expiryTimer);
+      this.expiryTimer = undefined;
+    }
     sessionStorage.removeItem(this.storageKey);
     this.session.set(null);
   }
@@ -44,7 +53,13 @@ export class AdminAuthService {
     }
 
     try {
-      return JSON.parse(stored) as AdminLoginResponse;
+      const session = JSON.parse(stored) as AdminLoginResponse & { expiresAt?: number };
+      if (typeof session.expiresAt !== 'number' || session.expiresAt <= Date.now()) {
+        sessionStorage.removeItem(this.storageKey);
+        return null;
+      }
+      this.scheduleExpiry(session.expiresAt - Date.now());
+      return session;
     } catch {
       sessionStorage.removeItem(this.storageKey);
       return null;
@@ -52,7 +67,13 @@ export class AdminAuthService {
   }
 
   private storeSession(session: AdminLoginResponse): void {
-    sessionStorage.setItem(this.storageKey, JSON.stringify(session));
-    this.session.set(session);
+    const expiresAt = Date.now() + session.expiresIn * 1_000;
+    const storedSession = { ...session, expiresAt };
+    sessionStorage.setItem(this.storageKey, JSON.stringify(storedSession));
+    this.session.set(storedSession);
+    this.scheduleExpiry(session.expiresIn * 1_000);
   }
+
+  expireSession(): void { this.logout(); void this.router.navigateByUrl('/login'); }
+  private scheduleExpiry(delayMs: number): void { this.expiryTimer = setTimeout(() => this.expireSession(), delayMs); }
 }

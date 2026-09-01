@@ -2,6 +2,7 @@ import { provideIcons } from '@ng-icons/core';
 import {
   lucideCircleAlert,
   lucideCircleCheck,
+  lucideCamera,
   lucideGift,
   lucideGem,
   lucideFolderOpen,
@@ -18,6 +19,7 @@ export const provideLucideIcons = () =>
   provideIcons({
     lucideCircleAlert,
     lucideCircleCheck,
+    lucideCamera,
     lucideGift,
     lucideGem,
     lucideFolderOpen,

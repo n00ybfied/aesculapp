@@ -1,0 +1,24 @@
+@if (isLoading()) {
+  <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center bg-background" aria-label="Buchungen werden geladen"><span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary"></span></main>
+} @else if (history(); as page) {
+  <main class="px-5 pb-7 pt-6">
+    <a routerLink="/punkte" class="inline-flex min-h-11 items-center text-sm font-bold text-primary">← Punkte &amp; Prämien</a>
+    <p class="mt-4 text-sm font-semibold text-primary">PUNKTEKONTO</p>
+    <h1 class="mt-1 text-3xl font-bold tracking-tight">Alle Buchungen</h1>
+    <p class="mt-2 text-base text-muted">{{ page.total }} {{ page.total === 1 ? 'Buchung' : 'Buchungen' }}</p>
+    @if (page.transactions.length > 0) {
+      <div class="mt-7 divide-y divide-border rounded-2xl border border-border bg-surface px-4 shadow-card">
+        @for (item of page.transactions; track item.id) {
+          <div class="flex min-h-16 items-center justify-between gap-4 py-3"><div class="min-w-0"><p class="truncate text-sm font-semibold">{{ item.label }}</p><p class="mt-1 text-xs text-muted">{{ item.dateLabel }}</p></div><span class="shrink-0 text-sm font-bold" [class.text-success]="item.points > 0" [class.text-foreground]="item.points < 0">{{ item.points > 0 ? '+' : '' }}{{ item.points }} P.</span></div>
+        }
+      </div>
+      <nav class="mt-5 flex items-center justify-between gap-3" aria-label="Seitennavigation für Buchungen">
+        <button type="button" class="min-h-11 rounded-xl border border-border px-4 text-sm font-bold disabled:opacity-40" (click)="previousPage()" [disabled]="page.page <= 1">Zurück</button>
+        <span class="text-sm text-muted">Seite {{ page.page }} von {{ page.totalPages }}</span>
+        <button type="button" class="min-h-11 rounded-xl border border-border px-4 text-sm font-bold disabled:opacity-40" (click)="nextPage()" [disabled]="page.page >= page.totalPages">Weiter</button>
+      </nav>
+    } @else {
+      <p class="mt-7 rounded-2xl border border-border bg-surface p-5 text-muted shadow-card">Noch keine Punktebuchungen vorhanden.</p>
+    }
+  </main>
+}

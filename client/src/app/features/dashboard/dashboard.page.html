@@ -27,17 +27,21 @@
     <div class="flex items-start justify-between gap-4">
       <div>
         <p class="text-sm font-semibold text-on-primary/80">IHR PUNKTEKONTO</p>
-        <h2 id="points-title" class="mt-2 text-4xl font-bold tracking-tight">1.230 <span class="text-xl font-semibold">Punkte</span></h2>
+        <h2 id="points-title" class="mt-2 text-4xl font-bold tracking-tight">{{ pointsOverview()?.availablePoints ?? 0 }} <span class="text-xl font-semibold">Punkte</span></h2>
       </div>
       <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/15" aria-hidden="true">
         <ng-icon name="lucideGem" size="1.5rem" aria-hidden="true" />
       </span>
     </div>
     <div class="mt-6 h-2 overflow-hidden rounded-full bg-white/20" aria-label="Punktefortschritt: 82 Prozent">
-      <div class="h-full w-[82%] rounded-full bg-white"></div>
+      <div class="h-full rounded-full bg-white" [style.width.%]="nextReward() === null ? 100 : ((pointsOverview()?.availablePoints ?? 0) / nextReward()!.requiredPoints) * 100"></div>
     </div>
     <div class="mt-3 flex items-center justify-between gap-4 text-sm text-on-primary/85">
-      <span>Nur noch 270 Punkte bis zur nächsten Prämie</span>
+      @if (nextReward(); as reward) {
+        <span>Noch {{ reward.requiredPoints - (pointsOverview()?.availablePoints ?? 0) }} Punkte bis zur nächsten Prämie</span>
+      } @else {
+        <span>Sie können alle verfügbaren Prämien einlösen</span>
+      }
       <a routerLink="/punkte" class="shrink-0 font-bold text-white underline underline-offset-4">Ansehen</a>
     </div>
   </section>
@@ -68,19 +72,20 @@
   <section class="mt-8" aria-labelledby="news-title">
     <div class="flex items-center justify-between">
       <h2 id="news-title" class="text-lg font-bold">Neu in Ihrer Apotheke</h2>
-      <button type="button" class="min-h-11 px-2 text-sm font-bold text-primary">Alle</button>
+      <span class="text-sm text-muted">Aktuelles</span>
     </div>
     <div class="mt-3 space-y-3">
-      @for (item of news; track item.title) {
-        <article class="rounded-2xl border border-border bg-surface p-4 shadow-card">
+      @for (item of news(); track item.id) {
+        <a [routerLink]="['/news', item.id]" class="block rounded-2xl border border-border bg-surface p-4 shadow-card transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary">
           <div class="flex items-center justify-between gap-3">
-            <p class="text-xs font-bold tracking-wide text-primary">{{ item.category }}</p>
-            <time class="shrink-0 text-xs text-muted">{{ item.date }}</time>
+            <p class="text-xs font-bold tracking-wide text-primary">APOTHEKEN-NEWS</p>
+            <time class="shrink-0 text-xs text-muted">{{ formatNewsDate(item.publishedAt) }}</time>
           </div>
+          @if (item.imageUrl) { <img class="mt-3 h-36 w-full rounded-xl object-cover" [src]="item.imageUrl" [alt]="item.title" /> }
           <h3 class="mt-2 text-base font-bold">{{ item.title }}</h3>
-          <p class="mt-1 text-sm leading-6 text-muted">{{ item.excerpt }}</p>
-        </article>
-      }
+          <p class="mt-1 text-sm leading-6 text-muted">{{ item.subtitle }}</p>
+        </a>
+      } @empty { <p class="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">Derzeit gibt es keine neuen Beiträge.</p> }
     </div>
   </section>
 </main>

@@ -43,10 +43,21 @@ export const routes: Routes = [
         title: 'Übersicht | Aesculapp',
       },
       {
+        path: 'news/:id',
+        loadComponent: () => import('./features/news/news-detail.page').then((module) => module.NewsDetailPage),
+        title: 'Apotheken-News | Aesculapp',
+      },
+      {
         path: 'punkte/einloesung',
         loadComponent: () =>
           import('./features/rewards/active-redemption.page').then((module) => module.ActiveRedemptionPage),
         title: 'Einlösung vorzeigen | Aesculapp',
+      },
+      {
+        path: 'punkte/historie',
+        loadComponent: () =>
+          import('./features/rewards/points-history.page').then((module) => module.PointsHistoryPage),
+        title: 'Alle Buchungen | Aesculapp',
       },
       {
         path: 'punkte',
@@ -63,8 +74,8 @@ export const routes: Routes = [
       {
         path: 'profil',
         loadComponent: () =>
-          import('./features/placeholder/placeholder.page').then((module) => module.PlaceholderPage),
-        data: { title: 'Mein Profil', description: 'Ihre persönlichen Einstellungen folgen bald.' },
+          import('./features/profile/profile.page').then((module) => module.ProfilePage),
+        title: 'Mein Profil | Aesculapp',
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],

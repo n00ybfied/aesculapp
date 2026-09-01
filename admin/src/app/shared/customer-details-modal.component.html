@@ -1,0 +1,26 @@
+@if (customers.isOpen()) {
+  <div class="backdrop" (click)="customers.close()" role="presentation">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="customer-modal-title" (click)="$event.stopPropagation()">
+      <button class="close" type="button" (click)="customers.close()" aria-label="Kundendaten schließen">×</button>
+      @if (customers.isLoading()) {
+        <div class="loading">Kundendaten werden geladen …</div>
+      } @else if (customers.error()) {
+        <p class="error" role="alert">{{ customers.error() }}</p>
+      } @else if (customers.customer(); as customer) {
+        <header>
+          @if (customer.profileImageUrl; as imageUrl) {
+            <img [src]="imageUrl" alt="" />
+          } @else {
+            <span class="avatar" aria-hidden="true">{{ customers.initials(customer) }}</span>
+          }
+          <div><p class="eyebrow">KUNDE #{{ customer.id }}</p><h2 id="customer-modal-title">{{ customer.displayName }}</h2><p class="username">{{ customer.username }}</p></div>
+        </header>
+        <dl>
+          <div><dt>E-Mail</dt><dd><a [href]="'mailto:' + customer.email">{{ customer.email }}</a></dd></div>
+          @if (customer.phone) { <div><dt>Telefon</dt><dd><a [href]="'tel:' + customer.phone">{{ customer.phone }}</a></dd></div> }
+          @if (customer.streetAddress || customer.postalCode || customer.city) { <div><dt>Adresse</dt><dd>{{ customer.streetAddress }}<br />{{ customer.postalCode }} {{ customer.city }}</dd></div> }
+        </dl>
+      }
+    </section>
+  </div>
+}

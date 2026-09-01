@@ -1,5 +1,12 @@
 <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center px-5 py-8">
-  @if (redemption(); as activeRedemption) {
+  @if (wasCancelled()) {
+    <section class="w-full rounded-3xl bg-danger-soft p-7 text-center shadow-soft" role="alert">
+      <p class="text-sm font-bold tracking-wide text-danger">EINLÖSUNG ABGEBROCHEN</p>
+      <h1 class="mt-2 text-3xl font-bold text-foreground">Ihre Punkte wurden zurückgebucht</h1>
+      <p class="mt-4 text-sm leading-6 text-muted">Das Apotheken-Team hat diese Einlösung abgebrochen.</p>
+      <button type="button" class="mt-8 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary" (click)="backToRewards()">Zurück zu Prämien</button>
+    </section>
+  } @else if (redemption(); as activeRedemption) {
     <section class="w-full rounded-3xl bg-primary p-7 text-center text-on-primary shadow-soft" aria-labelledby="active-redemption-title">
       <span class="mx-auto grid size-16 place-items-center rounded-3xl bg-white/15" aria-hidden="true">
         <ng-icon name="lucideGift" size="2rem" />

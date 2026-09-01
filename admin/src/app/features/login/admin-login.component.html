@@ -12,6 +12,10 @@
       <label for="password">Passwort</label>
       <input id="password" name="password" [(ngModel)]="password" autocomplete="current-password" type="password" required />
 
+      <aside class="demo-access" aria-label="Zugangsdaten für den Prototyp">
+        Demo-Zugang: <strong>portaladmin</strong> / <strong>trofaiach-admin</strong>
+      </aside>
+
       @if (errorMessage()) {
         <p class="error" role="alert">{{ errorMessage() }}</p>
       }

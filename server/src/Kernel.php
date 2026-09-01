@@ -9,6 +9,12 @@ class Kernel extends BaseKernel
 {
     use MicroKernelTrait;
 
+    public function __construct(string $environment, bool $debug)
+    {
+        date_default_timezone_set('Europe/Vienna');
+        parent::__construct($environment, $debug);
+    }
+
     /**
      * @return list<string> An array of allowed values for APP_ENV
      */

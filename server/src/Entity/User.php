@@ -28,6 +28,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 160)]
     private string $displayName;
 
+    #[ORM\Column(length: 40, nullable: true)]
+    private ?string $phone = null;
+
+    #[ORM\Column(length: 160, nullable: true)]
+    private ?string $streetAddress = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $postalCode = null;
+
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $city = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $profileImagePath = null;
+
     #[ORM\Column(length: 255)]
     private string $password;
 
@@ -68,6 +83,61 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getDisplayName(): string
     {
         return $this->displayName;
+    }
+
+    public function setDisplayName(string $displayName): void
+    {
+        $this->displayName = $displayName;
+    }
+
+    public function getPhone(): ?string
+    {
+        return $this->phone;
+    }
+
+    public function setPhone(?string $phone): void
+    {
+        $this->phone = $phone;
+    }
+
+    public function getStreetAddress(): ?string
+    {
+        return $this->streetAddress;
+    }
+
+    public function setStreetAddress(?string $streetAddress): void
+    {
+        $this->streetAddress = $streetAddress;
+    }
+
+    public function getPostalCode(): ?string
+    {
+        return $this->postalCode;
+    }
+
+    public function setPostalCode(?string $postalCode): void
+    {
+        $this->postalCode = $postalCode;
+    }
+
+    public function getCity(): ?string
+    {
+        return $this->city;
+    }
+
+    public function setCity(?string $city): void
+    {
+        $this->city = $city;
+    }
+
+    public function getProfileImagePath(): ?string
+    {
+        return $this->profileImagePath;
+    }
+
+    public function setProfileImagePath(?string $profileImagePath): void
+    {
+        $this->profileImagePath = $profileImagePath;
     }
 
     /**

@@ -1,14 +1,15 @@
 {
   "locale": "de",
   "translations": {
+    "auth.error.registration-conflict": "Für diesen Benutzernamen oder diese E-Mail-Adresse besteht bereits ein Konto.",
+    "auth.error.registration-invalid": "Die Registrierung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Angaben.",
+    "auth.error.password-reset-request": "Die Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es später erneut.",
+    "auth.error.password-reset-invalid": "Dieser Link ist ungültig oder abgelaufen. Fordern Sie bitte einen neuen an.",
     "status.error.qr-image-unreadable": "Im gewählten Bild wurde kein lesbarer QR-Code gefunden.",
     "status.success.receipt-imported": "{$points} Punkte wurden gutgeschrieben.",
     "status.success.reward-redeemed": "{$rewardTitle} wurde eingelöst.",
     "status.error.not-enough-points": "Für diese Auswahl reichen Ihre Punkte nicht aus.",
     "status.info.points-reset": "Punktestand wurde zurückgesetzt.",
-    "auth.error.registration-conflict": "Für diesen Benutzernamen oder diese E-Mail-Adresse besteht bereits ein Konto.",
-    "auth.error.registration-invalid": "Die Registrierung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Angaben.",
-    "auth.error.password-reset-request": "Die Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es später erneut.",
-    "auth.error.password-reset-invalid": "Dieser Link ist ungültig oder abgelaufen. Fordern Sie bitte einen neuen an."
+    "status.error.redemption-cancelled": "Die Einlösung wurde vom Apotheken-Team abgebrochen. Ihre Punkte wurden zurückgebucht."
   }
 }

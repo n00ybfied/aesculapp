@@ -12,4 +12,5 @@ button { min-height: 3rem; margin-top: 1.2rem; border: 0; border-radius: .6rem; 
 button:hover:not(:disabled) { background: var(--admin-primary-strong); }
 button:disabled { cursor: wait; opacity: .65; }
 .error { margin: .8rem 0 0; color: var(--admin-danger); line-height: 1.4; }
+.demo-access { margin-top: .75rem; padding: .8rem 1rem; border: 1px solid var(--admin-border); border-radius: .65rem; background: var(--admin-background); color: var(--admin-text); font-size: .9rem; line-height: 1.5; }
 .hint { margin: 1.75rem 0 0; color: var(--admin-muted); font-size: .85rem; line-height: 1.5; }

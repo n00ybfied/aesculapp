@@ -4,4 +4,5 @@ export const statusMessages = {
   rewardRedeemed: (rewardTitle: string) => $localize`:@@status.success.reward-redeemed:${rewardTitle}:rewardTitle: wurde eingelöst.`,
   notEnoughPoints: () => $localize`:@@status.error.not-enough-points:Für diese Auswahl reichen Ihre Punkte nicht aus.`,
   pointsReset: () => $localize`:@@status.info.points-reset:Punktestand wurde zurückgesetzt.`,
+  redemptionCancelled: () => $localize`:@@status.error.redemption-cancelled:Die Einlösung wurde vom Apotheken-Team abgebrochen. Ihre Punkte wurden zurückgebucht.`,
 } as const;

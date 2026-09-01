@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
 import { statusMessages } from '../../core/i18n/status-messages';
@@ -12,7 +12,7 @@ interface RewardCartItem {
 
 @Component({
   selector: 'app-rewards-page',
-  imports: [NgIcon],
+  imports: [NgIcon, RouterLink],
   templateUrl: './rewards.page.html',
 })
 export class RewardsPage implements OnInit {

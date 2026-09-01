@@ -47,7 +47,7 @@ final class ApiLoginController
             return $this->invalidCredentialsResponse();
         }
 
-        return $responses->create($user);
+        return $responses->create($user, $request);
     }
 
     private function invalidCredentialsResponse(): JsonResponse

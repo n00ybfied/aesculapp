@@ -68,7 +68,7 @@ final class ApiRegistrationController
         $entityManager->persist(new TenantMembership($activeTenant->get(), $user));
         $entityManager->flush();
 
-        return $responses->create($user, JsonResponse::HTTP_CREATED);
+        return $responses->create($user, $request, JsonResponse::HTTP_CREATED);
     }
 
     private function validationError(): JsonResponse

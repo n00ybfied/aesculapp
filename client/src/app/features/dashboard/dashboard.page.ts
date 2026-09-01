@@ -1,14 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
-import { RewardRepository, type ActiveRedemption } from '../../core/rewards/reward.repository';
-
-interface PharmacyNews {
-  readonly title: string;
-  readonly excerpt: string;
-  readonly category: string;
-  readonly date: string;
-}
+import { RewardRepository, type ActiveRedemption, type RewardsOverview } from '../../core/rewards/reward.repository';
+import { PharmacyNewsService, type PharmacyNewsPost } from '../../core/news/pharmacy-news.service';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -17,27 +11,23 @@ interface PharmacyNews {
 })
 export class DashboardPage implements OnInit {
   private readonly rewardRepository = inject(RewardRepository);
+  private readonly newsService = inject(PharmacyNewsService);
 
   protected readonly activeRedemption = signal<ActiveRedemption | null>(null);
+  protected readonly pointsOverview = signal<RewardsOverview | null>(null);
+  protected readonly nextReward = computed(() => {
+    const overview = this.pointsOverview();
+    return overview?.rewards.find((reward) => reward.requiredPoints > overview.availablePoints) ?? null;
+  });
   protected readonly isLoading = signal(true);
-  protected readonly news: readonly PharmacyNews[] = [
-    {
-      category: 'Gesund durch den Sommer',
-      title: 'Sonnenschutz: gut vorbereitet in den Urlaub',
-      excerpt: 'Wir zeigen Ihnen, worauf es bei Hautschutz und Reiseapotheke ankommt.',
-      date: 'Heute',
-    },
-    {
-      category: 'Aktion',
-      title: '20 % auf ausgewählte Pflegeprodukte',
-      excerpt: 'Entdecken Sie unsere Angebote für eine sanfte tägliche Pflegeroutine.',
-      date: '2. August',
-    },
-  ];
+  protected readonly news = signal<readonly PharmacyNewsPost[]>([]);
 
   async ngOnInit(): Promise<void> {
     try {
-      this.activeRedemption.set(await this.rewardRepository.getActiveRedemption());
+      const [overview, news] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => [])]);
+      this.pointsOverview.set(overview);
+      this.activeRedemption.set(overview.activeRedemption);
+      this.news.set(news);
     } finally {
       this.isLoading.set(false);
     }
@@ -46,4 +36,5 @@ export class DashboardPage implements OnInit {
   protected activeRewardCount(redemption: ActiveRedemption): number {
     return redemption.items.reduce((total, item) => total + item.quantity, 0);
   }
+  protected formatNewsDate(value: string): string { return new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium' }).format(new Date(value)); }
 }

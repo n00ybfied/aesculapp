@@ -1,0 +1,16 @@
+<section>
+  <div class="heading"><div><p class="eyebrow">Inhalte</p><h2>Apotheken-News</h2><p class="intro">Beiträge für die Kunden-App verwalten.</p></div><a routerLink="/inhalte/neu" class="primary">Neuer Beitrag</a></div>
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (isLoading()) { <p class="empty">Beiträge werden geladen …</p> } @else if (newsPage(); as page) {
+    <div class="post-list">
+      @for (post of page.posts; track post.id) {
+        <article>
+          @if (post.imageUrl) { <img [src]="post.imageUrl" alt="" /> }
+          <div class="details"><div class="title-line"><h3>{{ post.title }}</h3><span [class.hidden]="!post.isVisible">{{ post.isVisible ? 'Sichtbar' : 'Ausgeblendet' }}</span></div><p>{{ post.subtitle }}</p><small>Beitragsdatum: {{ formatDate(post.publishedAt) }}</small>@if (post.showFrom || post.showUntil) { <small>Anzeige: {{ post.showFrom ? formatDate(post.showFrom) : 'sofort' }} – {{ post.showUntil ? formatDate(post.showUntil) : 'offen' }}</small> }</div>
+          <div class="actions"><a [routerLink]="['/inhalte', post.id]">Bearbeiten</a><button type="button" (click)="remove(post.id, post.title)">Löschen</button></div>
+        </article>
+      } @empty { <p class="empty">Noch keine Beiträge angelegt.</p> }
+    </div>
+    @if (page.totalPages > 1) { <nav class="pagination" aria-label="Seitennavigation"><button type="button" [disabled]="page.page === 1" (click)="load(page.page - 1)">Zurück</button><span>Seite {{ page.page }} von {{ page.totalPages }}</span><button type="button" [disabled]="page.page === page.totalPages" (click)="load(page.page + 1)">Weiter</button></nav> }
+  }
+</section>

@@ -13,8 +13,12 @@
     <a routerLink="/dashboard" class="rounded-lg px-2 py-1 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Zur Übersicht">
       <img [ngSrc]="theme.logoPath" width="530" height="174" class="h-auto w-34" [alt]="theme.pharmacyName" priority />
     </a>
-    <a routerLink="/profil" class="grid size-11 place-items-center rounded-full bg-accent text-sm font-bold text-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Mein Profil">
-      K
+    <a routerLink="/profil" class="grid size-11 place-items-center overflow-hidden rounded-full bg-accent text-sm font-bold text-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Mein Profil">
+      @if (profile()?.profileImageUrl; as imageUrl) {
+        <img [src]="imageUrl" class="size-full object-cover" alt="" />
+      } @else {
+        {{ profileInitials() }}
+      }
     </a>
   </header>
 

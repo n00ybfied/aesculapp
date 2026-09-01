@@ -30,7 +30,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: |
+            client/package-lock.json
+            admin/package-lock.json
 
       - name: Install and test frontend
         working-directory: client
@@ -38,6 +40,12 @@ jobs:
           npm ci
           npm test
           npm run build:demo
+
+      - name: Build admin portal
+        working-directory: admin
+        run: |
+          npm ci
+          npm run build
 
       - name: Set up PHP and Composer
         uses: shivammathur/setup-php@v2
@@ -61,14 +69,16 @@ jobs:
 
       - name: Deploy build artifacts
         run: |
-          ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/client' '$DEPLOY_ROOT/server'"
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/client' '$DEPLOY_ROOT/admin' '$DEPLOY_ROOT/server'"
           rsync -az --delete client/dist/aesculapp/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/client/"
+          rsync -az --delete admin/dist/admin/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/admin/"
           rsync -az --delete \
             --exclude='.env.local' \
             --exclude='config/jwt/' \
             --exclude='var/' \
+            --exclude='public/uploads/' \
             server/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/server/"
 
       - name: Run database migrations and warm cache
         run: |
-          ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache && rm -rf var/cache/prod && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache public/uploads/rewards && rm -rf var/cache/prod && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"

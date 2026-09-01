@@ -1,9 +1,16 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { API_BASE_URL } from '../api/api.config';
+import { AuthService } from '../auth/auth.service';
+import { RewardCatalogService } from './reward-catalog.service';
 
 export interface Reward {
   readonly id: string;
   readonly title: string;
+  readonly subtitle: string;
   readonly description: string;
+  readonly imageUrl?: string;
   readonly requiredPoints: number;
 }
 
@@ -12,6 +19,13 @@ export interface PointsHistoryItem {
   readonly label: string;
   readonly dateLabel: string;
   readonly points: number;
+}
+
+export interface PointsHistoryPage {
+  readonly transactions: readonly PointsHistoryItem[];
+  readonly page: number;
+  readonly totalPages: number;
+  readonly total: number;
 }
 
 export interface RewardsOverview {
@@ -56,11 +70,7 @@ export const rewardStorageKey = 'aesculapp.mock-rewards.v1';
 const createInitialState = (): PersistedRewardState => ({
   availablePoints: 1_230,
   activeRedemption: null,
-  history: [
-    { id: 'receipt-1', label: 'Einkauf in der Stadtapotheke', dateLabel: 'Heute', points: 42 },
-    { id: 'receipt-2', label: 'Einkauf in der Stadtapotheke', dateLabel: '12. August', points: 35 },
-    { id: 'bonus-1', label: 'Willkommensbonus', dateLabel: '1. August', points: 100 },
-  ],
+  history: [],
 });
 
 export abstract class RewardRepository {
@@ -69,19 +79,33 @@ export abstract class RewardRepository {
   abstract credit(points: number, label: string): Promise<void>;
   abstract reset(): Promise<void>;
   abstract getActiveRedemption(): Promise<ActiveRedemption | null>;
+  abstract getHistory(page?: number): Promise<PointsHistoryPage>;
 }
 
 @Injectable()
 export class MockRewardRepository extends RewardRepository {
+  private readonly catalog = inject(RewardCatalogService);
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
+  private readonly auth = inject(AuthService);
   private state = this.readState();
+  private currentRewards: readonly Reward[] = [];
   private readonly rewards: readonly Reward[] = [
-    { id: 'tea', title: 'Tee-Genuss', description: 'Eine Packung Wohlfühltee Ihrer Wahl.', requiredPoints: 500 },
-    { id: 'voucher', title: '5 € Gutschein', description: 'Einlösbar bei Ihrem nächsten Einkauf.', requiredPoints: 1_000 },
-    { id: 'care', title: 'Pflege-Set', description: 'Praktische Auswahl für Ihre tägliche Pflege.', requiredPoints: 1_500 },
+    { id: 'tea', title: 'Tee-Genuss', subtitle: 'Wohlfühltee', description: 'Eine Packung Wohlfühltee Ihrer Wahl.', requiredPoints: 500 },
+    { id: 'voucher', title: '5 € Gutschein', subtitle: 'Für Ihren Einkauf', description: 'Einlösbar bei Ihrem nächsten Einkauf.', requiredPoints: 1_000 },
+    { id: 'care', title: 'Pflege-Set', subtitle: 'Für jeden Tag', description: 'Praktische Auswahl für Ihre tägliche Pflege.', requiredPoints: 1_500 },
   ];
   async getOverview(): Promise<RewardsOverview> {
     await this.getActiveRedemption();
-    return this.createOverview();
+    await this.refreshServerBalance();
+    const history = await this.getHistory();
+    try {
+      this.currentRewards = await this.catalog.getVisibleRewards();
+    } catch {
+      this.currentRewards = this.rewards;
+    }
+    this.updateState({ ...this.state, history: history.transactions });
+    return this.createOverview(this.currentRewards);
   }
 
   async redeem(selections: readonly RewardSelection[]): Promise<RewardRedemption> {
@@ -92,16 +116,21 @@ export class MockRewardRepository extends RewardRepository {
       throw new Error('Reward cannot be redeemed.');
     }
 
+    const response = await firstValueFrom(this.http.post<{ remainingPoints: number; redemption: { id: number; validUntil: string } }>(
+      `${this.apiBaseUrl}/rewards/redeem`,
+      { selections },
+      { headers: new HttpHeaders({ Authorization: `Bearer ${this.auth.accessToken()}` }) },
+    ));
     const previousRedemption = await this.getActiveRedemption();
     const activeRedemption: ActiveRedemption = {
-      id: previousRedemption?.id ?? `redemption-${Date.now()}`,
+      id: String(response.redemption.id),
       items: this.mergeRedemptionItems(previousRedemption?.items ?? [], items),
       totalPoints: (previousRedemption?.totalPoints ?? 0) + totalPoints,
-      validUntil: Date.now() + 5 * 60 * 1_000,
+      validUntil: new Date(response.redemption.validUntil).getTime(),
     };
 
     this.updateState({
-      availablePoints: this.state.availablePoints - totalPoints,
+      availablePoints: response.remainingPoints,
       history: [
         ...items.map((item) => ({
           id: `reward-${item.rewardId}-${Date.now()}-${item.quantity}`,
@@ -134,6 +163,21 @@ export class MockRewardRepository extends RewardRepository {
   }
 
   async getActiveRedemption(): Promise<ActiveRedemption | null> {
+    try {
+      const response = await firstValueFrom(this.http.get<{ redemption: { id: number } | null }>(
+        `${this.apiBaseUrl}/rewards/active`,
+        { headers: new HttpHeaders({ Authorization: `Bearer ${this.auth.accessToken()}` }) },
+      ));
+      if (response.redemption === null) {
+        this.updateState({ ...this.state, activeRedemption: null });
+        return null;
+      }
+      if (this.state.activeRedemption?.id !== String(response.redemption.id)) {
+        return null;
+      }
+    } catch {
+      // The local prototype fallback remains usable while the API is unavailable.
+    }
     const activeRedemption = this.state.activeRedemption;
     if (activeRedemption && activeRedemption.validUntil <= Date.now()) {
       this.updateState({ ...this.state, activeRedemption: null });
@@ -141,6 +185,38 @@ export class MockRewardRepository extends RewardRepository {
     }
 
     return activeRedemption;
+  }
+
+  async getHistory(page = 1): Promise<PointsHistoryPage> {
+    const token = this.auth.accessToken();
+    if (token === null) {
+      return { transactions: [], page: 1, totalPages: 0, total: 0 };
+    }
+
+    try {
+      const response = await firstValueFrom(this.http.get<{
+        transactions: Array<{ id: number; label: string; points: number; createdAt: string }>;
+        page: number;
+        totalPages: number;
+        total: number;
+      }>(
+        this.apiBaseUrl + '/rewards/transactions',
+        { params: { page: String(page), pageSize: '10' }, headers: new HttpHeaders({ Authorization: 'Bearer ' + token }) },
+      ));
+      return {
+        transactions: response.transactions.map((transaction) => ({
+          id: String(transaction.id),
+          label: transaction.label,
+          points: transaction.points,
+          dateLabel: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(transaction.createdAt)),
+        })),
+        page: response.page,
+        totalPages: response.totalPages,
+        total: response.total,
+      };
+    } catch {
+      return { transactions: [], page: 1, totalPages: 0, total: 0 };
+    }
   }
 
   private readState(): PersistedRewardState {
@@ -194,7 +270,7 @@ export class MockRewardRepository extends RewardRepository {
 
     const items: ActiveRedemptionItem[] = [];
     for (const [rewardId, quantity] of quantities) {
-      const reward = this.rewards.find((item) => item.id === rewardId);
+      const reward = this.currentRewards.find((item) => item.id === rewardId);
       if (!reward) {
         return [];
       }
@@ -219,12 +295,29 @@ export class MockRewardRepository extends RewardRepository {
     return [...merged.values()];
   }
 
-  private createOverview(): RewardsOverview {
+  private createOverview(rewards: readonly Reward[] = this.rewards): RewardsOverview {
     return {
       availablePoints: this.state.availablePoints,
-      rewards: this.rewards,
+      rewards,
       history: this.state.history,
       activeRedemption: this.state.activeRedemption,
     };
+  }
+
+  private async refreshServerBalance(): Promise<void> {
+    const token = this.auth.accessToken();
+    if (token === null) {
+      return;
+    }
+
+    try {
+      const response = await firstValueFrom(this.http.get<{ availablePoints: number }>(
+        this.apiBaseUrl + '/rewards/balance',
+        { headers: new HttpHeaders({ Authorization: 'Bearer ' + token }) },
+      ));
+      this.updateState({ ...this.state, availablePoints: response.availablePoints });
+    } catch {
+      // The local fallback is retained only while the API is unavailable.
+    }
   }
 }
