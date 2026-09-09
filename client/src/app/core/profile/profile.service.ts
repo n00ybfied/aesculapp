@@ -14,6 +14,7 @@ export interface CustomerProfile {
   readonly postalCode: string | null;
   readonly city: string | null;
   readonly profileImageUrl: string | null;
+  readonly birthDate: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -29,7 +30,7 @@ export class ProfileService {
     return response.profile;
   }
 
-  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city'>): Promise<CustomerProfile> {
+  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate'>): Promise<CustomerProfile> {
     const response = await firstValueFrom(this.http.patch<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile', profile, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;

@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\TenantMembership;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\ActiveTenantProvider;
-use App\Service\AuthenticationResponseFactory;
+use App\Service\EmailVerificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -25,7 +25,7 @@ final class ApiRegistrationController
         ActiveTenantProvider $activeTenant,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        AuthenticationResponseFactory $responses,
+        EmailVerificationService $emailVerification,
     ): JsonResponse {
         try {
             $payload = $request->toArray();
@@ -33,22 +33,21 @@ final class ApiRegistrationController
             return $this->validationError();
         }
 
-        $username = $payload['username'] ?? null;
         $email = $payload['email'] ?? null;
         $displayName = $payload['displayName'] ?? null;
         $password = $payload['password'] ?? null;
 
-        if (!is_string($username) || !is_string($email) || !is_string($displayName) || !is_string($password)) {
+        if (!is_string($email) || !is_string($displayName) || !is_string($password)) {
             return $this->validationError();
         }
 
-        $username = mb_strtolower(trim($username));
         $email = mb_strtolower(trim($email));
+        $username = $email;
         $displayName = trim($displayName);
 
         if (
-            !preg_match('/^[a-z0-9][a-z0-9._-]{2,99}$/', $username)
-            || false === filter_var($email, FILTER_VALIDATE_EMAIL)
+            false === filter_var($email, FILTER_VALIDATE_EMAIL)
+            || mb_strlen($email) > 100
             || mb_strlen($displayName) < 2
             || mb_strlen($displayName) > 160
             || mb_strlen($password) < 10
@@ -62,13 +61,16 @@ final class ApiRegistrationController
 
         $user = new User($username, $email, $displayName);
         $user->setPassword($passwordHasher->hashPassword($user, $password));
+        $user->setActive(false);
+        $tenant = $activeTenant->get();
         $entityManager->persist($user);
-        $entityManager->flush();
+        try {
+            $emailVerification->send($user, $tenant);
+        } catch (TransportExceptionInterface|\RuntimeException) {
+            return new JsonResponse(['message' => 'Die Bestätigungs-E-Mail konnte derzeit nicht versendet werden. Bitte versuchen Sie es später erneut.'], JsonResponse::HTTP_SERVICE_UNAVAILABLE);
+        }
 
-        $entityManager->persist(new TenantMembership($activeTenant->get(), $user));
-        $entityManager->flush();
-
-        return $responses->create($user, $request, JsonResponse::HTTP_CREATED);
+        return new JsonResponse(null, JsonResponse::HTTP_ACCEPTED);
     }
 
     private function validationError(): JsonResponse

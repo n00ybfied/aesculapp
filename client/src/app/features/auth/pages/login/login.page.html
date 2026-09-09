@@ -10,20 +10,20 @@
     <div class="rounded-3xl border border-border bg-surface p-6 shadow-card sm:p-8">
       <form class="space-y-5" [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
         <div>
-          <label for="username" class="mb-2 block text-sm font-semibold">Benutzername</label>
+          <label for="email" class="mb-2 block text-sm font-semibold">E-Mail-Adresse</label>
           <input
-            id="username"
-            type="text"
-            formControlName="username"
-            autocomplete="username"
+            id="email"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
             autocapitalize="none"
             spellcheck="false"
             class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-focus"
-            [attr.aria-invalid]="loginForm.controls.username.invalid && loginForm.controls.username.touched"
-            aria-describedby="username-error"
+            [attr.aria-invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
+            aria-describedby="email-error"
           />
-          @if (loginForm.controls.username.invalid && loginForm.controls.username.touched) {
-            <p id="username-error" class="mt-2 text-sm text-danger">Bitte geben Sie Ihren Benutzernamen ein.</p>
+          @if (loginForm.controls.email.invalid && loginForm.controls.email.touched) {
+            <p id="email-error" class="mt-2 text-sm text-danger">Bitte geben Sie eine gültige E-Mail-Adresse ein.</p>
           }
         </div>
 
@@ -55,7 +55,7 @@
 
         @if (loginFailed()) {
           <div class="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
-            Benutzername oder Passwort ist nicht korrekt.
+            E-Mail-Adresse oder Passwort ist nicht korrekt.
           </div>
         }
 
@@ -78,8 +78,10 @@
       <a routerLink="/registrierung" class="font-semibold text-primary underline-offset-4 hover:underline">Jetzt registrieren</a>
     </p>
 
-    <aside class="mt-8 rounded-2xl bg-accent px-4 py-3 text-center text-sm text-accent-foreground" aria-label="Zugangsdaten für den Prototyp">
-      Demo-Zugang: <strong>kunde</strong> / <strong>trofaiach</strong>
-    </aside>
+    @if (theme.showCustomerDebugOutput) {
+      <aside class="mt-8 rounded-2xl bg-accent px-4 py-3 text-center text-sm text-accent-foreground" aria-label="Zugangsdaten für den Prototyp">
+        Demo-Zugang: <strong>kunde&#64;stadtapotheke-trofaiach.test</strong> / <strong>trofaiach</strong>
+      </aside>
+    }
   </section>
 </main>

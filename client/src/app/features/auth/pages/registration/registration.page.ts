@@ -20,7 +20,6 @@ export class RegistrationPage {
   protected readonly submissionError = signal<string | null>(null);
   protected readonly registrationForm = this.formBuilder.nonNullable.group({
     displayName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(160)]],
-    username: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,99}$/)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(10)]],
     passwordConfirmation: ['', [Validators.required]],
@@ -41,8 +40,8 @@ export class RegistrationPage {
     try {
       const { passwordConfirmation: _passwordConfirmation, ...details } = this.registrationForm.getRawValue();
       const result = await this.authService.register(details);
-      if (result === 'success') {
-        await this.router.navigate(['/dashboard']);
+      if (result === 'verification-required') {
+        await this.router.navigate(['/e-mail-bestaetigen'], { queryParams: { email: details.email } });
         return;
       }
 

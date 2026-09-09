@@ -4,6 +4,9 @@ export interface ThemeDefinition {
   readonly logoPath: string;
   readonly squareLogoPath: string;
   readonly faviconPath: string;
+  readonly pointsPerEuro: number;
+  readonly allowDuplicateReceiptImports: boolean;
+  readonly showCustomerDebugOutput: boolean;
 }
 
 /**
@@ -19,4 +22,7 @@ export const activeTheme: ThemeDefinition = {
   logoPath: 'assets/tenants/sta/logo-fallback.svg',
   squareLogoPath: 'assets/tenants/sta/logo-square-fallback.svg',
   faviconPath: 'assets/tenants/sta/favicon.png',
+  pointsPerEuro: 10,
+  allowDuplicateReceiptImports: false,
+  showCustomerDebugOutput: false,
 };

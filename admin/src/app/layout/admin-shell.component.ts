@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AdminAuthService } from '../core/auth/admin-auth.service';
 import { TenantBrandingService } from '../core/settings/tenant-branding.service';
@@ -16,6 +16,7 @@ export class AdminShellComponent {
 
   protected readonly displayName = this.auth.displayName;
   protected readonly branding = this.brandingService.branding;
+  protected readonly navigationOpen = signal(false);
 
   constructor() {
     void this.brandingService.get();
@@ -25,4 +26,7 @@ export class AdminShellComponent {
     this.auth.logout();
     void this.router.navigateByUrl('/login');
   }
+
+  protected toggleNavigation(): void { this.navigationOpen.update((open) => !open); }
+  protected closeNavigation(): void { this.navigationOpen.set(false); }
 }

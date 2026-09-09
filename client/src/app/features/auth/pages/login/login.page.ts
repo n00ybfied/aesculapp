@@ -19,7 +19,7 @@ export class LoginPage {
   protected readonly isSubmitting = signal(false);
   protected readonly passwordVisible = signal(false);
   protected readonly loginForm = this.formBuilder.nonNullable.group({
-    username: ['', [Validators.required]],
+    email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
   });
 

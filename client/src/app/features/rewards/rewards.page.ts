@@ -4,6 +4,7 @@ import { NgIcon } from '@ng-icons/core';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
 import { statusMessages } from '../../core/i18n/status-messages';
 import { RewardRepository, type ActiveRedemption, type Reward, type RewardsOverview } from '../../core/rewards/reward.repository';
+import { ThemeService } from '../../core/theme/theme.service';
 
 interface RewardCartItem {
   readonly reward: Reward;
@@ -19,6 +20,7 @@ export class RewardsPage implements OnInit {
   private readonly rewardRepository = inject(RewardRepository);
   private readonly statusMessages = inject(StatusMessageService);
   private readonly router = inject(Router);
+  protected readonly theme = inject(ThemeService);
 
   protected readonly overview = signal<RewardsOverview | null>(null);
   protected readonly cart = signal<readonly RewardCartItem[]>([]);

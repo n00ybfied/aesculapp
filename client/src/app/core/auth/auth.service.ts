@@ -20,8 +20,9 @@ export class AuthService {
     try { this.setAuthenticatedUser(await firstValueFrom(this.http.post<LoginResponse>(this.apiBaseUrl + '/auth/login', credentials, { withCredentials: true }))); return true; } catch { return false; }
   }
   async register(details: RegistrationDetails): Promise<RegistrationResult> {
-    try { this.setAuthenticatedUser(await firstValueFrom(this.http.post<LoginResponse>(this.apiBaseUrl + '/auth/register', details, { withCredentials: true }))); return 'success'; } catch (error: unknown) { return error instanceof HttpErrorResponse && error.status === 409 ? 'conflict' : 'invalid'; }
+    try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/register', details)); return 'verification-required'; } catch (error: unknown) { return error instanceof HttpErrorResponse && error.status === 409 ? 'conflict' : 'invalid'; }
   }
+  async confirmEmailVerification(token: string): Promise<boolean> { try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/email-verification/confirm', { token })); return true; } catch { return false; } }
   async requestPasswordReset(email: string): Promise<boolean> {
     try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/password-reset/request', { email })); return true; } catch { return false; }
   }

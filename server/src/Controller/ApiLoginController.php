@@ -31,13 +31,13 @@ final class ApiLoginController
             return $this->invalidCredentialsResponse();
         }
 
-        $username = $payload['username'] ?? null;
+        $email = $payload['email'] ?? null;
         $password = $payload['password'] ?? null;
-        if (!is_string($username) || !is_string($password)) {
+        if (!is_string($email) || false === filter_var($email, FILTER_VALIDATE_EMAIL) || !is_string($password)) {
             return $this->invalidCredentialsResponse();
         }
 
-        $user = $users->findOneByUsername($username);
+        $user = $users->findOneByEmail($email);
         if (
             null === $user
             || !$user->isActive()

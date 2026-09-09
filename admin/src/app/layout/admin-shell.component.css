@@ -10,10 +10,10 @@ nav a:hover, nav a.active { background: rgb(255 255 255 / 12%); color: white; }
 nav span { color: #9cb5c5; cursor: not-allowed; }
 nav small { display: block; margin-top: .2rem; font-size: .7rem; }
 .main-area { min-width: 0; }
-header { display: flex; align-items: center; justify-content: space-between; min-height: 7rem; padding: 1.5rem clamp(1.5rem, 4vw, 4rem); border-bottom: 1px solid var(--admin-border); background: var(--admin-surface); }
+header { display: flex; align-items: center; justify-content: space-between; min-height: 7rem; padding: 1.5rem clamp(1.5rem, 4vw, 4rem); border-bottom: 1px solid var(--admin-border); background: var(--admin-surface); }.header-title{display:flex;align-items:center;gap:1rem}.menu-toggle,.menu-backdrop{display:none}
 .eyebrow { margin: 0 0 .25rem; color: var(--admin-primary-strong); font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 h1 { margin: 0; font-size: 1.55rem; }
 .account { display: flex; align-items: center; gap: 1rem; color: var(--admin-muted); }
 .account button { border: 1px solid var(--admin-border); border-radius: .45rem; background: white; color: var(--admin-text); cursor: pointer; padding: .55rem .75rem; }
 main { padding: clamp(1.5rem, 4vw, 4rem); }
-@media (max-width: 760px) { .shell { grid-template-columns: 1fr; } .sidebar { display: none; } header { min-height: 5.5rem; } .account span { display: none; } }
+@media (max-width: 760px) { .shell { grid-template-columns: 1fr; }.menu-toggle{display:grid;place-items:center;width:2.8rem;height:2.8rem;border:1px solid var(--admin-border);border-radius:.55rem;background:#fff;font-size:1.35rem}.sidebar{position:fixed;z-index:50;inset:0 auto 0 0;width:min(20rem,calc(100vw - 2rem));transform:translateX(-100%);box-shadow:1rem 0 2rem #0004;transition:transform .22s ease}.navigation-open .sidebar{transform:translateX(0)}.menu-backdrop{position:fixed;z-index:40;inset:0;display:block;border:0;background:#14253180;opacity:0;pointer-events:none;transition:opacity .22s ease}.navigation-open .menu-backdrop{opacity:1;pointer-events:auto}header { min-height: 5.5rem; } .account span { display: none; } }

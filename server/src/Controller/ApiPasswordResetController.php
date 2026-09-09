@@ -13,7 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Mailer\MailerInterface;
+use App\Service\TenantMailer;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -33,7 +33,7 @@ final class ApiPasswordResetController
         TenantMembershipRepository $memberships,
         ActiveTenantProvider $activeTenant,
         EntityManagerInterface $entityManager,
-        MailerInterface $mailer,
+        TenantMailer $mailer,
     ): JsonResponse {
         try {
             $payload = $request->toArray();
@@ -57,16 +57,20 @@ final class ApiPasswordResetController
             hash('sha256', $rawToken),
             new \DateTimeImmutable('+60 minutes'),
         ));
-        $entityManager->flush();
-
         $resetUrl = rtrim($this->clientUrl, '/') . '/passwort-zuruecksetzen?token=' . rawurlencode($rawToken);
-        $mailer->send(
-            (new Email())
-                ->from($this->mailFrom)
-                ->to($user->getEmail())
-                ->subject('Passwort für Aesculapp zurücksetzen')
-                ->text("Sie haben angefordert, Ihr Passwort zurückzusetzen.\n\nÖffnen Sie innerhalb von 60 Minuten diesen Link:\n{$resetUrl}\n\nWenn Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."),
-        );
+        try {
+            $mailer->send(
+                $activeTenant->get(),
+                (new Email())
+                    ->from($this->mailFrom)
+                    ->to($user->getEmail())
+                    ->subject('Passwort für Aesculapp zurücksetzen')
+                    ->text("Sie haben angefordert, Ihr Passwort zurückzusetzen.\n\nÖffnen Sie innerhalb von 60 Minuten diesen Link:\n{$resetUrl}\n\nWenn Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."),
+            );
+            $entityManager->flush();
+        } catch (\Throwable) {
+            // Die einheitliche Antwort verhindert eine Preisgabe vorhandener Konten oder Mail-Fehler.
+        }
 
         return $this->acceptedResponse();
     }

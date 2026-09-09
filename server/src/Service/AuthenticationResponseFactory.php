@@ -30,7 +30,7 @@ final class AuthenticationResponseFactory
             'expiresIn' => 900,
             'user' => [
                 'id' => $user->getId(),
-                'username' => $user->getUsername(),
+                'email' => $user->getEmail(),
                 'displayName' => $user->getDisplayName(),
             ],
         ];

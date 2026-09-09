@@ -31,5 +31,19 @@ services:
             $clientUrl: '%app.auth.client_url%'
             $mailFrom: '%app.auth.mail_from%'
 
+    App\Service\EmailVerificationService:
+        arguments:
+            $clientUrl: '%app.auth.client_url%'
+            $mailFrom: '%app.auth.mail_from%'
+
+    App\Service\TenantMailer:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'
+            $smtpOverrideDsn: '%env(APP_SMTP_OVERRIDE_DSN)%'
+
+    App\Controller\ApiAdminBrandingController:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

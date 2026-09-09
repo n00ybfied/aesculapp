@@ -34,12 +34,12 @@ describe('App routes', () => {
   });
 
   it('navigates an authenticated customer to the scanner', async () => {
-    const login = authService.login({ username: 'kunde', password: 'trofaiach' });
+    const login = authService.login({ email: 'kunde@stadtapotheke-trofaiach.test', password: 'trofaiach' });
     httpTesting.expectOne('http://api.test/api/v1/auth/login').flush({
       accessToken: 'access-token',
       tokenType: 'Bearer',
       expiresIn: 900,
-      user: { id: 1, username: 'kunde', displayName: 'Kunde' },
+      user: { id: 1, email: 'kunde@stadtapotheke-trofaiach.test', displayName: 'Kunde' },
     });
     await login;
 

@@ -21,13 +21,13 @@ final class ApiAdminBrandingController
     /** @var list<string> */
     private const ADMIN_ROLES = ['ROLE_TENANT_STAFF', 'ROLE_TENANT_ADMIN'];
 
-    public function __construct(private readonly ActiveTenantProvider $activeTenant, private readonly TenantMembershipRepository $memberships, private readonly Security $security, private readonly EntityManagerInterface $entityManager) {}
+    public function __construct(private readonly ActiveTenantProvider $activeTenant, private readonly TenantMembershipRepository $memberships, private readonly Security $security, private readonly EntityManagerInterface $entityManager, private readonly string $appSecret) {}
 
     #[Route('/api/v1/admin/settings/branding', name: 'api_v1_admin_branding', methods: ['GET'])]
     public function get(Request $request): JsonResponse
     {
         if (!$this->isAdmin()) { return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN); }
-        return new JsonResponse(['branding' => $this->serialize($this->activeTenant->get(), $request)]);
+        return new JsonResponse(['branding' => $this->serialize($this->activeTenant->get(), $request, true)]);
     }
 
     #[Route('/api/v1/branding', name: 'api_v1_branding', methods: ['GET'])]
@@ -41,6 +41,16 @@ final class ApiAdminBrandingController
     {
         if (!$this->isAdmin()) { return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN); }
         $tenant = $this->activeTenant->get();
+        $initialPoints = $request->request->get('initialPoints');
+        if ($initialPoints !== null) {
+            if (!is_string($initialPoints) || !ctype_digit($initialPoints) || (int) $initialPoints > 100000) { return new JsonResponse(['message' => 'Das Startguthaben muss zwischen 0 und 100.000 Punkten liegen.'], Response::HTTP_UNPROCESSABLE_ENTITY); }
+            $tenant->setInitialPoints((int) $initialPoints);
+        }
+        foreach (['birthdayBonusPoints' => 'setBirthdayBonusPoints', 'pointsPerEuro' => 'setPointsPerEuro'] as $field => $setter) { $value = $request->request->get($field); if ($value !== null) { if ($field === 'pointsPerEuro' && $request->request->get('confirmPointsPerEuroChange') !== 'true') { return new JsonResponse(['message' => 'Bitte bestätigen Sie die Änderung des Punkteverhältnisses.'], 422); } if (!is_string($value) || !ctype_digit($value) || (int) $value > 100000) { return new JsonResponse(['message' => 'Bitte prüfen Sie die Punkte-Einstellungen.'], 422); } $tenant->$setter((int) $value); } }
+        $tenant->setAllowDuplicateReceiptImports($request->request->get('allowDuplicateReceiptImports') === 'true');
+        $tenant->setShowCustomerDebugOutput($request->request->get('showCustomerDebugOutput') === 'true');
+        $smtpHost = trim((string) $request->request->get('smtpHost', '')); $smtpFrom = trim((string) $request->request->get('smtpFrom', '')); $smtpPort = $request->request->get('smtpPort'); $smtpEncryption = $request->request->get('smtpEncryption');
+        if ($smtpHost !== '' || $smtpFrom !== '') { if ($smtpHost === '' || false === filter_var($smtpFrom, FILTER_VALIDATE_EMAIL) || !is_string($smtpPort) || !ctype_digit($smtpPort) || (int) $smtpPort < 1 || (int) $smtpPort > 65535 || !is_string($smtpEncryption) || !in_array($smtpEncryption, ['tls','ssl','none'], true)) { return new JsonResponse(['message' => 'Bitte prüfen Sie die SMTP-Einstellungen.'], 422); } $tenant->setSmtpHost($smtpHost); $tenant->setSmtpPort((int) $smtpPort); $tenant->setSmtpEncryption($smtpEncryption); $tenant->setSmtpUsername(trim((string) $request->request->get('smtpUsername', '')) ?: null); $tenant->setSmtpFrom($smtpFrom); $password = $request->request->get('smtpPassword'); if (is_string($password) && $password !== '') { $tenant->setSmtpPasswordEncrypted(base64_encode(sodium_crypto_secretbox($password, $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), hash('sha256', $this->appSecret, true))) . ':' . base64_encode($nonce)); } }
         foreach (['logo' => 'LogoPath', 'squareLogo' => 'SquareLogoPath', 'favicon' => 'FaviconPath'] as $field => $property) {
             $image = $request->files->get($field);
             if (!$image instanceof UploadedFile) { continue; }
@@ -53,7 +63,7 @@ final class ApiAdminBrandingController
             $this->deleteFile($previous);
         }
         $this->entityManager->flush();
-        return new JsonResponse(['branding' => $this->serialize($tenant, $request)]);
+        return new JsonResponse(['branding' => $this->serialize($tenant, $request, true)]);
     }
 
     private function isAdmin(): bool
@@ -84,10 +94,12 @@ final class ApiAdminBrandingController
         if ($path !== null && is_file(dirname(__DIR__, 2).'/public'.$path)) { unlink(dirname(__DIR__, 2).'/public'.$path); }
     }
 
-    /** @return array{logoUrl:?string,squareLogoUrl:?string,faviconUrl:?string} */
-    private function serialize(Tenant $tenant, Request $request): array
+    /** @return array{logoUrl:?string,squareLogoUrl:?string,faviconUrl:?string,initialPoints:int} */
+    private function serialize(Tenant $tenant, Request $request, bool $includeSmtp = false): array
     {
         $origin = $request->getSchemeAndHttpHost();
-        return ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null];
+        $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput()];
+        if ($includeSmtp) { $branding += ['smtpHost' => $tenant->getSmtpHost(), 'smtpPort' => $tenant->getSmtpPort(), 'smtpEncryption' => $tenant->getSmtpEncryption(), 'smtpUsername' => $tenant->getSmtpUsername(), 'smtpFrom' => $tenant->getSmtpFrom(), 'smtpPasswordConfigured' => $tenant->getSmtpPasswordEncrypted() !== null]; }
+        return $branding;
     }
 }

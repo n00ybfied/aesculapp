@@ -26,25 +26,25 @@ describe('AuthService', () => {
   });
 
   it('authenticates the customer through the API', async () => {
-    const login = service.login({ username: 'kunde', password: 'trofaiach' });
+    const login = service.login({ email: 'kunde@stadtapotheke-trofaiach.test', password: 'trofaiach' });
     const request = httpTesting.expectOne('http://api.test/api/v1/auth/login');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ username: 'kunde', password: 'trofaiach' });
+    expect(request.request.body).toEqual({ email: 'kunde@stadtapotheke-trofaiach.test', password: 'trofaiach' });
     request.flush({
       accessToken: 'access-token',
       tokenType: 'Bearer',
       expiresIn: 900,
-      user: { id: 1, username: 'kunde', displayName: 'Kunde' },
+      user: { id: 1, email: 'kunde@stadtapotheke-trofaiach.test', displayName: 'Kunde' },
     });
 
     expect(await login).toBe(true);
-    expect(service.currentUser()?.username).toBe('kunde');
+    expect(service.currentUser()?.email).toBe('kunde@stadtapotheke-trofaiach.test');
     expect(service.accessToken()).toBe('access-token');
     expect(service.isAuthenticated()).toBe(true);
   });
 
   it('rejects invalid credentials', async () => {
-    const login = service.login({ username: 'kunde', password: 'falsch' });
+    const login = service.login({ email: 'kunde@stadtapotheke-trofaiach.test', password: 'falsch' });
     const request = httpTesting.expectOne('http://api.test/api/v1/auth/login');
     request.flush({ message: 'Invalid credentials.' }, { status: 401, statusText: 'Unauthorized' });
 
@@ -54,13 +54,13 @@ describe('AuthService', () => {
   });
 
   it('clears the session on logout', async () => {
-    const login = service.login({ username: 'kunde', password: 'trofaiach' });
+    const login = service.login({ email: 'kunde@stadtapotheke-trofaiach.test', password: 'trofaiach' });
     const request = httpTesting.expectOne('http://api.test/api/v1/auth/login');
     request.flush({
       accessToken: 'access-token',
       tokenType: 'Bearer',
       expiresIn: 900,
-      user: { id: 1, username: 'kunde', displayName: 'Kunde' },
+      user: { id: 1, email: 'kunde@stadtapotheke-trofaiach.test', displayName: 'Kunde' },
     });
     await login;
 

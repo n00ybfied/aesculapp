@@ -1,7 +1,92 @@
-<section><p class="eyebrow">Einstellungen</p><h2>Logo & App-Icon</h2><p class="intro">Diese Marken-Assets gehören zur Stadtapotheke Trofaiach und werden mandantenbezogen gespeichert.</p>
-  @if (isLoading()) { <p class="loading">Einstellungen werden geladen …</p> } @else { <div class="assets">
-    <article><h3>Logo</h3><p>Für Kopfbereiche und größere Darstellungen.</p><label class="dropzone" (dragover)="dragOver($event)" (drop)="dropImage('logo', $event)"><input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('logo', $event)" /><span>Datei hier ablegen oder auswählen</span><small>PNG, JPEG oder WebP · max. 5 MB</small></label>@if(previews().logo;as preview){<img class="wide-preview" [src]="preview" alt="Vorschau des Logos" />} @else {<div class="wide-placeholder" aria-label="Logo-Platzhalter">LOGO</div>}</article>
-    <article><h3>Quadratisches Logo</h3><p>Für kompakte Ansichten und App-Symbole.</p><label class="dropzone square" (dragover)="dragOver($event)" (drop)="dropImage('squareLogo', $event)"><input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('squareLogo', $event)" /><span>Datei hier ablegen oder auswählen</span><small>PNG, JPEG oder WebP · max. 5 MB</small></label>@if(previews().squareLogo;as preview){<img class="square-preview" [src]="preview" alt="Vorschau des quadratischen Logos" />} @else {<div class="square-placeholder" aria-label="Platzhalter für quadratisches Logo">L</div>}</article>
-    <article><h3>Favicon</h3><p>Browser-Tab und Verknüpfungen.</p><label class="dropzone square" (dragover)="dragOver($event)" (drop)="dropImage('favicon', $event)"><input type="file" accept="image/jpeg,image/png,image/webp,image/x-icon,image/vnd.microsoft.icon" (change)="selectImage('favicon', $event)" /><span>Datei hier ablegen oder auswählen</span><small>PNG, ICO oder WebP · max. 5 MB</small></label>@if(previews().favicon;as preview){<img class="square-preview" [src]="preview" alt="Vorschau des Favicons" />} @else {<div class="square-placeholder" aria-label="Favicon-Platzhalter">L</div>}</article>
-  </div>@if(error()){<p class="error" role="alert">{{ error() }}</p>}<button type="button" class="save" [disabled]="isSaving()" (click)="save()">{{ isSaving() ? 'Speichert …' : 'Marken-Assets speichern' }}</button> }
+<section>
+  <p class="eyebrow">Einstellungen</p>
+  <h2>Apotheken-Einstellungen</h2>
+  <p class="intro">Markenauftritt und Punkteprogramm für Stadtapotheke Trofaiach.</p>
+
+  @if (isLoading()) {
+    <p class="loading">Einstellungen werden geladen …</p>
+  } @else {
+    <details class="settings-group" open>
+      <summary>Logo &amp; App-Icon</summary>
+      <div class="assets">
+        <article>
+          <h3>Logo</h3>
+          <p>Für Kopfbereiche und größere Darstellungen.</p>
+          <label class="dropzone" (dragover)="dragOver($event)" (drop)="dropImage('logo', $event)">
+            <input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('logo', $event)" />
+            <span>Datei hier ablegen oder auswählen</span>
+          </label>
+          @if (previews().logo; as preview) { <img class="wide-preview" [src]="preview" alt="Logo" /> } @else { <div class="wide-placeholder">LOGO</div> }
+        </article>
+        <article>
+          <h3>Quadratisches Logo</h3>
+          <p>Für kompakte Ansichten und App-Symbole.</p>
+          <label class="dropzone" (dragover)="dragOver($event)" (drop)="dropImage('squareLogo', $event)">
+            <input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('squareLogo', $event)" />
+            <span>Datei hier ablegen oder auswählen</span>
+          </label>
+          @if (previews().squareLogo; as preview) { <img class="square-preview" [src]="preview" alt="Quadratisches Logo" /> } @else { <div class="square-placeholder">L</div> }
+        </article>
+        <article>
+          <h3>Favicon</h3>
+          <p>Browser-Tab und Verknüpfungen.</p>
+          <label class="dropzone" (dragover)="dragOver($event)" (drop)="dropImage('favicon', $event)">
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/x-icon" (change)="selectImage('favicon', $event)" />
+            <span>Datei hier ablegen oder auswählen</span>
+          </label>
+          @if (previews().favicon; as preview) { <img class="square-preview" [src]="preview" alt="Favicon" /> } @else { <div class="square-placeholder">L</div> }
+        </article>
+      </div>
+    </details>
+
+    <details class="settings-group" open>
+      <summary>Punkteprogramm</summary>
+      <div class="loyalty">
+        <p>Gilt für neue Kundinnen und Kunden.</p>
+        <label>Startguthaben<input name="initialPoints" type="number" min="0" [(ngModel)]="initialPoints" /><span>Punkte</span></label>
+        <label>Geburtstagsbonus<input name="birthdayBonusPoints" type="number" min="0" [(ngModel)]="birthdayBonusPoints" /><span>Punkte</span></label>
+        <div class="ratio-setting">
+          <label>Punkte pro Euro<input name="pointsPerEuro" type="number" min="0" [disabled]="!isPointsPerEuroEditingEnabled()" [(ngModel)]="pointsPerEuro" /><span>Punkte</span></label>
+          <label class="confirmation">
+            <input type="checkbox" [checked]="isPointsPerEuroEditingEnabled()" (change)="setPointsPerEuroEditing($event)" aria-describedby="points-per-euro-warning" />
+            <span>Ja, ich bin mir sicher, dass ich das Punkteverhältnis ändern möchte.</span>
+          </label>
+          <p id="points-per-euro-warning" class="ratio-warning">Die Änderung betrifft künftige Punktegutschriften. Bereits gebuchte Transaktionen bleiben unverändert.</p>
+        </div>
+        <small>Geburtstagsboni werden pro Konto nur einmal im Jahr gebucht.</small>
+      </div>
+    </details>
+
+    <details class="settings-group">
+      <summary>E-Mail-Einstellungen</summary>
+      <div class="loyalty smtp-settings">
+        <p>Optionaler SMTP-Versand für Double-Opt-In- und Passwort-Reset-E-Mails. Ohne vollständige SMTP-Daten wird der Server-Standardversand verwendet.</p>
+        <label>SMTP-Host<input name="smtpHost" [(ngModel)]="smtpHost" placeholder="smtp.beispiel.at" /></label>
+        <label>Port<input name="smtpPort" type="number" min="1" max="65535" [(ngModel)]="smtpPort" /></label>
+        <label>Verschlüsselung<select name="smtpEncryption" [(ngModel)]="smtpEncryption"><option value="tls">STARTTLS (empfohlen)</option><option value="ssl">SSL/TLS</option><option value="none">Keine</option></select></label>
+        <label>Benutzername<input name="smtpUsername" [(ngModel)]="smtpUsername" autocomplete="off" /></label>
+        <label>Passwort<input name="smtpPassword" type="password" [(ngModel)]="smtpPassword" [placeholder]="smtpPasswordConfigured ? 'Gespeichertes Passwort beibehalten' : ''" autocomplete="new-password" /><span>Wird verschlüsselt gespeichert.</span></label>
+        <label>Absenderadresse<input name="smtpFrom" type="email" [(ngModel)]="smtpFrom" placeholder="office@apotheke.at" /></label>
+      </div>
+    </details>
+
+    <details class="settings-group">
+      <summary>Debugging</summary>
+      <div class="loyalty">
+        <p>Diese Einstellungen sind ausschließlich für Entwicklung und interne Tests gedacht.</p>
+        <label class="confirmation debug-warning">
+          <input name="allowDuplicateReceiptImports" type="checkbox" [(ngModel)]="allowDuplicateReceiptImports" />
+          <span>Mehrfacheinlösung desselben Kassen-QR-Codes für Testzwecke erlauben.</span>
+        </label>
+        <label class="confirmation">
+          <input name="showCustomerDebugOutput" type="checkbox" [(ngModel)]="showCustomerDebugOutput" />
+          <span>Debug-Ausgaben in der Kunden-App anzeigen.</span>
+        </label>
+        <small>Wenn aktiv, können Punkte für denselben QR-Code mehrmals gutgeschrieben werden. Der Kunden-Scanner zeigt dazu dauerhaft einen Warnhinweis.</small>
+      </div>
+    </details>
+
+    @if (error()) { <p class="error">{{ error() }}</p> }
+    <button type="button" class="save" [disabled]="isSaving()" (click)="save()">{{ isSaving() ? 'Speichert …' : 'Einstellungen speichern' }}</button>
+  }
 </section>

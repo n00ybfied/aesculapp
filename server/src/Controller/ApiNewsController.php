@@ -261,6 +261,8 @@ final class ApiNewsController
             $href = $child->tagName === 'a' ? trim($child->getAttribute('href')) : '';
             $src = $child->tagName === 'img' ? trim($child->getAttribute('src')) : '';
             $alt = $child->tagName === 'img' ? trim($child->getAttribute('alt')) : '';
+            $width = $child->tagName === 'img' ? filter_var($child->getAttribute('width'), FILTER_VALIDATE_INT) : false;
+            $height = $child->tagName === 'img' ? filter_var($child->getAttribute('height'), FILTER_VALIDATE_INT) : false;
             $attributes = [];
             foreach ($child->attributes as $attribute) { $attributes[] = $attribute->name; }
             foreach ($attributes as $attribute) { $child->removeAttribute($attribute); }
@@ -270,6 +272,8 @@ final class ApiNewsController
             if ($child->tagName === 'img' && $src !== '' && preg_match('#^https?://#i', $src)) {
                 $child->setAttribute('src', $src);
                 if ($alt !== '') { $child->setAttribute('alt', $alt); }
+                if (is_int($width) && $width >= 120 && $width <= 1400) { $child->setAttribute('width', (string) $width); }
+                if (is_int($height) && $height >= 80 && $height <= 1400) { $child->setAttribute('height', (string) $height); }
             }
             $this->sanitizeNode($child, $allowed);
         }

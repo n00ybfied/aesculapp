@@ -10,6 +10,7 @@ interface ProfileForm {
   streetAddress: string;
   postalCode: string;
   city: string;
+  birthDate: string;
 }
 
 @Component({
@@ -27,7 +28,7 @@ export class ProfilePage {
   protected readonly cropOpen = signal(false);
   protected readonly zoom = signal(1);
   protected readonly cropImage = signal<HTMLImageElement | null>(null);
-  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '' };
+  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '' };
   private dragStart: { x: number; y: number; offsetX: number; offsetY: number } | null = null;
   private cropOffsetX = 0;
   private cropOffsetY = 0;
@@ -80,7 +81,7 @@ export class ProfilePage {
     } catch { this.messages.error('Das Profilbild konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
   protected initials(): string { return this.form.displayName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'K'; }
-  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; }
+  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; }
   private drawCropCanvas(): void {
     const canvas = this.cropCanvas()?.nativeElement;
     const image = this.cropImage();

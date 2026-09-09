@@ -18,6 +18,12 @@ export const routes: Routes = [
     title: 'Konto erstellen | Aesculapp',
   },
   {
+    path: 'e-mail-bestaetigen',
+    canMatch: [guestGuard],
+    loadComponent: () => import('./features/auth/pages/email-verification/email-verification.page').then((module) => module.EmailVerificationPage),
+    title: 'E-Mail-Adresse bestätigen | Aesculapp',
+  },
+  {
     path: 'passwort-vergessen',
     canMatch: [guestGuard],
     loadComponent: () =>

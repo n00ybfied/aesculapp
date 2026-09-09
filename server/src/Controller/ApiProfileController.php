@@ -56,8 +56,9 @@ final class ApiProfileController
         $streetAddress = $this->text($data['streetAddress'] ?? null, 0, 160, true);
         $postalCode = $this->text($data['postalCode'] ?? null, 0, 20, true);
         $city = $this->text($data['city'] ?? null, 0, 120, true);
+        $birthDate = $this->birthDate($data['birthDate'] ?? null);
 
-        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false) {
+        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false) {
             return $this->invalidProfile();
         }
 
@@ -66,6 +67,7 @@ final class ApiProfileController
         $user->setStreetAddress($streetAddress);
         $user->setPostalCode($postalCode);
         $user->setCity($city);
+        $user->setBirthDate($birthDate);
         $this->entityManager->flush();
 
         return new JsonResponse(['profile' => $this->serialize($user, $request)]);
@@ -133,6 +135,8 @@ final class ApiProfileController
         return mb_strlen($value) >= $minimumLength && mb_strlen($value) <= $maximumLength ? $value : false;
     }
 
+    private function birthDate(mixed $value): \DateTimeImmutable|false|null { if ($value === null || $value === '') { return null; } if (!is_string($value)) { return false; } try { $date = new \DateTimeImmutable($value); return $date > new \DateTimeImmutable('-14 years') || $date < new \DateTimeImmutable('-120 years') ? false : $date; } catch (\Exception) { return false; } }
+
     /** @return array{id:int,username:string,email:string,displayName:string,phone:?string,streetAddress:?string,postalCode:?string,city:?string,profileImageUrl:?string} */
     private function serialize(User $user, Request $request): array
     {
@@ -145,6 +149,7 @@ final class ApiProfileController
             'streetAddress' => $user->getStreetAddress(),
             'postalCode' => $user->getPostalCode(),
             'city' => $user->getCity(),
+            'birthDate' => $user->getBirthDate()?->format('Y-m-d'),
             'profileImageUrl' => $user->getProfileImagePath() === null ? null : $request->getSchemeAndHttpHost().$user->getProfileImagePath(),
         ];
     }

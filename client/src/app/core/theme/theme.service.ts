@@ -10,6 +10,9 @@ interface BrandingResponse {
     readonly logoUrl: string | null;
     readonly squareLogoUrl: string | null;
     readonly faviconUrl: string | null;
+    readonly pointsPerEuro: number;
+    readonly allowDuplicateReceiptImports: boolean;
+    readonly showCustomerDebugOutput: boolean;
   };
 }
 
@@ -24,6 +27,18 @@ export class ThemeService {
     return this.theme;
   }
 
+  get pointsPerEuro(): number {
+    return this.theme.pointsPerEuro;
+  }
+
+  get allowDuplicateReceiptImports(): boolean {
+    return this.theme.allowDuplicateReceiptImports;
+  }
+
+  get showCustomerDebugOutput(): boolean {
+    return this.theme.showCustomerDebugOutput;
+  }
+
   async initialize(): Promise<void> {
     this.document.documentElement.dataset['theme'] = this.theme.id;
 
@@ -36,6 +51,9 @@ export class ThemeService {
         logoPath: branding.logoUrl ?? activeTheme.logoPath,
         squareLogoPath: branding.squareLogoUrl ?? activeTheme.squareLogoPath,
         faviconPath: branding.faviconUrl ?? activeTheme.faviconPath,
+        pointsPerEuro: branding.pointsPerEuro,
+        allowDuplicateReceiptImports: branding.allowDuplicateReceiptImports,
+        showCustomerDebugOutput: branding.showCustomerDebugOutput,
       };
     } catch {
       // The shipped fallback branding keeps the app usable while the API is unavailable.

@@ -1,11 +1,11 @@
 export interface LoginCredentials {
-  readonly username: string;
+  readonly email: string;
   readonly password: string;
 }
 
 export interface AuthUser {
   readonly id: number;
-  readonly username: string;
+  readonly email: string;
   readonly displayName: string;
 }
 
@@ -18,10 +18,9 @@ export interface LoginResponse {
 
 export interface RegistrationDetails {
   readonly displayName: string;
-  readonly username: string;
   readonly email: string;
   readonly password: string;
 }
 
-export type RegistrationResult = 'success' | 'conflict' | 'invalid';
+export type RegistrationResult = 'verification-required' | 'conflict' | 'invalid';
 export type PasswordResetResult = 'success' | 'invalid';

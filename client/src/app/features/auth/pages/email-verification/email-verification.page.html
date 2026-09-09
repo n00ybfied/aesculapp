@@ -1,0 +1,11 @@
+<main class="flex min-h-dvh flex-col justify-center bg-background px-5 py-8 text-foreground">
+  <section class="mx-auto w-full max-w-[500px] text-center">
+    <img [src]="theme.logoPath" width="530" height="174" class="mx-auto mb-8 h-auto w-52" [alt]="theme.pharmacyName" />
+    <div class="rounded-3xl border border-border bg-surface p-6 shadow-card sm:p-8">
+      @if (status() === 'checking') { <h1 class="text-2xl font-bold">E-Mail-Adresse wird bestätigt …</h1><p class="mt-3 text-muted">Einen Moment bitte.</p> }
+      @else if (status() === 'success') { <h1 class="text-2xl font-bold">E-Mail-Adresse bestätigt</h1><p class="mt-3 text-muted">Ihr Konto ist jetzt aktiv. Sie können sich anmelden.</p><a routerLink="/login" class="mt-6 inline-flex min-h-12 items-center rounded-xl bg-primary px-5 font-bold text-on-primary">Jetzt anmelden</a> }
+      @else if (status() === 'invalid') { <h1 class="text-2xl font-bold">Link ungültig oder abgelaufen</h1><p class="mt-3 text-muted">Bitte registrieren Sie sich erneut oder wenden Sie sich an Ihre Apotheke.</p><a routerLink="/registrierung" class="mt-6 inline-flex min-h-12 items-center rounded-xl bg-primary px-5 font-bold text-on-primary">Neu registrieren</a> }
+      @else { <h1 class="text-2xl font-bold">Bitte E-Mail-Adresse bestätigen</h1><p class="mt-3 text-muted">@if (email) { Wir haben einen Bestätigungslink an {{ email }} gesendet. } @else { Wir haben Ihnen einen Bestätigungslink per E-Mail gesendet. } Öffnen Sie ihn innerhalb von 24 Stunden, um Ihr Konto zu aktivieren.</p><a routerLink="/login" class="mt-6 inline-flex min-h-12 items-center rounded-xl border border-border px-5 font-bold text-primary">Zur Anmeldung</a> }
+    </div>
+  </section>
+</main>

@@ -43,6 +43,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $profileImagePath = null;
 
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $birthDate = null;
+
     #[ORM\Column(length: 255)]
     private string $password;
 
@@ -139,6 +142,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->profileImagePath = $profileImagePath;
     }
+    public function getBirthDate(): ?\DateTimeImmutable { return $this->birthDate; }
+    public function setBirthDate(?\DateTimeImmutable $birthDate): void { $this->birthDate = $birthDate; }
 
     /**
      * Globale Rollen werden bewusst klein gehalten. Mandantenrollen liegen in TenantMembership.
@@ -167,5 +172,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isActive(): bool
     {
         return $this->isActive;
+    }
+
+    public function setActive(bool $isActive): void
+    {
+        $this->isActive = $isActive;
     }
 }

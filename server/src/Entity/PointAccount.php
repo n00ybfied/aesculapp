@@ -11,4 +11,5 @@ class PointAccount {
  #[ORM\ManyToOne] #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')] private User $owner;
  public function __construct(Tenant $tenant, User $owner) {$this->tenant=$tenant;$this->owner=$owner;}
  public function getId(): ?int{return $this->id;} public function getOwner(): User{return $this->owner;}
+ public function getTenant(): Tenant{return $this->tenant;}
 }

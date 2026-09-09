@@ -7,7 +7,6 @@ export interface QrScanResult {
 
 @Injectable({ providedIn: 'root' })
 export class QrScannerService {
-  private readonly cameraReader = new BrowserQRCodeReader();
   private controls: IScannerControls | undefined;
   private session = 0;
 
@@ -16,7 +15,22 @@ export class QrScannerService {
     const scanSession = this.session;
     let hasResult = false;
 
-    const controls = await this.cameraReader.decodeFromVideoDevice(undefined, preview, (result, _error, callbackControls) => {
+    // `decodeFromVideoDevice()` verlangt auf manchen Browsern strikt eine
+    // Umgebungskamera. Mit idealen Constraints darf der Browser dagegen auf
+    // die verfügbare Kamera zurückfallen und bevorzugt auf Mobilgeräten die
+    // Rückkamera.
+    const reader = new BrowserQRCodeReader(undefined, {
+      delayBetweenScanAttempts: 120,
+      delayBetweenScanSuccess: 120,
+    });
+    const controls = await reader.decodeFromConstraints({
+      audio: false,
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920, max: 1920 },
+        height: { ideal: 1080, max: 1080 },
+      },
+    }, preview, (result, _error, callbackControls) => {
       if (!result || hasResult || scanSession !== this.session) {
         return;
       }
