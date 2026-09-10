@@ -1,0 +1,37 @@
+<section class="page" aria-labelledby="customers-title">
+  <p class="eyebrow">KUNDEN</p>
+  <h2 id="customers-title">Kundenübersicht</h2>
+  <p class="intro">Kontaktdaten und Punktestand der Kundinnen und Kunden.</p>
+
+  <form (ngSubmit)="search()" class="search-form">
+    <label for="customer-search">Kunde suchen</label>
+    <input id="customer-search" name="query" [(ngModel)]="query" placeholder="Name, E-Mail-Adresse oder ID" />
+    <button type="submit">Suchen</button>
+  </form>
+
+  @if (error(); as message) { <p class="error" role="alert">{{ message }}</p> }
+  @if (isLoading()) {
+    <p class="loading">Kunden werden geladen …</p>
+  } @else if (results(); as page) {
+    <p class="count">{{ page.total }} {{ page.total === 1 ? 'Kunde' : 'Kunden' }}</p>
+    <div class="list">
+      @for (customer of page.customers; track customer.id) {
+        <button type="button" class="customer" (click)="customers.open(customer.id)">
+          @if (customer.profileImageUrl; as imageUrl) { <img [src]="imageUrl" alt="" /> } @else { <span class="avatar">{{ initials(customer) }}</span> }
+          <span class="details"><strong>{{ customer.displayName }}</strong><small>{{ customer.email }} · #{{ customer.id }}</small></span>
+          <span class="points">{{ customer.points }} P.</span>
+        </button>
+      } @empty {
+        <p class="empty">Keine Kunden gefunden.</p>
+      }
+    </div>
+    @if (page.totalPages > 1) {
+      <nav aria-label="Seitennavigation" class="pagination">
+        <button type="button" (click)="goToPage(page.page - 1)" [disabled]="page.page <= 1">Zurück</button>
+        <span>Seite {{ page.page }} von {{ page.totalPages }}</span>
+        <button type="button" (click)="goToPage(page.page + 1)" [disabled]="page.page >= page.totalPages">Weiter</button>
+      </nav>
+    }
+  }
+</section>
+<app-customer-details-modal />

@@ -7,6 +7,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/admin-login.component').then((module) => module.AdminLoginComponent),
   },
   {
+    path: 'einladung-annehmen',
+    loadComponent: () => import('./features/users/accept-invitation.component').then((module) => module.AcceptInvitationComponent),
+  },
+  {
     path: '',
     canActivate: [adminAuthGuard],
     loadComponent: () => import('./layout/admin-shell.component').then((module) => module.AdminShellComponent),
@@ -21,6 +25,8 @@ export const routes: Routes = [
       { path: 'inhalte/:id', loadComponent: () => import('./features/news/news-editor.component').then((module) => module.NewsEditorComponent) },
       { path: 'einloesungen', loadComponent: () => import('./features/redemptions/active-redemptions.component').then((module) => module.ActiveRedemptionsComponent) },
       { path: 'buchungen', loadComponent: () => import('./features/transactions/point-transactions.component').then((module) => module.PointTransactionsComponent) },
+      { path: 'kunden', loadComponent: () => import('./features/customers/admin-customers.component').then((module) => module.AdminCustomersComponent) },
+      { path: 'benutzer', loadComponent: () => import('./features/users/admin-users.component').then((module) => module.AdminUsersComponent) },
       { path: 'einstellungen', loadComponent: () => import('./features/settings/tenant-branding.component').then((module) => module.TenantBrandingComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
