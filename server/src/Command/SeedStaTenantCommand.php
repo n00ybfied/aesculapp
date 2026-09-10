@@ -7,6 +7,7 @@ namespace App\Command;
 use App\Entity\Tenant;
 use App\Entity\TenantMembership;
 use App\Entity\User;
+use App\Service\PointAccountProvisioner;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -31,6 +32,7 @@ final class SeedStaTenantCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly PointAccountProvisioner $pointAccounts,
     ) {
         parent::__construct();
     }
@@ -59,6 +61,7 @@ final class SeedStaTenantCommand extends Command
         if (!$membership instanceof TenantMembership) {
             $this->entityManager->persist(new TenantMembership($tenant, $user));
         }
+        $this->pointAccounts->getOrCreate($tenant, $user);
 
         $admin = $this->entityManager->getRepository(User::class)->findOneBy(['username' => self::ADMIN_USERNAME]);
         if (!$admin instanceof User) {
