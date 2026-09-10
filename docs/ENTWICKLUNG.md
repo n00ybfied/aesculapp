@@ -118,6 +118,8 @@ Für Entwicklungstests kann ein Tenant-Admin im Bereich „Debugging“ die Mehr
 
 Eine zweite mandantenbezogene Debug-Einstellung steuert ausschließlich sichtbare Diagnoseinformationen der Kunden-App, etwa den Rohinhalt eines gescannten QR-Codes und Prototyp-Hilfen. Technische Serverdiagnosen, Fehlerdetails und Logs bleiben Umgebungs- beziehungsweise `.env`-Konfiguration und dürfen nie aus der Adminoberfläche aktiviert werden.
 
+Symfony verwendet Monolog mit rotierenden, jeweils 30 Tage aufbewahrten Logdateien unter `server/var/log/`: `dev.log` beziehungsweise `prod.log` für allgemeine Anwendungsfehler und `qr.log` als separates QR-Auditprotokoll. Das QR-Audit hält Anfrage, Ablehnung und erfolgreiche Gutschrift mit Tenant-ID, Benutzer-ID, Belegnummer, Betrag, Punkten und einem gekürzten SHA-256-Hash fest. QR-Rohinhalte, E-Mail-Adressen und Zugangsdaten dürfen nicht geloggt werden. Der lokale PHP-Entwicklungsserver schreibt zusätzlich seine Prozessausgabe nach `php-server.log`.
+
 ### Ziel der ersten Phase
 
 Der Prototyp soll insbesondere dazu dienen:
