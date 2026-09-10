@@ -1,11 +1,17 @@
-<section class="welcome">
-  <p class="eyebrow">Willkommen im Portal</p>
-  <h2>Die Verwaltung wird hier schrittweise aufgebaut.</h2>
-  <p>Als Nächstes folgen Inhalte, Prämien und die Benutzerverwaltung. Neue Benutzer werden nur über diesen geschützten Bereich angelegt.</p>
+<section class="welcome" aria-labelledby="dashboard-title">
+  <div>
+    <p class="eyebrow">APOTHEKENPORTAL</p>
+    <h2 id="dashboard-title">Alles Wichtige für Ihre Kunden-App.</h2>
+    <p>Verwalten Sie Inhalte, Prämien, Kundinnen und Kunden sowie die Zugänge Ihres Teams an einem Ort.</p>
+  </div>
+  <a routerLink="/inhalte" class="primary-action">Beitrag erstellen <span aria-hidden="true">→</span></a>
 </section>
 
-<section class="cards" aria-label="Geplante Verwaltungsbereiche">
-  <article><h3>Inhalte</h3><p>Neuigkeiten und Hinweise für das Kundendashboard bearbeiten.</p></article>
-  <article><h3>Prämien</h3><p>Prämienangebot und benötigte Punkte verwalten.</p></article>
-  <article><h3>Benutzer</h3><p>Mitarbeiterzugänge und Kunden künftig sicher verwalten.</p></article>
+<section class="cards" aria-label="Verwaltungsbereiche">
+  <a routerLink="/inhalte" class="card card-featured"><span class="card-icon" aria-hidden="true">▤</span><span class="card-content"><span class="card-label">INHALTE</span><strong>News &amp; Hinweise</strong><span>Beiträge für die Kunden-App erstellen und planen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/praemien" class="card"><span class="card-icon" aria-hidden="true">✦</span><span class="card-content"><span class="card-label">PRÄMIEN</span><strong>Prämien verwalten</strong><span>Angebote, Punktewerte und Sichtbarkeit festlegen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/einloesungen" class="card"><span class="card-icon" aria-hidden="true">✓</span><span class="card-content"><span class="card-label">LIVE-ÜBERSICHT</span><strong>Aktive Einlösungen</strong><span>Aktuelle Einlösungen prüfen oder bei Bedarf abbrechen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/kunden" class="card"><span class="card-icon" aria-hidden="true">◉</span><span class="card-content"><span class="card-label">KUNDEN</span><strong>Kunden &amp; Punkte</strong><span>Punktestände, Buchungen und Kontaktdaten einsehen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/benutzer" class="card"><span class="card-icon" aria-hidden="true">♙</span><span class="card-content"><span class="card-label">TEAM</span><strong>Benutzerverwaltung</strong><span>Mitarbeiterinnen und Mitarbeiter sicher einladen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/einstellungen" class="card"><span class="card-icon" aria-hidden="true">⚙</span><span class="card-content"><span class="card-label">KONFIGURATION</span><strong>Einstellungen</strong><span>Branding, Punkte-Regeln und E-Mail-Versand anpassen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
 </section>
