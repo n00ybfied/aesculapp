@@ -27,4 +27,16 @@ final class UserRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['email' => mb_strtolower(trim($email))]);
     }
+
+    public function deleteInactiveCreatedBefore(\DateTimeImmutable $before): int
+    {
+        return $this->createQueryBuilder('user')
+            ->delete()
+            ->andWhere('user.isActive = :isActive')
+            ->andWhere('user.createdAt < :before')
+            ->setParameter('isActive', false)
+            ->setParameter('before', $before)
+            ->getQuery()
+            ->execute();
+    }
 }

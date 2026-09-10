@@ -72,6 +72,21 @@ final class ApiPointsController
             $pageSize,
             ($page - 1) * $pageSize,
         );
+        $receiptDates = $this->entityManager->createQuery(
+            'SELECT IDENTITY(receipt.pointTransaction) AS transactionId, receipt.receiptIssuedAt AS receiptIssuedAt
+             FROM App\\Entity\\LoyaltyReceiptRedemption receipt
+             WHERE receipt.account = :account AND receipt.pointTransaction IS NOT NULL',
+        )
+            ->setParameter('account', $account)
+            ->getArrayResult();
+        $receiptIssuedAtByTransactionId = [];
+        foreach ($receiptDates as $receiptDate) {
+            $transactionId = $receiptDate['transactionId'];
+            $issuedAt = $receiptDate['receiptIssuedAt'];
+            if (is_numeric($transactionId) && $issuedAt instanceof \DateTimeInterface) {
+                $receiptIssuedAtByTransactionId[(int) $transactionId] = $issuedAt;
+            }
+        }
 
         return new JsonResponse([
             'transactions' => array_map(static fn (PointTransaction $transaction) => [
@@ -79,6 +94,7 @@ final class ApiPointsController
                 'label' => $transaction->getLabel(),
                 'points' => $transaction->getPoints(),
                 'createdAt' => $transaction->getCreatedAt()->format(DATE_ATOM),
+                'receiptIssuedAt' => ($receiptIssuedAtByTransactionId[$transaction->getId() ?? 0] ?? null)?->format(DATE_ATOM),
             ], $transactions),
             'page' => $page,
             'pageSize' => $pageSize,

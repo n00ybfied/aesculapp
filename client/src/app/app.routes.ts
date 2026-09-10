@@ -24,6 +24,12 @@ export const routes: Routes = [
     title: 'E-Mail-Adresse bestätigen | Aesculapp',
   },
   {
+    path: 'bestaetigung-erneut-senden',
+    canMatch: [guestGuard],
+    loadComponent: () => import('./features/auth/pages/email-verification-resend/email-verification-resend.page').then((module) => module.EmailVerificationResendPage),
+    title: 'Bestätigungs-E-Mail erneut senden | Aesculapp',
+  },
+  {
     path: 'passwort-vergessen',
     canMatch: [guestGuard],
     loadComponent: () =>

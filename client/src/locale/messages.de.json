@@ -4,6 +4,7 @@
     "auth.error.registration-conflict": "Für diese E-Mail-Adresse besteht bereits ein Konto.",
     "auth.error.registration-invalid": "Die Registrierung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Angaben.",
     "auth.error.password-reset-request": "Die Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es später erneut.",
+    "auth.error.email-verification-resend": "Die Bestätigungs-E-Mail konnte gerade nicht angefordert werden. Bitte versuchen Sie es später erneut.",
     "auth.error.password-reset-invalid": "Dieser Link ist ungültig oder abgelaufen. Fordern Sie bitte einen neuen an.",
     "status.error.qr-image-unreadable": "Im gewählten Bild wurde kein lesbarer QR-Code gefunden.",
     "status.error.receipt-qr-unsupported": "Dieser QR-Code enthält keinen unterstützten Kassenbeleg.",
