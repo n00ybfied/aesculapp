@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\LoyaltyReceiptRedemption;
-use App\Entity\PointAccount;
 use App\Entity\PointTransaction;
 use App\Entity\User;
 use App\Service\ActiveTenantProvider;
 use App\Service\LoyaltyReceiptQrParser;
+use App\Service\PointAccountProvisioner;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -26,6 +26,7 @@ final class ApiLoyaltyReceiptController
         private readonly ActiveTenantProvider $activeTenant,
         private readonly EntityManagerInterface $entityManager,
         private readonly LoyaltyReceiptQrParser $parser,
+        private readonly PointAccountProvisioner $pointAccounts,
         private readonly Security $security,
         #[Autowire(service: 'monolog.logger.qr')]
         private readonly LoggerInterface $qrLogger,
@@ -85,11 +86,7 @@ final class ApiLoyaltyReceiptController
 
         try {
             return $this->entityManager->wrapInTransaction(function () use ($tenant, $user, $qrHash, $receipt, $context): JsonResponse {
-                $account = $this->entityManager->getRepository(PointAccount::class)->findOneBy(['tenant' => $tenant, 'owner' => $user]);
-                if (!$account instanceof PointAccount) {
-                    $this->qrLogger->error('qr.import.failed.account_not_found', $context);
-                    return new JsonResponse(['message' => 'Point account not found.'], Response::HTTP_NOT_FOUND);
-                }
+                $account = $this->pointAccounts->getOrCreate($tenant, $user);
 
                 $points = intdiv($receipt['eligibleCents'] * $tenant->getPointsPerEuro(), 100);
                 $existing = $this->entityManager->getRepository(LoyaltyReceiptRedemption::class)->findOneBy(['tenant' => $tenant, 'qrHash' => $qrHash]);
