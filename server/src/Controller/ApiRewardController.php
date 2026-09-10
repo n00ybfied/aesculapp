@@ -94,6 +94,46 @@ final class ApiRewardController
         return new JsonResponse(['reward' => $this->serialize($reward, $request)], Response::HTTP_CREATED);
     }
 
+    #[Route('/api/v1/admin/rewards/{id}/update', name: 'api_v1_admin_reward_update', methods: ['POST'])]
+    public function update(int $id, Request $request, SluggerInterface $slugger): JsonResponse
+    {
+        if (!$this->isAdmin()) {
+            return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $reward = $this->findTenantReward($id);
+        if (!$reward instanceof Reward) {
+            return new JsonResponse(['message' => 'Reward not found.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $title = trim((string) $request->request->get('title', ''));
+        $subtitle = trim((string) $request->request->get('subtitle', ''));
+        $description = trim((string) $request->request->get('description', ''));
+        $requiredPoints = filter_var($request->request->get('requiredPoints'), FILTER_VALIDATE_INT);
+        if ($title === '' || $subtitle === '' || $description === '' || false === $requiredPoints || $requiredPoints < 0) {
+            return new JsonResponse(['message' => 'Invalid reward data.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $oldImagePath = $reward->getImagePath();
+        $imagePath = 'true' === $request->request->get('removeImage') ? '' : $oldImagePath;
+        $image = $request->files->get('image');
+        if ($image instanceof UploadedFile) {
+            $newImagePath = $this->storeImage($image, $slugger);
+            if ($newImagePath === null) {
+                return new JsonResponse(['message' => 'Please upload a PNG, JPEG or WebP image up to 5 MB.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            $imagePath = $newImagePath;
+        }
+
+        $reward->update($title, $subtitle, $description, $imagePath, (int) $requiredPoints, 'true' === $request->request->get('isVisible', 'true'));
+        $this->entityManager->flush();
+        if ($oldImagePath !== '' && $oldImagePath !== $imagePath) {
+            $this->deleteImage($oldImagePath);
+        }
+
+        return new JsonResponse(['reward' => $this->serialize($reward, $request)]);
+    }
+
     #[Route('/api/v1/admin/rewards/{id}/visibility', name: 'api_v1_admin_reward_visibility', methods: ['PATCH'])]
     public function changeVisibility(int $id, Request $request): JsonResponse
     {
@@ -124,10 +164,7 @@ final class ApiRewardController
             return new JsonResponse(['message' => 'Reward not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        $file = dirname(__DIR__, 2).'/public'.$reward->getImagePath();
-        if (is_file($file)) {
-            unlink($file);
-        }
+        $this->deleteImage($reward->getImagePath());
 
         $this->entityManager->remove($reward);
         $this->entityManager->flush();
@@ -171,6 +208,17 @@ final class ApiRewardController
         $filename = $slugger->slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)).'-'.bin2hex(random_bytes(8)).'.jpg';
         if (!$this->imageProcessor->saveAdminImage($image, $directory.'/'.$filename)) { return null; }
         return '/uploads/rewards/'.$filename;
+    }
+
+    private function deleteImage(string $imagePath): void
+    {
+        if ($imagePath === '') {
+            return;
+        }
+        $file = dirname(__DIR__, 2).'/public'.$imagePath;
+        if (is_file($file)) {
+            unlink($file);
+        }
     }
 
     /** @return array{id: int, title: string, subtitle: string, description: string, imageUrl: ?string, requiredPoints: int, isVisible: bool} */

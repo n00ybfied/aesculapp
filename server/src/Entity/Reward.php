@@ -57,4 +57,13 @@ class Reward
     public function getRequiredPoints(): int { return $this->requiredPoints; }
     public function isVisible(): bool { return $this->isVisible; }
     public function setVisible(bool $isVisible): void { $this->isVisible = $isVisible; }
+    public function update(string $title, string $subtitle, string $description, string $imagePath, int $requiredPoints, bool $isVisible): void
+    {
+        $this->title = $title;
+        $this->subtitle = $subtitle;
+        $this->description = $description;
+        $this->imagePath = $imagePath;
+        $this->requiredPoints = $requiredPoints;
+        $this->isVisible = $isVisible;
+    }
 }
