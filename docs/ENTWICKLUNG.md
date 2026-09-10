@@ -465,7 +465,7 @@ Ziel ist ein ruhiger, stabiler Seitenwechsel ohne sichtbares Nachladen einzelner
 
 ### Globale Statusmeldungen
 
-Kurze, nicht blockierende Status- und Fehlermeldungen werden zentral über `StatusMessageService` ausgelöst und in der App Shell als Snackbar angezeigt. Die Snackbar erscheint oberhalb der Bottom Navigation, verschwindet nach kurzer Zeit automatisch und kann durch seitliches Wischen oder über eine zugängliche Schließen-Aktion beendet werden. Fachkomponenten dürfen keine eigenen, dauerhaften Snackbar-Implementierungen erzeugen.
+Kurze, nicht blockierende Status- und Fehlermeldungen werden zentral über `StatusMessageService` ausgelöst und in der App Shell als Snackbar angezeigt. Die Snackbar erscheint oberhalb der Bottom Navigation, verschwindet nach kurzer Zeit automatisch und kann durch seitliches Wischen oder über eine zugängliche Schließen-Aktion beendet werden. Sie liegt immer über allen interaktiven Layern, insbesondere Dialogen, Offcanvas-Navigation und Seiteninhalten, damit Fehlermeldungen unmittelbar lesbar bleiben. Fachkomponenten dürfen keine eigenen, dauerhaften Snackbar-Implementierungen erzeugen.
 
 Interaktive Layer wie Seitennavigation und Snackbar verwenden kurze, sanfte CSS-Transitions für Ein- und Ausblendungen. Beim Wischen verlässt eine Snackbar die Ansicht in Wischrichtung; bei automatischem Schließen blendet sie nach unten aus. `prefers-reduced-motion` verkürzt alle diese Übergänge für Nutzerinnen und Nutzer mit reduzierter Bewegungseinstellung.
 
