@@ -24,6 +24,10 @@ class LoyaltyReceiptRedemption
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private PointAccount $account;
 
+    #[ORM\OneToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?PointTransaction $pointTransaction;
+
     #[ORM\Column(name: 'qr_hash', length: 64)]
     private string $qrHash;
 
@@ -42,10 +46,11 @@ class LoyaltyReceiptRedemption
     #[ORM\Column]
     private \DateTimeImmutable $redeemedAt;
 
-    public function __construct(Tenant $tenant, PointAccount $account, string $qrHash, string $receiptNumber, \DateTimeImmutable $receiptIssuedAt, int $eligibleCents, int $creditedPoints)
+    public function __construct(Tenant $tenant, PointAccount $account, PointTransaction $pointTransaction, string $qrHash, string $receiptNumber, \DateTimeImmutable $receiptIssuedAt, int $eligibleCents, int $creditedPoints)
     {
         $this->tenant = $tenant;
         $this->account = $account;
+        $this->pointTransaction = $pointTransaction;
         $this->qrHash = $qrHash;
         $this->receiptNumber = $receiptNumber;
         $this->receiptIssuedAt = $receiptIssuedAt;
@@ -55,4 +60,6 @@ class LoyaltyReceiptRedemption
     }
 
     public function getId(): ?int { return $this->id; }
+    public function getPointTransaction(): ?PointTransaction { return $this->pointTransaction; }
+    public function getReceiptIssuedAt(): \DateTimeImmutable { return $this->receiptIssuedAt; }
 }

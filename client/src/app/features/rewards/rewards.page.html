@@ -114,6 +114,9 @@
             <div class="min-w-0">
               <p class="truncate text-sm font-semibold">{{ item.label }}</p>
               <p class="mt-1 text-xs text-muted">{{ item.dateLabel }}</p>
+              @if (item.receiptDateLabel) {
+                <p class="mt-1 text-xs text-muted">Rechnungsdatum: {{ item.receiptDateLabel }}</p>
+              }
             </div>
             <span class="shrink-0 text-sm font-bold" [class.text-success]="item.points > 0" [class.text-foreground]="item.points < 0">{{ item.points > 0 ? '+' : '' }}{{ item.points }} P.</span>
           </div>

@@ -18,6 +18,7 @@ export interface PointsHistoryItem {
   readonly id: string;
   readonly label: string;
   readonly dateLabel: string;
+  readonly receiptDateLabel?: string;
   readonly points: number;
 }
 
@@ -195,7 +196,7 @@ export class MockRewardRepository extends RewardRepository {
 
     try {
       const response = await firstValueFrom(this.http.get<{
-        transactions: Array<{ id: number; label: string; points: number; createdAt: string }>;
+        transactions: Array<{ id: number; label: string; points: number; createdAt: string; receiptIssuedAt: string | null }>;
         page: number;
         totalPages: number;
         total: number;
@@ -209,6 +210,9 @@ export class MockRewardRepository extends RewardRepository {
           label: transaction.label,
           points: transaction.points,
           dateLabel: new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(transaction.createdAt)),
+          receiptDateLabel: transaction.receiptIssuedAt === null
+            ? undefined
+            : new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium' }).format(new Date(transaction.receiptIssuedAt)),
         })),
         page: response.page,
         totalPages: response.totalPages,

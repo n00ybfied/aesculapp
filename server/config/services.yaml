@@ -10,6 +10,7 @@ parameters:
     app.auth.tenant_slug: '%env(APP_TENANT_SLUG)%'
     app.auth.client_url: '%env(APP_CLIENT_URL)%'
     app.auth.mail_from: '%env(APP_MAIL_FROM)%'
+    app.maintenance.cron_secret: '%env(APP_CRON_SECRET)%'
 
 services:
     # default configuration for services in *this* file
@@ -44,6 +45,10 @@ services:
     App\Controller\ApiAdminBrandingController:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
+
+    App\Controller\ApiMaintenanceController:
+        arguments:
+            $cronSecret: '%app.maintenance.cron_secret%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

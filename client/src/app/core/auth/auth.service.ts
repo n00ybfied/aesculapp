@@ -23,6 +23,9 @@ export class AuthService {
     try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/register', details)); return 'verification-required'; } catch (error: unknown) { return error instanceof HttpErrorResponse && error.status === 409 ? 'conflict' : 'invalid'; }
   }
   async confirmEmailVerification(token: string): Promise<boolean> { try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/email-verification/confirm', { token })); return true; } catch { return false; } }
+  async resendEmailVerification(email: string): Promise<boolean> {
+    try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/email-verification/resend', { email })); return true; } catch { return false; }
+  }
   async requestPasswordReset(email: string): Promise<boolean> {
     try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/password-reset/request', { email })); return true; } catch { return false; }
   }

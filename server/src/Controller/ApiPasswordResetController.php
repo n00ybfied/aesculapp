@@ -66,6 +66,7 @@ final class ApiPasswordResetController
                     ->to($user->getEmail())
                     ->subject('Passwort für Aesculapp zurücksetzen')
                     ->text("Sie haben angefordert, Ihr Passwort zurückzusetzen.\n\nÖffnen Sie innerhalb von 60 Minuten diesen Link:\n{$resetUrl}\n\nWenn Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."),
+                'password_reset',
             );
             $entityManager->flush();
         } catch (\Throwable) {

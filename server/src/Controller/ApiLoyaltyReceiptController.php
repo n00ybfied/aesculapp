@@ -94,13 +94,14 @@ final class ApiLoyaltyReceiptController
                     $this->qrLogger->notice('qr.import.rejected.duplicate', $context);
                     return new JsonResponse(['message' => 'Dieser Beleg wurde bereits eingelöst.'], Response::HTTP_CONFLICT);
                 }
-                if (!$existing instanceof LoyaltyReceiptRedemption) {
-                    $this->entityManager->persist(new LoyaltyReceiptRedemption($tenant, $account, $qrHash, $receipt['receiptNumber'], $receipt['issuedAt'], $receipt['eligibleCents'], $points));
-                }
                 $label = $tenant->allowsDuplicateReceiptImports() && $existing instanceof LoyaltyReceiptRedemption
                     ? sprintf('Debug-Mehrfacheinlösung %s', $receipt['receiptNumber'])
                     : sprintf('Punktefähiger Einkauf %s', $receipt['receiptNumber']);
-                $this->entityManager->persist(new PointTransaction($account, $points, 'receipt_credit', $label));
+                $pointTransaction = new PointTransaction($account, $points, 'receipt_credit', $label);
+                $this->entityManager->persist($pointTransaction);
+                if (!$existing instanceof LoyaltyReceiptRedemption) {
+                    $this->entityManager->persist(new LoyaltyReceiptRedemption($tenant, $account, $pointTransaction, $qrHash, $receipt['receiptNumber'], $receipt['issuedAt'], $receipt['eligibleCents'], $points));
+                }
                 $this->entityManager->flush();
                 $this->qrLogger->info('qr.import.accepted', $context + [
                     'points' => $points,

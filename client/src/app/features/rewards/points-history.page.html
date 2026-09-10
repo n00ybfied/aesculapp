@@ -9,7 +9,7 @@
     @if (page.transactions.length > 0) {
       <div class="mt-7 divide-y divide-border rounded-2xl border border-border bg-surface px-4 shadow-card">
         @for (item of page.transactions; track item.id) {
-          <div class="flex min-h-16 items-center justify-between gap-4 py-3"><div class="min-w-0"><p class="truncate text-sm font-semibold">{{ item.label }}</p><p class="mt-1 text-xs text-muted">{{ item.dateLabel }}</p></div><span class="shrink-0 text-sm font-bold" [class.text-success]="item.points > 0" [class.text-foreground]="item.points < 0">{{ item.points > 0 ? '+' : '' }}{{ item.points }} P.</span></div>
+          <div class="flex min-h-16 items-center justify-between gap-4 py-3"><div class="min-w-0"><p class="truncate text-sm font-semibold">{{ item.label }}</p><p class="mt-1 text-xs text-muted">{{ item.dateLabel }}</p>@if (item.receiptDateLabel) {<p class="mt-1 text-xs text-muted">Rechnungsdatum: {{ item.receiptDateLabel }}</p>}</div><span class="shrink-0 text-sm font-bold" [class.text-success]="item.points > 0" [class.text-foreground]="item.points < 0">{{ item.points > 0 ? '+' : '' }}{{ item.points }} P.</span></div>
         }
       </div>
       <nav class="mt-5 flex items-center justify-between gap-3" aria-label="Seitennavigation für Buchungen">

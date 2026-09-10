@@ -48,5 +48,6 @@ class EmailVerificationToken
 
     public function getUser(): User { return $this->user; }
     public function getTenant(): Tenant { return $this->tenant; }
+    public function getRequestedAt(): \DateTimeImmutable { return $this->requestedAt; }
     public function markUsed(): void { $this->usedAt = new \DateTimeImmutable(); }
 }
