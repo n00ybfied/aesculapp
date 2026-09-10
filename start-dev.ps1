@@ -43,20 +43,24 @@ function Stop-PreviousDevelopmentServers {
 
 function Start-DevelopmentServer {
     param([string]$Name, [string]$Command)
-    $process = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $Command -WorkingDirectory $projectRoot -PassThru
+    $process = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $Command -WorkingDirectory $projectRoot -PassThru -WindowStyle Hidden
     Write-Host "Started $Name (PID $($process.Id))."
     return $process.Id
 }
 
 New-Item -ItemType Directory -Path $runtimeDirectory -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $projectRoot 'server\var\log') -Force | Out-Null
 Stop-PreviousDevelopmentServers
 
 $clientId = Start-DevelopmentServer 'customer app' 'cd /d client && npm.cmd start -- --port 4200'
 $adminId = Start-DevelopmentServer 'admin portal' 'cd /d admin && npm.cmd start -- --port 4201'
-$serverId = Start-DevelopmentServer 'Symfony API' 'cd /d server && php -S localhost:6080 -t public public/index.php'
+$serverId = Start-DevelopmentServer 'Symfony API' 'cd /d server && php -S localhost:6080 -t public public/index.php >> var\log\php-server.log 2>&1'
 
 @{ processIds = @($clientId, $adminId, $serverId) } | ConvertTo-Json | Set-Content -LiteralPath $pidFile -Encoding utf8
 Write-Host ''
 Write-Host 'Customer app: http://localhost:4200'
 Write-Host 'Admin portal: http://localhost:4201'
 Write-Host 'API:          http://localhost:6080/api/health'
+Write-Host 'PHP server log: server\var\log\php-server.log'
+Write-Host 'Symfony log:    server\var\log\dev.log'
+Write-Host 'QR audit log:   server\var\log\qr.log'
