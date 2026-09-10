@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { AdminAuthService } from '../auth/admin-auth.service';
 
 export interface AdminCustomer {
@@ -12,6 +13,21 @@ export interface AdminCustomer {
   readonly postalCode: string | null;
   readonly city: string | null;
   readonly profileImageUrl: string | null;
+}
+
+export interface CustomerListItem {
+  readonly id: number;
+  readonly displayName: string;
+  readonly email: string;
+  readonly profileImageUrl: string | null;
+  readonly points: number;
+}
+
+export interface CustomerListPage {
+  readonly customers: readonly CustomerListItem[];
+  readonly page: number;
+  readonly total: number;
+  readonly totalPages: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,6 +48,13 @@ export class AdminCustomerService {
       next: ({ customer }) => { this.customer.set(customer); this.isLoading.set(false); },
       error: () => { this.error.set('Kundendaten konnten nicht geladen werden.'); this.isLoading.set(false); },
     });
+  }
+
+  async list(query: string, page: number): Promise<CustomerListPage> {
+    return firstValueFrom(this.http.get<CustomerListPage>(this.api() + '/admin/customers', {
+      params: { query, page: String(page), pageSize: '20' },
+      headers: this.headers(),
+    }));
   }
 
   close(): void {

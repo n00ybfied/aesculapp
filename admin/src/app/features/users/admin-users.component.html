@@ -1,0 +1,61 @@
+<section class="page" aria-labelledby="users-title">
+  <p class="eyebrow">BENUTZERVERWALTUNG</p>
+  <h2 id="users-title">Mitarbeiterzugänge</h2>
+  <p class="intro">Mitarbeiter erhalten einen Einladungslink und wählen ihr Passwort selbst.</p>
+
+  <section class="card" aria-labelledby="invite-title">
+    <h3 id="invite-title">Mitarbeiter einladen</h3>
+    <form [formGroup]="inviteForm" (ngSubmit)="invite()" novalidate>
+      <label>
+        <span>Name</span>
+        <input type="text" formControlName="displayName" autocomplete="name" />
+      </label>
+      <label>
+        <span>E-Mail-Adresse</span>
+        <input type="email" formControlName="email" autocomplete="email" autocapitalize="none" />
+      </label>
+      <label>
+        <span>Rolle</span>
+        <select formControlName="role">
+          <option value="staff">Mitarbeiter</option>
+          <option value="admin">Administrator</option>
+        </select>
+      </label>
+      <button type="submit" [disabled]="isSubmitting()">{{ isSubmitting() ? 'Einladung wird gesendet …' : 'Einladen' }}</button>
+    </form>
+    @if (success(); as message) { <p class="success" role="status">{{ message }}</p> }
+    @if (error(); as message) { <p class="error" role="alert">{{ message }}</p> }
+  </section>
+
+  @if (isLoading()) {
+    <p class="loading">Benutzer werden geladen …</p>
+  } @else if (overview(); as data) {
+    <section class="card" aria-labelledby="active-users-title">
+      <h3 id="active-users-title">Aktive Benutzer</h3>
+      <div class="list">
+        @for (user of data.users; track user.id) {
+          <article>
+            <div><strong>{{ user.displayName }}</strong><small>{{ user.email }}</small></div>
+            <span class="role">{{ roleLabel(user.roles) }}</span>
+          </article>
+        } @empty {
+          <p class="empty">Noch keine Mitarbeiterzugänge vorhanden.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="pending-invitations-title">
+      <h3 id="pending-invitations-title">Offene Einladungen</h3>
+      <div class="list">
+        @for (invitation of data.invitations; track invitation.id) {
+          <article>
+            <div><strong>{{ invitation.displayName }}</strong><small>{{ invitation.email }} · gesendet {{ invitation.createdAt | date:'short' }}</small></div>
+            <span class="role">{{ roleLabel(invitation.roles) }}</span>
+          </article>
+        } @empty {
+          <p class="empty">Keine offenen Einladungen.</p>
+        }
+      </div>
+    </section>
+  }
+</section>
