@@ -15,6 +15,22 @@ export interface AdminCustomer {
   readonly profileImageUrl: string | null;
 }
 
+export interface CustomerTransaction {
+  readonly id: number;
+  readonly points: number;
+  readonly type: string;
+  readonly label: string;
+  readonly createdAt: string;
+  readonly reversed: boolean;
+  readonly canReverse: boolean;
+}
+
+interface CustomerDetailsResponse {
+  readonly customer: AdminCustomer;
+  readonly points: number;
+  readonly transactions: readonly CustomerTransaction[];
+}
+
 export interface CustomerListItem {
   readonly id: number;
   readonly displayName: string;
@@ -35,19 +51,49 @@ export class AdminCustomerService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AdminAuthService);
   readonly customer = signal<AdminCustomer | null>(null);
+  readonly points = signal(0);
+  readonly transactions = signal<readonly CustomerTransaction[]>([]);
+  readonly selectedCustomerId = signal<number | null>(null);
   readonly isOpen = signal(false);
   readonly isLoading = signal(false);
   readonly error = signal('');
 
   open(customerId: number): void {
+    this.selectedCustomerId.set(customerId);
     this.isOpen.set(true);
+    void this.load(customerId);
+  }
+
+  async reload(): Promise<void> {
+    const customerId = this.selectedCustomerId();
+    if (customerId !== null) {
+      await this.load(customerId);
+    }
+  }
+
+  async credit(customerId: number, points: number, label: string): Promise<void> {
+    await firstValueFrom(this.http.post(this.api() + '/admin/customers/' + customerId + '/point-transactions', { points, label }, { headers: this.headers() }));
+  }
+
+  async reverse(customerId: number, transactionId: number): Promise<void> {
+    await firstValueFrom(this.http.post(this.api() + '/admin/customers/' + customerId + '/point-transactions/' + transactionId + '/reverse', {}, { headers: this.headers() }));
+  }
+
+  private async load(customerId: number): Promise<void> {
     this.isLoading.set(true);
     this.error.set('');
     this.customer.set(null);
-    this.http.get<{ customer: AdminCustomer }>(this.api() + '/admin/customers/' + customerId, { headers: this.headers() }).subscribe({
-      next: ({ customer }) => { this.customer.set(customer); this.isLoading.set(false); },
-      error: () => { this.error.set('Kundendaten konnten nicht geladen werden.'); this.isLoading.set(false); },
-    });
+    this.transactions.set([]);
+    try {
+      const response = await firstValueFrom(this.http.get<CustomerDetailsResponse>(this.api() + '/admin/customers/' + customerId, { headers: this.headers() }));
+      this.customer.set(response.customer);
+      this.points.set(response.points);
+      this.transactions.set(response.transactions);
+    } catch {
+      this.error.set('Kundendaten konnten nicht geladen werden.');
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   async list(query: string, page: number): Promise<CustomerListPage> {
@@ -60,6 +106,8 @@ export class AdminCustomerService {
   close(): void {
     this.isOpen.set(false);
     this.customer.set(null);
+    this.transactions.set([]);
+    this.selectedCustomerId.set(null);
     this.error.set('');
   }
 

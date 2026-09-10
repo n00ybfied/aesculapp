@@ -20,6 +20,25 @@
           @if (customer.phone) { <div><dt>Telefon</dt><dd><a [href]="'tel:' + customer.phone">{{ customer.phone }}</a></dd></div> }
           @if (customer.streetAddress || customer.postalCode || customer.city) { <div><dt>Adresse</dt><dd>{{ customer.streetAddress }}<br />{{ customer.postalCode }} {{ customer.city }}</dd></div> }
         </dl>
+        <section class="points-section" aria-labelledby="customer-points-title">
+          <div class="points-heading"><div><p class="eyebrow">PUNKTEKONTO</p><h3 id="customer-points-title">{{ customers.points() }} Punkte</h3></div></div>
+          <form class="credit-form" (ngSubmit)="credit(customer.id)">
+            <label><span>Punkte aufladen</span><input name="pointsToCredit" type="number" min="1" max="100000" step="1" [(ngModel)]="pointsToCredit" [disabled]="isSaving()" /></label>
+            <label class="reason"><span>Grund</span><input name="creditReason" maxlength="180" [(ngModel)]="creditReason" placeholder="z. B. Kulanz" [disabled]="isSaving()" /></label>
+            <button type="submit" [disabled]="isSaving()">Aufladen</button>
+          </form>
+          @if (actionError()) { <p class="action-error" role="alert">{{ actionError() }}</p> }
+          <h3 class="history-title">Buchungen</h3>
+          <div class="transactions">
+            @for (transaction of customers.transactions(); track transaction.id) {
+              <article [class.reversed]="transaction.reversed">
+                <div><strong>{{ transaction.label }}</strong><small>{{ transaction.createdAt | date:'medium' }}</small>@if (transaction.reversed) { <small class="status">Storniert</small> }</div>
+                <b [class.positive]="transaction.points > 0">{{ transaction.points > 0 ? '+' : '' }}{{ transaction.points }} P.</b>
+                @if (transaction.canReverse) { <button type="button" class="reverse" [disabled]="isSaving()" (click)="reverse(customer.id, transaction.id)">Stornieren</button> }
+              </article>
+            } @empty { <p class="empty">Noch keine Buchungen vorhanden.</p> }
+          </div>
+        </section>
       }
     </section>
   </div>
