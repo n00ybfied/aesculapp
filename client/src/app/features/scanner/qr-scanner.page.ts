@@ -88,11 +88,13 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
       this.statusMessages.show(statusMessages.receiptImported(result.addedPoints), { kind: 'success' });
       await this.startCamera();
     } catch (error) {
+      this.receiptPreview.set(null);
       if (error instanceof HttpErrorResponse && error.status === 409) {
         this.statusMessages.error(statusMessages.receiptAlreadyImported);
       } else {
         this.statusMessages.error(statusMessages.unsupportedReceiptQr);
       }
+      await this.startCamera();
     } finally {
       this.isImporting.set(false);
     }
