@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\User;
+use App\Entity\{User, TenantMembership};
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
 use App\Service\ImageProcessor;
@@ -31,19 +31,20 @@ final class ApiProfileController
     #[Route('/api/v1/profile', name: 'api_v1_profile_get', methods: ['GET'])]
     public function get(Request $request): JsonResponse
     {
-        $user = $this->currentTenantUser();
-        return $user instanceof User
-            ? new JsonResponse(['profile' => $this->serialize($user, $request)])
+        $membership = $this->currentTenantMembership();
+        return $membership instanceof TenantMembership
+            ? new JsonResponse(['profile' => $this->serialize($membership->getUser(), $membership, $request)])
             : new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
     }
 
     #[Route('/api/v1/profile', name: 'api_v1_profile_update', methods: ['PATCH'])]
     public function update(Request $request): JsonResponse
     {
-        $user = $this->currentTenantUser();
-        if (!$user instanceof User) {
+        $membership = $this->currentTenantMembership();
+        if (!$membership instanceof TenantMembership) {
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
+        $user = $membership->getUser();
 
         try {
             $data = $request->toArray();
@@ -57,8 +58,12 @@ final class ApiProfileController
         $postalCode = $this->text($data['postalCode'] ?? null, 0, 20, true);
         $city = $this->text($data['city'] ?? null, 0, 120, true);
         $birthDate = $this->birthDate($data['birthDate'] ?? null);
+        $newsletterEnabled = $this->boolean($data['newsletterEnabled'] ?? null);
+        $chatPushEnabled = $this->boolean($data['chatPushEnabled'] ?? null);
+        $rewardPushEnabled = $this->boolean($data['rewardPushEnabled'] ?? null);
+        $newsPushEnabled = $this->boolean($data['newsPushEnabled'] ?? null);
 
-        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false) {
+        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null) {
             return $this->invalidProfile();
         }
 
@@ -68,15 +73,20 @@ final class ApiProfileController
         $user->setPostalCode($postalCode);
         $user->setCity($city);
         $user->setBirthDate($birthDate);
+        $membership->setNewsletterEnabled($newsletterEnabled);
+        $membership->setChatPushEnabled($chatPushEnabled);
+        $membership->setRewardPushEnabled($rewardPushEnabled);
+        $membership->setNewsPushEnabled($newsPushEnabled);
         $this->entityManager->flush();
 
-        return new JsonResponse(['profile' => $this->serialize($user, $request)]);
+        return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
     }
 
     #[Route('/api/v1/profile/photo', name: 'api_v1_profile_photo', methods: ['POST'])]
     public function uploadPhoto(Request $request): JsonResponse
     {
-        $user = $this->currentTenantUser();
+        $membership = $this->currentTenantMembership();
+        $user = $membership?->getUser();
         $photo = $request->files->get('photo');
         if (!$user instanceof User) {
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
@@ -111,16 +121,16 @@ final class ApiProfileController
             }
         }
 
-        return new JsonResponse(['profile' => $this->serialize($user, $request)]);
+        return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
     }
 
-    private function currentTenantUser(): ?User
+    private function currentTenantMembership(): ?TenantMembership
     {
         $user = $this->security->getUser();
-        if (!$user instanceof User || !$this->memberships->hasActiveMembershipFor($user, $this->activeTenant->get())) {
+        if (!$user instanceof User || !$membership instanceof TenantMembership) {
             return null;
         }
-        return $user;
+        return $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
     }
 
     private function text(mixed $value, int $minimumLength, int $maximumLength, bool $nullable): string|false|null
@@ -136,9 +146,10 @@ final class ApiProfileController
     }
 
     private function birthDate(mixed $value): \DateTimeImmutable|false|null { if ($value === null || $value === '') { return null; } if (!is_string($value)) { return false; } try { $date = new \DateTimeImmutable($value); return $date > new \DateTimeImmutable('-14 years') || $date < new \DateTimeImmutable('-120 years') ? false : $date; } catch (\Exception) { return false; } }
+    private function boolean(mixed $value): ?bool { return is_bool($value) ? $value : null; }
 
     /** @return array{id:int,username:string,email:string,displayName:string,phone:?string,streetAddress:?string,postalCode:?string,city:?string,profileImageUrl:?string} */
-    private function serialize(User $user, Request $request): array
+    private function serialize(User $user, TenantMembership $membership, Request $request): array
     {
         return [
             'id' => $user->getId(),
@@ -151,6 +162,10 @@ final class ApiProfileController
             'city' => $user->getCity(),
             'birthDate' => $user->getBirthDate()?->format('Y-m-d'),
             'profileImageUrl' => $user->getProfileImagePath() === null ? null : $request->getSchemeAndHttpHost().$user->getProfileImagePath(),
+            'newsletterEnabled' => $membership->isNewsletterEnabled(),
+            'chatPushEnabled' => $membership->isChatPushEnabled(),
+            'rewardPushEnabled' => $membership->isRewardPushEnabled(),
+            'newsPushEnabled' => $membership->isNewsPushEnabled(),
         ];
     }
 

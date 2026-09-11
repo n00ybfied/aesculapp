@@ -11,6 +11,10 @@ interface ProfileForm {
   postalCode: string;
   city: string;
   birthDate: string;
+  newsletterEnabled: boolean;
+  chatPushEnabled: boolean;
+  rewardPushEnabled: boolean;
+  newsPushEnabled: boolean;
 }
 
 @Component({
@@ -28,7 +32,7 @@ export class ProfilePage {
   protected readonly cropOpen = signal(false);
   protected readonly zoom = signal(1);
   protected readonly cropImage = signal<HTMLImageElement | null>(null);
-  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '' };
+  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '', newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false, newsPushEnabled: false };
   private dragStart: { x: number; y: number; offsetX: number; offsetY: number } | null = null;
   private cropOffsetX = 0;
   private cropOffsetY = 0;
@@ -39,7 +43,7 @@ export class ProfilePage {
 
   protected async save(): Promise<void> {
     this.isSaving.set(true);
-    try { this.applyProfile(await this.profiles.save(this.form)); this.messages.show('Ihre Kontaktdaten wurden gespeichert.', { kind: 'success' }); } catch { this.messages.error('Das Profil konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
+    try { this.applyProfile(await this.profiles.save(this.form)); this.messages.show('Ihre Profil- und Benachrichtigungseinstellungen wurden gespeichert.', { kind: 'success' }); } catch { this.messages.error('Das Profil konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
 
   protected selectPhoto(event: Event): void {
@@ -81,7 +85,7 @@ export class ProfilePage {
     } catch { this.messages.error('Das Profilbild konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
   protected initials(): string { return this.form.displayName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'K'; }
-  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; }
+  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; }
   private drawCropCanvas(): void {
     const canvas = this.cropCanvas()?.nativeElement;
     const image = this.cropImage();

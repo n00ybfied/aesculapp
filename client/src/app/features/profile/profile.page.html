@@ -20,7 +20,30 @@
         <label class="block text-sm font-medium">Straße und Hausnummer<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="streetAddress" [(ngModel)]="form.streetAddress" maxlength="160" autocomplete="street-address" /></label>
         <div class="grid grid-cols-[7rem_1fr] gap-3"><label class="block text-sm font-medium">PLZ<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="postalCode" [(ngModel)]="form.postalCode" maxlength="20" autocomplete="postal-code" /></label><label class="block text-sm font-medium">Ort<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="city" [(ngModel)]="form.city" maxlength="120" autocomplete="address-level2" /></label></div>
       </div>
-      <button type="submit" class="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 font-bold text-on-primary transition hover:bg-primary-strong disabled:cursor-wait disabled:opacity-60" [disabled]="isSaving() || form.displayName.trim().length < 2">@if (isSaving()) { Speichern … } @else { Kontaktdaten speichern }</button>
+      <section class="mt-8 border-t border-border pt-6" aria-labelledby="notifications-title">
+        <p class="text-sm font-semibold text-primary">BENACHRICHTIGUNGEN</p>
+        <h2 id="notifications-title" class="mt-1 text-lg font-bold">Was möchten Sie erhalten?</h2>
+        <div class="mt-5 space-y-3">
+          <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span><span class="block font-semibold">Newsletter per E-Mail</span><span class="mt-1 block text-sm leading-5 text-muted">Aktionen, Tipps und Neuigkeiten Ihrer Apotheke.</span></span>
+            <input class="size-6 shrink-0 accent-primary" name="newsletterEnabled" type="checkbox" [(ngModel)]="form.newsletterEnabled" />
+          </label>
+          <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span><span class="block font-semibold">Chatnachrichten</span><span class="mt-1 block text-sm leading-5 text-muted">Wenn das Apothekenteam auf Ihre Anfrage antwortet.</span></span>
+            <input class="size-6 shrink-0 accent-primary" name="chatPushEnabled" type="checkbox" [(ngModel)]="form.chatPushEnabled" />
+          </label>
+          <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span><span class="block font-semibold">Neue Prämien</span><span class="mt-1 block text-sm leading-5 text-muted">Wenn neue Prämien für Sie verfügbar sind.</span></span>
+            <input class="size-6 shrink-0 accent-primary" name="rewardPushEnabled" type="checkbox" [(ngModel)]="form.rewardPushEnabled" />
+          </label>
+          <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span><span class="block font-semibold">News aus der Apotheke</span><span class="mt-1 block text-sm leading-5 text-muted">Wenn ein neuer Beitrag veröffentlicht wird.</span></span>
+            <input class="size-6 shrink-0 accent-primary" name="newsPushEnabled" type="checkbox" [(ngModel)]="form.newsPushEnabled" />
+          </label>
+        </div>
+        <p class="mt-4 text-xs leading-5 text-muted">Push-Benachrichtigungen benötigen zusätzlich die Freigabe in Ihrem Browser oder auf Ihrem Gerät. Den Versand können Sie dort jederzeit blockieren.</p>
+      </section>
+      <button type="submit" class="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 font-bold text-on-primary transition hover:bg-primary-strong disabled:cursor-wait disabled:opacity-60" [disabled]="isSaving() || form.displayName.trim().length < 2">@if (isSaving()) { Speichern … } @else { Profil &amp; Einstellungen speichern }</button>
     </form>
   </main>
 }

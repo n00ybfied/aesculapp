@@ -15,6 +15,10 @@ export interface CustomerProfile {
   readonly city: string | null;
   readonly profileImageUrl: string | null;
   readonly birthDate: string | null;
+  readonly newsletterEnabled: boolean;
+  readonly chatPushEnabled: boolean;
+  readonly rewardPushEnabled: boolean;
+  readonly newsPushEnabled: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -30,7 +34,7 @@ export class ProfileService {
     return response.profile;
   }
 
-  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate'>): Promise<CustomerProfile> {
+  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled'>): Promise<CustomerProfile> {
     const response = await firstValueFrom(this.http.patch<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile', profile, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;
