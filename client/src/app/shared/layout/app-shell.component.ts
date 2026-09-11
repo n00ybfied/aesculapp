@@ -33,6 +33,7 @@ export class AppShellComponent implements OnInit,OnDestroy {
   private navigationEnterTimer: ReturnType<typeof setTimeout> | undefined;
 
   async ngOnInit(): Promise<void> {
+    void this.push.initialize();
     this.refreshChatBadge();
     this.countTimer=setInterval(this.refreshChatBadge,5000);
     document.addEventListener('visibilitychange',this.refreshChatBadge);
