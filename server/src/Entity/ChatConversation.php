@@ -10,6 +10,7 @@ class ChatConversation {
     #[ORM\ManyToOne, ORM\JoinColumn(nullable: false)] public Tenant $tenant;
     #[ORM\ManyToOne, ORM\JoinColumn(nullable: false)] public User $customer;
     #[ORM\Column(length: 20)] public string $status = 'open';
+    #[ORM\Column(type: 'text', nullable: true)] public ?string $encryptedSubject = null;
     #[ORM\Column] public \DateTimeImmutable $createdAt;
     #[ORM\Column] public \DateTimeImmutable $updatedAt;
     #[ORM\Column(nullable: true)] public ?\DateTimeImmutable $closedAt = null;

@@ -10,8 +10,8 @@
     </a>
     <p class="tenant">Stadtapotheke Trofaiach</p>
     <nav aria-label="Hauptnavigation">
-      <a routerLink="/chat" routerLinkActive="active" (click)="closeNavigation()">Anfragen</a>
       <a routerLink="/dashboard" routerLinkActive="active" (click)="closeNavigation()">Übersicht</a>
+      <a class="chat-link" routerLink="/chat" routerLinkActive="active" (click)="closeNavigation()">Anfragen <app-open-chat-badge /></a>
       <a routerLink="/inhalte" routerLinkActive="active" (click)="closeNavigation()">Inhalte</a>
       <a routerLink="/medien" routerLinkActive="active" (click)="closeNavigation()">Medien</a>
       <a routerLink="/praemien" routerLinkActive="active" (click)="closeNavigation()">Prämien</a>

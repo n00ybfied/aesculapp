@@ -1,0 +1,9 @@
+{
+ "id":"/",
+ "name":"Aesculapp",
+ "short_name":"Aesculapp",
+ "start_url":"/",
+ "scope":"/",
+ "display":"standalone",
+ "icons":[{"src":"/assets/tenants/sta/favicon.png","type":"image/png","sizes":"any"}]
+}

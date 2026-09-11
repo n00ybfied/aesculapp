@@ -1,4 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { ChatService } from '../../core/chat/chat.service';
+import { ChatPushService } from '../../core/chat/chat-push.service';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
 import { AuthService } from '../../core/auth/auth.service';
@@ -11,7 +13,13 @@ import { SnackbarComponent } from '../feedback/snackbar.component';
   imports: [NgIcon, RouterLink, RouterLinkActive, RouterOutlet, SnackbarComponent],
   templateUrl: './app-shell.component.html',
 })
-export class AppShellComponent implements OnInit {
+export class AppShellComponent implements OnInit,OnDestroy {
+  private readonly chats=inject(ChatService);
+  private readonly push=inject(ChatPushService);
+  protected readonly unreadReplies=this.chats.unreadCount;
+  private countTimer:ReturnType<typeof setInterval>|undefined;
+  private readonly refreshChatBadge=()=>{if(!document.hidden)void this.chats.refreshUnreadCount();};
+  ngOnDestroy():void{if(this.countTimer)clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshChatBadge);this.chats.unreadCount.set(null);this.clearNavigationTimers();}
   private readonly navigationTransitionMs = 220;
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
@@ -25,6 +33,9 @@ export class AppShellComponent implements OnInit {
   private navigationEnterTimer: ReturnType<typeof setTimeout> | undefined;
 
   async ngOnInit(): Promise<void> {
+    this.refreshChatBadge();
+    this.countTimer=setInterval(this.refreshChatBadge,5000);
+    document.addEventListener('visibilitychange',this.refreshChatBadge);
     try {
       await this.profiles.load();
     } catch {
@@ -47,7 +58,8 @@ export class AppShellComponent implements OnInit {
     this.navigationExitTimer = setTimeout(() => this.navigationVisible.set(false), this.navigationTransitionMs);
   }
 
-  protected logout(): void {
+  protected async logout(): Promise<void> {
+    await this.push.disable();
     this.authService.logout();
     this.closeNavigation();
     void this.router.navigate(['/login']);

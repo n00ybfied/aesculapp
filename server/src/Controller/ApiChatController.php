@@ -17,7 +17,24 @@ final class ApiChatController {
     public const CONSENT_VERSION = 'chat-2026-09-11-v1';
     public const NOTICE = 'Nachrichten und Bilder werden verschlüsselt übertragen und auf dem Server verschlüsselt gespeichert. Es handelt sich nicht um Ende-zu-Ende-Verschlüsselung. Berechtigte Mitarbeiter Ihrer Apotheke können Ihre Nachrichten und Anhänge lesen.';
     public const CONSENT = 'Ich habe die Datenschutzhinweise gelesen und willige in die Verarbeitung meiner Nachrichten und Bilder einschließlich gegebenenfalls enthaltener Gesundheitsdaten zur Bearbeitung meiner Anfrage ein.';
-    public function __construct(private readonly Security $security, private readonly ActiveTenantProvider $tenant, private readonly TenantMembershipRepository $memberships, private readonly EntityManagerInterface $em, private readonly ChatCipher $cipher) {}
+    public function __construct(private readonly Security $security, private readonly ActiveTenantProvider $tenant, private readonly TenantMembershipRepository $memberships, private readonly EntityManagerInterface $em, private readonly ChatCipher $cipher,private readonly ?\App\Service\ChatPushService $push=null) {}
+    #[Route('/api/v1/chat/push', methods:['GET','POST','DELETE'])]
+    public function push(Request $request):JsonResponse{
+        $user=$this->user(false);
+        if($request->isMethod('GET'))return $this->json(['publicKey'=>$this->push?->config()['publicKey']??null]);
+        if(!$this->push)throw new HttpException(503);
+        $data=$request->toArray();
+        if($request->isMethod('DELETE')){$this->push->remove($user,$this->tenant->get(),(string)($data['endpoint']??''));}
+        else{if(!$this->push->config())throw new HttpException(503);$this->push->subscribe($user,$this->tenant->get(),$data);}
+        return $this->json(['success'=>true]);
+    }
+    #[Route('/api/v1/chat/push/status',methods:['POST'])]
+    public function pushStatus(Request $request):JsonResponse{
+        $user=$this->user(false);$data=$request->toArray();$endpoint=$data['endpoint']??'';
+        if(!is_string($endpoint))throw new HttpException(422);
+        $subscription=$this->em->getRepository(\App\Entity\WebPushSubscription::class)->findOneBy(['user'=>$user,'tenant'=>$this->tenant->get(),'endpointHash'=>hash('sha256',$endpoint)]);
+        return $this->json(['subscribed'=>$subscription!==null]);
+    }
     private function user(bool $admin): User {
         $user = $this->security->getUser();
         if (!$user instanceof User) { throw new HttpException(401); }
@@ -34,7 +51,40 @@ final class ApiChatController {
         return $chat;
     }
     private function summary(ChatConversation $chat): array {
-        return ['id'=>$chat->id,'status'=>$chat->status,'customerName'=>$chat->customer->getDisplayName(),'createdAt'=>$chat->createdAt->format(DATE_ATOM),'updatedAt'=>$chat->updatedAt->format(DATE_ATOM)];
+        $subject = $chat->encryptedSubject === null ? null : $this->cipher->decrypt($chat->encryptedSubject,$this->context($chat).':subject');
+        if ($subject === null) {
+            $first = $this->em->createQueryBuilder()->select('m.encryptedText')->from(ChatMessage::class,'m')->where('m.conversation = :chat')->setParameter('chat',$chat)->orderBy('m.id','ASC')->setMaxResults(1)->getQuery()->getOneOrNullResult();
+            $subject = $this->fallbackSubject($first ? $this->cipher->decrypt($first['encryptedText'],$this->context($chat).':text') : '');
+        }
+        $unread = $this->em->getRepository(ChatMessage::class)->count(['conversation'=>$chat,'senderRole'=>'staff','customerReadAt'=>null]);
+        return ['id'=>$chat->id,'unreadCount'=>$unread,'subject'=>$subject,'status'=>$chat->status,'customerName'=>$chat->customer->getDisplayName(),'createdAt'=>$chat->createdAt->format(DATE_ATOM),'updatedAt'=>$chat->updatedAt->format(DATE_ATOM)];
+    }
+    #[Route('/api/v1/chat/unread-count', methods:['GET'])]
+    public function unreadCount(): JsonResponse {
+        $user=$this->user(false);
+        $count=$this->em->createQueryBuilder()->select('COUNT(m.id)')->from(ChatMessage::class,'m')->join('m.conversation','c')->where('c.tenant = :tenant AND c.customer = :customer AND m.senderRole = :role AND m.customerReadAt IS NULL')->setParameter('tenant',$this->tenant->get())->setParameter('customer',$user)->setParameter('role','staff')->getQuery()->getSingleScalarResult();
+        return $this->json(['count'=>(int)$count]);
+    }
+    #[Route('/api/v1/chat/{id}/read', methods:['POST'], requirements:['id'=>'\d+'])]
+    public function markRead(int $id, Request $request): JsonResponse {
+        $chat=$this->conversation($id,$this->user(false),false);
+        $lastId=$request->toArray()['lastMessageId'] ?? null;
+        if (!is_int($lastId) || $lastId<1) { return $this->json(['message'=>'Ungültige Nachricht.'],422); }
+        $last=$this->em->getRepository(ChatMessage::class)->findOneBy(['id'=>$lastId,'conversation'=>$chat]);
+        if (!$last) { throw new HttpException(404); }
+        $this->em->createQueryBuilder()->update(ChatMessage::class,'m')->set('m.customerReadAt',':now')->where('m.conversation = :chat AND m.id <= :last AND m.senderRole = :role AND m.customerReadAt IS NULL')->setParameter('now',new \DateTimeImmutable())->setParameter('chat',$chat)->setParameter('last',$lastId)->setParameter('role','staff')->getQuery()->execute();
+        return $this->json(['success'=>true]);
+    }
+    private function fallbackSubject(string $text):string {
+        $text = trim(preg_replace('/\s+/u',' ',$text) ?? '');
+        if ($text === '') { return 'Bildanfrage …'; }
+        $sentence = preg_split('/(?<=[.!?])\s+/u',$text,2)[0];
+        return rtrim(mb_substr($sentence,0,100)).' …';
+    }
+    #[Route('/api/v1/admin/chat/open-count', methods:['GET'])]
+    public function openCount(): JsonResponse {
+        $this->user(true);
+        return $this->json(['count'=>$this->em->getRepository(ChatConversation::class)->count(['tenant'=>$this->tenant->get(),'status'=>'open'])]);
     }
     #[Route('/api/v1/chat', methods:['GET'], defaults: ['admin'=>false])]
     #[Route('/api/v1/admin/chat', methods:['GET'], defaults: ['admin'=>true])]
@@ -46,7 +96,8 @@ final class ApiChatController {
         $repo = $this->em->getRepository(ChatConversation::class);
         $chats = $repo->findBy($criteria, ['updatedAt'=>'DESC','id'=>'DESC'], 20, ($page-1)*20);
         $consent = $this->em->getRepository(ChatConversation::class)->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'consentVersion'=>self::CONSENT_VERSION]);
-        return $this->json(['conversations'=>array_map($this->summary(...),$chats),'total'=>$repo->count($criteria),'page'=>$page,'consentVersion'=>self::CONSENT_VERSION,'consentText'=>self::CONSENT,'notice'=>self::NOTICE,'consented'=>$consent !== null]);
+        $active = $admin ? null : $repo->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'status'=>'open']);
+        return $this->json(['activeConversationId'=>$active?->id,'conversations'=>array_map($this->summary(...),$chats),'total'=>$repo->count($criteria),'page'=>$page,'consentVersion'=>self::CONSENT_VERSION,'consentText'=>self::CONSENT,'notice'=>self::NOTICE,'consented'=>$consent !== null]);
     }
     #[Route('/api/v1/chat/{id}', methods:['GET'], requirements:['id'=>'\d+'], defaults:['admin'=>false])]
     #[Route('/api/v1/admin/chat/{id}', methods:['GET'], requirements:['id'=>'\d+'], defaults:['admin'=>true])]
@@ -70,6 +121,8 @@ final class ApiChatController {
     public function send(Request $request, bool $admin): JsonResponse {
         $user = $this->user($admin);
         $text = trim($request->request->getString('text'));
+        $subject = trim($request->request->getString('subject'));
+        if (mb_strlen($subject)>160) { return $this->json(['message'=>'Der Betreff darf maximal 160 Zeichen enthalten.'],422); }
         $requestId = $request->request->getString('requestId');
         if (mb_strlen($text)>5000 || !preg_match('/^[a-f0-9-]{36}$/D',$requestId)) { return $this->json(['message'=>'Nachricht ist ungültig (maximal 5.000 Zeichen).'],422); }
         $file = $request->files->get('image');
@@ -89,12 +142,15 @@ final class ApiChatController {
             } else {
                 if ($admin) { throw new HttpException(422); }
                 $chat = $this->em->getRepository(ChatConversation::class)->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'status'=>'open']);
+                if ($chat) { throw new HttpException(409,'Es gibt bereits ein offenes Gespräch.'); }
                 if (!$chat) {
                     $previous = $this->em->getRepository(ChatConversation::class)->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'consentVersion'=>self::CONSENT_VERSION]);
                     if (!$previous && ($request->request->getString('consentVersion') !== self::CONSENT_VERSION || $request->request->getString('consent') !== 'true')) { throw new HttpException(422,'Bitte stimmen Sie zuerst den Datenschutzhinweisen zu.'); }
                     $chat = new ChatConversation($this->tenant->get(),$user,self::CONSENT_VERSION);
                     if ($previous) { $chat->consentedAt = $previous->consentedAt; }
                     $this->em->persist($chat);
+                    $this->em->flush();
+                    $chat->encryptedSubject = $this->cipher->encrypt($subject !== '' ? $subject : $this->fallbackSubject($text),$this->context($chat).':subject');
                     $this->em->flush();
                 }
             }
@@ -103,12 +159,14 @@ final class ApiChatController {
             if (!$existing) {
                 if ($chat->status !== 'open') { throw new HttpException(409,'Dieses Gespräch wurde abgeschlossen.'); }
                 $message = new ChatMessage($chat,$user,$admin?'staff':'customer',$requestId);
+                $message->pushPending=$admin;
                 $message->encryptedText = $this->cipher->encrypt($text,$this->context($chat).':text');
                 $message->encryptedImage = $image === null ? null : $this->cipher->encrypt($image,$this->context($chat).':image');
                 $chat->updatedAt = new \DateTimeImmutable();
                 $this->em->persist($message); $this->em->flush();
             }
             $this->em->commit();
+            if($admin && isset($message))$this->push?->schedule($message->id);
             return $this->json(['conversationId'=>$chat->id],201);
         } catch (\Throwable $e) { $this->em->rollback(); throw $e; }
     }
