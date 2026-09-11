@@ -127,7 +127,7 @@ final class ApiProfileController
     private function currentTenantMembership(): ?TenantMembership
     {
         $user = $this->security->getUser();
-        if (!$user instanceof User || !$membership instanceof TenantMembership) {
+        if (!$user instanceof User) {
             return null;
         }
         return $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
