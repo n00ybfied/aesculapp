@@ -49,6 +49,8 @@ class Tenant
     private bool $allowDuplicateReceiptImports = false;
     #[ORM\Column(options: ['default' => false])]
     private bool $showCustomerDebugOutput = false;
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $receiptQrPrefix = null;
     #[ORM\Column(length: 255, nullable: true)] private ?string $smtpHost = null;
     #[ORM\Column(nullable: true)] private ?int $smtpPort = null;
     #[ORM\Column(length: 20, nullable: true)] private ?string $smtpEncryption = null;
@@ -99,6 +101,8 @@ class Tenant
     public function setAllowDuplicateReceiptImports(bool $value): void { $this->allowDuplicateReceiptImports = $value; }
     public function showsCustomerDebugOutput(): bool { return $this->showCustomerDebugOutput; }
     public function setShowCustomerDebugOutput(bool $value): void { $this->showCustomerDebugOutput = $value; }
+    public function getReceiptQrPrefix(): ?string { return $this->receiptQrPrefix; }
+    public function setReceiptQrPrefix(?string $value): void { $this->receiptQrPrefix = $value; }
     public function getSmtpHost(): ?string { return $this->smtpHost; } public function setSmtpHost(?string $value): void { $this->smtpHost = $value; }
     public function getSmtpPort(): ?int { return $this->smtpPort; } public function setSmtpPort(?int $value): void { $this->smtpPort = $value; }
     public function getSmtpEncryption(): ?string { return $this->smtpEncryption; } public function setSmtpEncryption(?string $value): void { $this->smtpEncryption = $value; }

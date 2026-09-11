@@ -25,6 +25,10 @@ export interface AdminUsersOverview {
   readonly invitations: readonly PendingInvitation[];
 }
 
+export interface InvitationAcceptanceResult {
+  readonly existingAccount: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminUserService {
   private readonly http = inject(HttpClient);
@@ -38,8 +42,8 @@ export class AdminUserService {
     await firstValueFrom(this.http.post(`${this.api()}/admin/users/invitations`, { displayName, email, role }, { headers: this.headers() }));
   }
 
-  async acceptInvitation(token: string, password: string): Promise<void> {
-    await firstValueFrom(this.http.post(`${this.api()}/admin/invitations/accept`, { token, password }));
+  async acceptInvitation(token: string, password: string): Promise<InvitationAcceptanceResult> {
+    return firstValueFrom(this.http.post<InvitationAcceptanceResult>(`${this.api()}/admin/invitations/accept`, { token, password }));
   }
 
   private headers(): HttpHeaders {

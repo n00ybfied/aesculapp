@@ -29,6 +29,7 @@ final class ApiRewardController
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
         private readonly ImageProcessor $imageProcessor,
+        private readonly \App\Service\RichTextSanitizer $richText,
     ) {
     }
 
@@ -54,6 +55,14 @@ final class ApiRewardController
         return new JsonResponse(['rewards' => array_map(fn (Reward $reward) => $this->serialize($reward, $request), $rewards)]);
     }
 
+    #[Route('/api/v1/admin/rewards/{id}', methods: ['GET'])]
+    public function adminOne(int $id, Request $request): JsonResponse
+    {
+        if (!$this->isAdmin()) { return new JsonResponse(['message'=>'Forbidden.'],403); }
+        $reward=$this->findTenantReward($id);
+        return $reward ? new JsonResponse(['reward'=>$this->serialize($reward,$request)]) : new JsonResponse(['message'=>'Gutschein nicht gefunden.'],404);
+    }
+
     #[Route('/api/v1/admin/rewards', name: 'api_v1_admin_reward_create', methods: ['POST'])]
     public function create(Request $request, SluggerInterface $slugger): JsonResponse
     {
@@ -63,7 +72,7 @@ final class ApiRewardController
 
         $title = trim((string) $request->request->get('title', ''));
         $subtitle = trim((string) $request->request->get('subtitle', ''));
-        $description = trim((string) $request->request->get('description', ''));
+        $description = $this->richText->sanitize((string) $request->request->get('description', ''));
         $requiredPoints = filter_var($request->request->get('requiredPoints'), FILTER_VALIDATE_INT);
         $image = $request->files->get('image');
 
@@ -79,6 +88,11 @@ final class ApiRewardController
             return new JsonResponse(['message' => 'Please upload a PNG, JPEG or WebP image up to 5 MB.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        if ($request->request->has('mediaPath')) {
+            $asset=$this->entityManager->getRepository(\App\Entity\MediaAsset::class)->findOneBy(['path'=>$request->request->get('mediaPath'),'tenant'=>$this->activeTenant->get(),'visibility'=>'public']);
+            if (!$asset) { return new JsonResponse(['message'=>'Ungültiges Bild.'],422); }
+            $imagePath=$asset->getPath();
+        }
         $reward = new Reward(
             $this->activeTenant->get(),
             $title,
@@ -108,7 +122,7 @@ final class ApiRewardController
 
         $title = trim((string) $request->request->get('title', ''));
         $subtitle = trim((string) $request->request->get('subtitle', ''));
-        $description = trim((string) $request->request->get('description', ''));
+        $description = $this->richText->sanitize((string) $request->request->get('description', ''));
         $requiredPoints = filter_var($request->request->get('requiredPoints'), FILTER_VALIDATE_INT);
         if ($title === '' || $subtitle === '' || $description === '' || false === $requiredPoints || $requiredPoints < 0) {
             return new JsonResponse(['message' => 'Invalid reward data.'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -125,6 +139,11 @@ final class ApiRewardController
             $imagePath = $newImagePath;
         }
 
+        if ($request->request->has('mediaPath')) {
+            $asset=$this->entityManager->getRepository(\App\Entity\MediaAsset::class)->findOneBy(['path'=>$request->request->get('mediaPath'),'tenant'=>$this->activeTenant->get(),'visibility'=>'public']);
+            if (!$asset) { return new JsonResponse(['message'=>'Ungültiges Bild.'],422); }
+            $imagePath=$asset->getPath();
+        }
         $reward->update($title, $subtitle, $description, $imagePath, (int) $requiredPoints, 'true' === $request->request->get('isVisible', 'true'));
         $this->entityManager->flush();
         if ($oldImagePath !== '' && $oldImagePath !== $imagePath) {
@@ -212,7 +231,7 @@ final class ApiRewardController
 
     private function deleteImage(string $imagePath): void
     {
-        if ($imagePath === '') {
+        if ($imagePath === '' || str_starts_with($imagePath, '/uploads/media/')) {
             return;
         }
         $file = dirname(__DIR__, 2).'/public'.$imagePath;
@@ -228,7 +247,7 @@ final class ApiRewardController
             'id' => $reward->getId(),
             'title' => $reward->getTitle(),
             'subtitle' => $reward->getSubtitle(),
-            'description' => $reward->getDescription(),
+            'description' => $this->richText->sanitize($reward->getDescription()),
             'imageUrl' => $reward->getImagePath() === '' ? null : $request->getSchemeAndHttpHost().$reward->getImagePath(),
             'requiredPoints' => $reward->getRequiredPoints(),
             'isVisible' => $reward->isVisible(),

@@ -18,10 +18,11 @@ export class AcceptInvitationComponent {
 
   protected readonly isSubmitting = signal(false);
   protected readonly isAccepted = signal(false);
+  protected readonly existingAccount = signal(false);
   protected readonly error = signal<string | null>(this.token === null ? 'Diese Einladung ist ungültig oder unvollständig.' : null);
   protected readonly form = this.formBuilder.nonNullable.group({
-    password: ['', [Validators.required, Validators.minLength(10)]],
-    passwordConfirmation: ['', [Validators.required]],
+    password: ['', [Validators.minLength(10)]],
+    passwordConfirmation: [''],
   });
 
   protected async submit(): Promise<void> {
@@ -29,12 +30,11 @@ export class AcceptInvitationComponent {
       return;
     }
     this.error.set(null);
+    const { password, passwordConfirmation } = this.form.getRawValue();
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
-    const { password, passwordConfirmation } = this.form.getRawValue();
     if (password !== passwordConfirmation) {
       this.error.set('Die beiden Passwörter stimmen nicht überein.');
       return;
@@ -42,7 +42,8 @@ export class AcceptInvitationComponent {
 
     this.isSubmitting.set(true);
     try {
-      await this.users.acceptInvitation(this.token, password);
+      const result = await this.users.acceptInvitation(this.token, password);
+      this.existingAccount.set(result.existingAccount);
       this.isAccepted.set(true);
     } catch {
       this.error.set('Die Einladung ist ungültig, abgelaufen oder wurde bereits angenommen.');

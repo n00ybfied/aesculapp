@@ -49,6 +49,11 @@ final class ApiAdminBrandingController
         foreach (['birthdayBonusPoints' => 'setBirthdayBonusPoints', 'pointsPerEuro' => 'setPointsPerEuro'] as $field => $setter) { $value = $request->request->get($field); if ($value !== null) { if ($field === 'pointsPerEuro' && $request->request->get('confirmPointsPerEuroChange') !== 'true') { return new JsonResponse(['message' => 'Bitte bestätigen Sie die Änderung des Punkteverhältnisses.'], 422); } if (!is_string($value) || !ctype_digit($value) || (int) $value > 100000) { return new JsonResponse(['message' => 'Bitte prüfen Sie die Punkte-Einstellungen.'], 422); } $tenant->$setter((int) $value); } }
         $tenant->setAllowDuplicateReceiptImports($request->request->get('allowDuplicateReceiptImports') === 'true');
         $tenant->setShowCustomerDebugOutput($request->request->get('showCustomerDebugOutput') === 'true');
+        $receiptQrPrefix = trim((string) $request->request->get('receiptQrPrefix', ''));
+        if (mb_strlen($receiptQrPrefix) > 120 || str_contains($receiptQrPrefix, "\n") || str_contains($receiptQrPrefix, "\r")) {
+            return new JsonResponse(['message' => 'Der Rechnungs-QR-Präfix ist ungültig.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $tenant->setReceiptQrPrefix($receiptQrPrefix === '' ? null : $receiptQrPrefix);
         $smtpHost = trim((string) $request->request->get('smtpHost', '')); $smtpFrom = trim((string) $request->request->get('smtpFrom', '')); $smtpPort = $request->request->get('smtpPort'); $smtpEncryption = $request->request->get('smtpEncryption');
         if ($smtpHost !== '' || $smtpFrom !== '') { if ($smtpHost === '' || false === filter_var($smtpFrom, FILTER_VALIDATE_EMAIL) || !is_string($smtpPort) || !ctype_digit($smtpPort) || (int) $smtpPort < 1 || (int) $smtpPort > 65535 || !is_string($smtpEncryption) || !in_array($smtpEncryption, ['tls','ssl','none'], true)) { return new JsonResponse(['message' => 'Bitte prüfen Sie die SMTP-Einstellungen.'], 422); } $tenant->setSmtpHost($smtpHost); $tenant->setSmtpPort((int) $smtpPort); $tenant->setSmtpEncryption($smtpEncryption); $tenant->setSmtpUsername(trim((string) $request->request->get('smtpUsername', '')) ?: null); $tenant->setSmtpFrom($smtpFrom); $password = $request->request->get('smtpPassword'); if (is_string($password) && $password !== '') { $tenant->setSmtpPasswordEncrypted(base64_encode(sodium_crypto_secretbox($password, $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), hash('sha256', $this->appSecret, true))) . ':' . base64_encode($nonce)); } }
         foreach (['logo' => 'LogoPath', 'squareLogo' => 'SquareLogoPath', 'favicon' => 'FaviconPath'] as $field => $property) {
@@ -99,6 +104,7 @@ final class ApiAdminBrandingController
     {
         $origin = $request->getSchemeAndHttpHost();
         $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput()];
+        if ($includeSmtp) { $branding['receiptQrPrefix'] = $tenant->getReceiptQrPrefix(); }
         if ($includeSmtp) { $branding += ['smtpHost' => $tenant->getSmtpHost(), 'smtpPort' => $tenant->getSmtpPort(), 'smtpEncryption' => $tenant->getSmtpEncryption(), 'smtpUsername' => $tenant->getSmtpUsername(), 'smtpFrom' => $tenant->getSmtpFrom(), 'smtpPasswordConfigured' => $tenant->getSmtpPasswordEncrypted() !== null]; }
         return $branding;
     }

@@ -1,3 +1,10 @@
+@import '@fontsource/nunito/600.css';
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/700.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+
 :root {
   --admin-background: #f1f6fa;
   --admin-surface: #ffffff;
@@ -16,7 +23,14 @@ body {
   min-width: 320px;
   background: var(--admin-background);
   color: var(--admin-text);
-  font-family: Rubik, Arial, sans-serif;
+  font-family: Roboto, Arial, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #223645;
+  font-family: Nunito, Roboto, Arial, sans-serif;
+  font-weight: 400;
 }
 
 button, input { font: inherit; }
+button:not(:disabled) { cursor: pointer; }

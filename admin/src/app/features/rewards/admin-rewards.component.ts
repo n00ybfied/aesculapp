@@ -1,50 +1,15 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
-import { AdminAuthService } from '../../core/auth/admin-auth.service';
-
-interface AdminReward { id: number; title: string; subtitle: string; description: string; imageUrl: string | null; requiredPoints: number; isVisible: boolean; }
-
-@Component({ selector: 'app-admin-rewards', imports: [FormsModule], templateUrl: './admin-rewards.component.html', styleUrl: './admin-rewards.component.css' })
+import { RouterLink } from '@angular/router';
+import { AdminRewardService, AdminReward } from '../../core/rewards/admin-reward.service';
+@Component({selector:'app-admin-rewards',imports:[RouterLink],templateUrl:'./admin-rewards.component.html',styleUrl:'./admin-rewards.component.css'})
 export class AdminRewardsComponent {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AdminAuthService);
-  protected readonly rewards = signal<readonly AdminReward[]>([]);
-  protected readonly error = signal('');
-  protected readonly isSaving = signal(false);
-  protected readonly imagePreviewUrl = signal<string | null>(null);
-  protected title = ''; protected subtitle = ''; protected description = ''; protected requiredPoints = 0; protected isVisible = true;
-  protected readonly editingId = signal<number | null>(null);
-  private image: File | null = null;
-  private imageRemovalRequested = false;
-
-  constructor() { this.load(); }
-
-  protected selectImage(event: Event): void { this.setImage((event.target as HTMLInputElement).files?.[0] ?? null); }
-  protected dragOver(event: DragEvent): void { event.preventDefault(); }
-  protected dropImage(event: DragEvent): void { event.preventDefault(); this.setImage(event.dataTransfer?.files.item(0) ?? null); }
-  protected removeImage(): void { this.image = null; this.imagePreviewUrl.set(null); this.imageRemovalRequested = this.editingId() !== null; }
-  protected save(): void {
-    if (!this.title.trim() || !this.subtitle.trim() || !this.description.trim() || this.requiredPoints < 0) { this.error.set('Bitte füllen Sie alle Pflichtfelder aus.'); return; }
-    const data = new FormData();
-    data.set('title', this.title.trim()); data.set('subtitle', this.subtitle.trim()); data.set('description', this.description.trim());
-    data.set('requiredPoints', String(this.requiredPoints)); data.set('isVisible', String(this.isVisible)); data.set('removeImage', String(this.imageRemovalRequested)); if (this.image) data.set('image', this.image);
-    this.isSaving.set(true); this.error.set('');
-    const editingId = this.editingId();
-    const request = editingId === null ? this.http.post<{ reward: AdminReward }>(`${this.api()}/admin/rewards`, data, { headers: this.headers() }) : this.http.post<{ reward: AdminReward }>(`${this.api()}/admin/rewards/${editingId}/update`, data, { headers: this.headers() });
-    request.pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: ({ reward }) => { this.rewards.update((items) => editingId === null ? [reward, ...items] : items.map((item) => item.id === reward.id ? reward : item)); this.resetForm(); },
-      error: () => this.error.set(editingId === null ? 'Der Gutschein konnte nicht gespeichert werden.' : 'Der Gutschein konnte nicht aktualisiert werden.'),
-    });
-  }
-  protected edit(reward: AdminReward): void { this.editingId.set(reward.id); this.title = reward.title; this.subtitle = reward.subtitle; this.description = reward.description; this.requiredPoints = reward.requiredPoints; this.isVisible = reward.isVisible; this.image = null; this.imageRemovalRequested = false; this.imagePreviewUrl.set(reward.imageUrl); this.error.set(''); }
-  protected cancelEdit(): void { this.resetForm(); }
-  protected toggle(reward: AdminReward): void { this.http.patch<{ reward: AdminReward }>(`${this.api()}/admin/rewards/${reward.id}/visibility`, { isVisible: !reward.isVisible }, { headers: this.headers() }).subscribe({ next: ({ reward: updated }) => this.rewards.update((items) => items.map((item) => item.id === updated.id ? updated : item)), error: () => this.error.set('Sichtbarkeit konnte nicht geändert werden.') }); }
-  protected remove(reward: AdminReward): void { if (!confirm(`„${reward.title}“ wirklich löschen?`)) return; this.http.delete(`${this.api()}/admin/rewards/${reward.id}`, { headers: this.headers() }).subscribe({ next: () => this.rewards.update((items) => items.filter((item) => item.id !== reward.id)), error: () => this.error.set('Gutschein konnte nicht gelöscht werden.') }); }
-  private load(): void { this.http.get<{ rewards: AdminReward[] }>(`${this.api()}/admin/rewards`, { headers: this.headers() }).subscribe({ next: ({ rewards }) => this.rewards.set(rewards), error: () => this.error.set('Gutscheine konnten nicht geladen werden.') }); }
-  private headers(): HttpHeaders { return new HttpHeaders({ Authorization: `Bearer ${this.auth.accessToken()}` }); }
-  private api(): string { return location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? 'http://localhost:6080/api/v1' : 'https://api.aesculapp.floatbox.at/api/v1'; }
-  private resetForm(): void { this.editingId.set(null); this.title = ''; this.subtitle = ''; this.description = ''; this.requiredPoints = 0; this.isVisible = true; this.image = null; this.imageRemovalRequested = false; this.imagePreviewUrl.set(null); }
-  private setImage(file: File | null): void { if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { this.error.set('Erlaubt sind PNG, JPEG oder WebP bis 5 MB.'); return; } this.image = file; this.imageRemovalRequested = false; this.error.set(''); this.imagePreviewUrl.set(URL.createObjectURL(file)); }
+ private readonly service=inject(AdminRewardService);
+ protected readonly rewards=signal<readonly AdminReward[]>([]);
+ protected readonly loading=signal(true);
+ protected readonly busy=signal(false);
+ protected readonly error=signal('');
+ constructor(){void this.load();}
+ private async load(){try{this.rewards.set(await this.service.list());}catch{this.error.set('Gutscheine konnten nicht geladen werden.');}finally{this.loading.set(false);}}
+ protected async toggle(reward:AdminReward){if(this.busy())return;this.busy.set(true);try{await this.service.toggle(reward);await this.load();}catch{this.error.set('Sichtbarkeit konnte nicht geändert werden.');}finally{this.busy.set(false);}}
+ protected async remove(reward:AdminReward){if(this.busy()||!confirm('„'+reward.title+'“ wirklich löschen?'))return;this.busy.set(true);try{await this.service.remove(reward.id);await this.load();}catch{this.error.set('Gutschein konnte nicht gelöscht werden.');}finally{this.busy.set(false);}}
 }

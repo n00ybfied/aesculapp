@@ -64,4 +64,10 @@ class TenantMembership
     {
         return $this->roles;
     }
+
+    /** @param list<string> $roles */
+    public function setRoles(array $roles): void
+    {
+        $this->roles = array_values(array_unique($roles));
+    }
 }
