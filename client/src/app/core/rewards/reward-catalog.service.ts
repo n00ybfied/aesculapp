@@ -18,6 +18,11 @@ export class RewardCatalogService {
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = inject(API_BASE_URL);
 
+  async getVisibleReward(id: string): Promise<Reward | null> {
+    const rewards = await this.getVisibleRewards();
+    return rewards.find(reward => reward.id === id) ?? null;
+  }
+
   async getVisibleRewards(): Promise<readonly Reward[]> {
     const response = await firstValueFrom(this.http.get<{ rewards: RewardResponse[] }>(`${this.apiBaseUrl}/rewards`));
     return response.rewards.map((reward) => ({

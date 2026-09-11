@@ -58,6 +58,15 @@
     </details>
 
     <details class="settings-group">
+      <summary>Rechnungs-QR-Code</summary>
+      <div class="loyalty qr-settings">
+        <p>Nur QR-Codes, die mit diesem Präfix beginnen, können Punkte gutschreiben. Damit werden gleich formatierte Fremdbelege abgewiesen.</p>
+        <label>QR-Präfix<input name="receiptQrPrefix" maxlength="120" [(ngModel)]="receiptQrPrefix" placeholder="z. B. _HA_0_K26" autocomplete="off" /><span>Zeichen am Beginn des QR-Inhalts</span></label>
+        @if (receiptQrPrefix.trim() === '') { <small class="prefix-warning">Kein Präfix hinterlegt: Die Präfix-Prüfung ist derzeit deaktiviert. Dies ist nur für Entwicklung und Tests gedacht.</small> }
+      </div>
+    </details>
+
+    <details class="settings-group">
       <summary>E-Mail-Einstellungen</summary>
       <div class="loyalty smtp-settings">
         <p>Optionaler SMTP-Versand für Double-Opt-In- und Passwort-Reset-E-Mails. Ohne vollständige SMTP-Daten wird der Server-Standardversand verwendet.</p>
@@ -90,3 +99,11 @@
     <button type="button" class="save" [disabled]="isSaving()" (click)="save()">{{ isSaving() ? 'Speichert …' : 'Einstellungen speichern' }}</button>
   }
 </section>
+
+@if (success(); as message) {
+  <div class="save-toast" role="status" aria-live="polite">
+    <span aria-hidden="true">✓</span>
+    <p>{{ message }}</p>
+    <button type="button" (click)="dismissSuccess()" aria-label="Bestätigung schließen">×</button>
+  </div>
+}

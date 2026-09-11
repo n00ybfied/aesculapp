@@ -53,6 +53,17 @@ final class ApiLoyaltyReceiptController
 
         $rawQrValue = trim($rawQrValue);
         $qrHashPrefix = substr(hash('sha256', $rawQrValue), 0, 12);
+        $tenant = $this->activeTenant->get();
+        $expectedPrefix = $tenant->getReceiptQrPrefix();
+        if ($expectedPrefix !== null && !str_starts_with($rawQrValue, $expectedPrefix)) {
+            $this->qrLogger->notice('qr.import.rejected.prefix_mismatch', [
+                'tenantId' => $tenant->getId(),
+                'userId' => $user->getId(),
+                'qrHashPrefix' => $qrHashPrefix,
+                'qrLength' => strlen($rawQrValue),
+            ]);
+            return new JsonResponse(['message' => 'Dieser QR-Code gehört nicht zum Punkteprogramm dieser Apotheke.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
         try {
             $receipt = $this->parser->parse($rawQrValue);
         } catch (\InvalidArgumentException) {
@@ -64,7 +75,6 @@ final class ApiLoyaltyReceiptController
             return new JsonResponse(['message' => 'Unsupported loyalty QR code.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $tenant = $this->activeTenant->get();
         $qrHash = hash('sha256', $rawQrValue);
         $context = [
             'tenantId' => $tenant->getId(),

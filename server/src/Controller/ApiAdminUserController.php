@@ -97,11 +97,20 @@ final class ApiAdminUserController
         if ($roles === [self::ADMIN_ROLE] && !in_array(self::ADMIN_ROLE, $inviter->getRoles(), true)) {
             return new JsonResponse(['message' => 'Only tenant administrators may invite further administrators.'], Response::HTTP_FORBIDDEN);
         }
-        if ($this->users->findOneByEmail($email) !== null) {
-            return new JsonResponse(['message' => 'Für diese E-Mail-Adresse existiert bereits ein Benutzerkonto.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        $tenant = $this->activeTenant->get();
+        $existingUser = $this->users->findOneByEmail($email);
+        if ($existingUser !== null) {
+            $existingMembership = $this->memberships->findForUserAndTenant($existingUser, $tenant);
+            $hasAdministrativeAccess = $existingMembership !== null
+                && [] !== array_intersect([self::STAFF_ROLE, self::ADMIN_ROLE], $existingMembership->getRoles());
+            $isAlreadyAdministrator = $existingMembership !== null
+                && in_array(self::ADMIN_ROLE, $existingMembership->getRoles(), true);
+
+            if ($hasAdministrativeAccess && ($roles === [self::STAFF_ROLE] || $isAlreadyAdministrator)) {
+                return new JsonResponse(['message' => 'Dieses Benutzerkonto hat bereits den gewünschten Mitarbeiterzugang.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
         }
 
-        $tenant = $this->activeTenant->get();
         $rawToken = bin2hex(random_bytes(32));
         $invitation = new StaffInvitation($tenant, $email, $displayName, $roles, hash('sha256', $rawToken));
         $this->entityManager->persist($invitation);
@@ -114,7 +123,9 @@ final class ApiAdminUserController
                     ->from($this->mailFrom)
                     ->to($email)
                     ->subject('Einladung zum Aesculapp Apothekenportal')
-                    ->text("Sie wurden zum Apothekenportal eingeladen. Legen Sie innerhalb von sieben Tagen Ihr Passwort fest:\n{$acceptanceUrl}"),
+                    ->text($existingUser === null
+                        ? "Sie wurden zum Apothekenportal eingeladen. Legen Sie innerhalb von sieben Tagen Ihr Passwort fest:\n{$acceptanceUrl}"
+                        : "Sie wurden zum Apothekenportal eingeladen. Bestätigen Sie innerhalb von sieben Tagen Ihren zusätzlichen Mitarbeiterzugang. Ihr bestehendes Passwort bleibt unverändert:\n{$acceptanceUrl}"),
                 'admin_invitation',
             );
             $this->entityManager->flush();

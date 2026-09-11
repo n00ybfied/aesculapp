@@ -2,8 +2,12 @@
 @import '@fontsource/rubik/500.css';
 @import '@fontsource/rubik/600.css';
 @import '@fontsource/rubik/700.css';
+@import '@fontsource/nunito/400.css';
 @import '@fontsource/nunito/600.css';
 @import '@fontsource/nunito/700.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
 @import 'tailwindcss';
 
 :root {
@@ -32,8 +36,8 @@
 
 [data-theme='sta'] {
   color-scheme: light;
-  --font-body: Rubik, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: Nunito, Rubik, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-body: Roboto, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: Nunito, Roboto, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --color-background: #f1f6fa;
   --color-surface: #ffffff;
   --color-foreground: #223645;
@@ -108,6 +112,20 @@ h6 {
 button,
 input {
   font: inherit;
+}
+
+[data-theme='sta'] h1,
+[data-theme='sta'] h2,
+[data-theme='sta'] h3,
+[data-theme='sta'] h4,
+[data-theme='sta'] h5,
+[data-theme='sta'] h6 {
+  color: #223645;
+  font-weight: 400;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
 }
 
 @keyframes scan-sweep {

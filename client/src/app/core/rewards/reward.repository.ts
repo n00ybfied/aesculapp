@@ -46,6 +46,8 @@ export interface ActiveRedemption {
 export interface ActiveRedemptionItem {
   readonly rewardId: string;
   readonly title: string;
+  readonly subtitle: string;
+  readonly imageUrl?: string;
   readonly quantity: number;
   readonly pointsPerItem: number;
 }
@@ -279,7 +281,7 @@ export class MockRewardRepository extends RewardRepository {
         return [];
       }
 
-      items.push({ rewardId, title: reward.title, quantity, pointsPerItem: reward.requiredPoints });
+      items.push({ rewardId, title: reward.title, subtitle: reward.subtitle, imageUrl: reward.imageUrl, quantity, pointsPerItem: reward.requiredPoints });
     }
 
     return items;

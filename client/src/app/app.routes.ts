@@ -48,6 +48,7 @@ export const routes: Routes = [
     component: AppShellComponent,
     canActivateChild: [authGuard],
     children: [
+      { path: 'chat', loadComponent: () => import('./features/chat/chat.page').then(m => m.ChatPage), title: 'Chat | Aesculapp' },
       {
         path: 'dashboard',
         loadComponent: () =>
@@ -76,6 +77,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/rewards/rewards.page').then((module) => module.RewardsPage),
         title: 'Punkte & Prämien | Aesculapp',
+      },
+      {
+        path: 'punkte/praemien/:id',
+        loadComponent: () => import('./features/rewards/reward-detail.page').then(module => module.RewardDetailPage),
+        title: 'Gutschein | Aesculapp',
       },
       {
         path: 'scanner',

@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
-import { RewardRepository, type ActiveRedemption } from '../../core/rewards/reward.repository';
+import { RewardCatalogService } from '../../core/rewards/reward-catalog.service';
+import { RewardRepository, type ActiveRedemption, type ActiveRedemptionItem, type Reward } from '../../core/rewards/reward.repository';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
 import { statusMessages } from '../../core/i18n/status-messages';
 
@@ -12,6 +13,7 @@ import { statusMessages } from '../../core/i18n/status-messages';
 })
 export class ActiveRedemptionPage implements OnInit, OnDestroy {
   private readonly rewardRepository = inject(RewardRepository);
+  private readonly catalog = inject(RewardCatalogService);
   private readonly router = inject(Router);
   private readonly statusMessages = inject(StatusMessageService);
   private timer: ReturnType<typeof setInterval> | undefined;
@@ -20,12 +22,14 @@ export class ActiveRedemptionPage implements OnInit, OnDestroy {
   protected readonly redemption = signal<ActiveRedemption | null>(null);
   protected readonly remainingSeconds = signal(0);
   protected readonly wasCancelled = signal(false);
+  protected readonly rewards = signal<readonly Reward[]>([]);
   protected readonly remainingTime = computed(() => {
     const seconds = this.remainingSeconds();
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   });
 
   async ngOnInit(): Promise<void> {
+    try { this.rewards.set(await this.catalog.getVisibleRewards()); } catch { /* Existing stored image data remains available as fallback. */ }
     const redemption = await this.rewardRepository.getActiveRedemption();
     if (!redemption) {
       void this.router.navigate(['/punkte']);
@@ -49,6 +53,14 @@ export class ActiveRedemptionPage implements OnInit, OnDestroy {
 
   protected backToRewards(): void {
     void this.router.navigate(['/punkte']);
+  }
+
+  protected imageUrl(item: ActiveRedemptionItem): string | undefined {
+    return item.imageUrl ?? this.rewards().find((reward) => reward.id === item.rewardId)?.imageUrl;
+  }
+
+  protected subtitle(item: ActiveRedemptionItem): string {
+    return item.subtitle ?? this.rewards().find((reward) => reward.id === item.rewardId)?.subtitle ?? '';
   }
 
   private updateRemainingTime(): void {

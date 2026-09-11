@@ -29,6 +29,7 @@ final class ApiNewsController
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
         private readonly ImageProcessor $imageProcessor,
+        private readonly \App\Service\RichTextSanitizer $richText,
     ) {
     }
 
@@ -183,7 +184,7 @@ final class ApiNewsController
     {
         $title = trim((string) $request->request->get('title', ''));
         $subtitle = trim((string) $request->request->get('subtitle', ''));
-        $bodyHtml = $this->sanitizeHtml((string) $request->request->get('bodyHtml', ''));
+        $bodyHtml = $this->richText->sanitize((string) $request->request->get('bodyHtml', ''));
         $publishedAt = $this->parseDate((string) $request->request->get('publishedAt', ''));
         $showFrom = $this->parseOptionalDate($request->request->get('showFrom'));
         $showUntil = $this->parseOptionalDate($request->request->get('showUntil'));
@@ -191,6 +192,12 @@ final class ApiNewsController
 
         $imagePath = $existingImagePath;
         if ('true' === $request->request->get('removeImage')) { $this->deleteImage($imagePath); $imagePath = null; }
+        $mediaPath = $request->request->get('mediaPath');
+        if ($request->request->has('mediaPath')) {
+            $asset=$this->entityManager->getRepository(\App\Entity\MediaAsset::class)->findOneBy(['path'=>$mediaPath,'tenant'=>$this->activeTenant->get(),'visibility'=>'public']);
+            if (!$asset) { return null; }
+            $imagePath=$asset->getPath();
+        }
         $image = $request->files->get('image');
         if ($image instanceof UploadedFile) {
             $newImage = $this->storeImage($image, $slugger);
@@ -228,55 +235,9 @@ final class ApiNewsController
 
     private function deleteImage(?string $imagePath): void
     {
-        if ($imagePath === null) { return; }
+        if ($imagePath === null || str_starts_with($imagePath, '/uploads/media/')) { return; }
         $file = dirname(__DIR__, 2).'/public'.$imagePath;
         if (is_file($file)) { unlink($file); }
-    }
-
-    private function sanitizeHtml(string $html): string
-    {
-        $document = new \DOMDocument();
-        libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="utf-8" ?><div>'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        libxml_clear_errors();
-        $allowed = ['div', 'p', 'br', 'strong', 'b', 'em', 'i', 'ul', 'ol', 'li', 'a', 'img', 'h2', 'h3', 'blockquote'];
-        $root = $document->getElementsByTagName('div')->item(0);
-        if (!$root instanceof \DOMElement) { return ''; }
-        $this->sanitizeNode($root, $allowed);
-        $result = '';
-        foreach ($root->childNodes as $child) { $result .= $document->saveHTML($child); }
-        return trim($result);
-    }
-
-    /** @param list<string> $allowed */
-    private function sanitizeNode(\DOMNode $node, array $allowed): void
-    {
-        for ($index = $node->childNodes->length - 1; $index >= 0; --$index) {
-            $child = $node->childNodes->item($index);
-            if (!$child instanceof \DOMElement) { continue; }
-            if (!in_array($child->tagName, $allowed, true)) {
-                while ($child->firstChild) { $node->insertBefore($child->firstChild, $child); }
-                $node->removeChild($child); continue;
-            }
-            $href = $child->tagName === 'a' ? trim($child->getAttribute('href')) : '';
-            $src = $child->tagName === 'img' ? trim($child->getAttribute('src')) : '';
-            $alt = $child->tagName === 'img' ? trim($child->getAttribute('alt')) : '';
-            $width = $child->tagName === 'img' ? filter_var($child->getAttribute('width'), FILTER_VALIDATE_INT) : false;
-            $height = $child->tagName === 'img' ? filter_var($child->getAttribute('height'), FILTER_VALIDATE_INT) : false;
-            $attributes = [];
-            foreach ($child->attributes as $attribute) { $attributes[] = $attribute->name; }
-            foreach ($attributes as $attribute) { $child->removeAttribute($attribute); }
-            if ($child->tagName === 'a') {
-                if ($href !== '' && preg_match('#^(https?://|mailto:)#i', $href)) { $child->setAttribute('href', $href); }
-            }
-            if ($child->tagName === 'img' && $src !== '' && preg_match('#^https?://#i', $src)) {
-                $child->setAttribute('src', $src);
-                if ($alt !== '') { $child->setAttribute('alt', $alt); }
-                if (is_int($width) && $width >= 120 && $width <= 1400) { $child->setAttribute('width', (string) $width); }
-                if (is_int($height) && $height >= 80 && $height <= 1400) { $child->setAttribute('height', (string) $height); }
-            }
-            $this->sanitizeNode($child, $allowed);
-        }
     }
 
     /** @return array{id:int,title:string,subtitle:string,bodyHtml:string,imageUrl:?string,isVisible:bool,publishedAt:string,showFrom:?string,showUntil:?string} */

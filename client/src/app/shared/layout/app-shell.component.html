@@ -32,6 +32,7 @@
         </button>
       </div>
       <nav class="mt-8 space-y-2" aria-label="Seitennavigation">
+        <a routerLink="/chat" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Chat</a>
         <a routerLink="/dashboard" routerLinkActive="bg-accent text-primary" [routerLinkActiveOptions]="{ exact: true }" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Übersicht</a>
         <a routerLink="/punkte" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Punkte &amp; Prämien</a>
         <a routerLink="/scanner" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Rechnung scannen</a>

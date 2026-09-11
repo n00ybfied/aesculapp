@@ -2,24 +2,28 @@
   <section class="card" aria-labelledby="accept-invitation-title">
     <p class="eyebrow">APOTHEKENPORTAL</p>
     <h1 id="accept-invitation-title">Einladung annehmen</h1>
-    <p class="intro">Legen Sie Ihr persönliches Passwort für den Zugang fest.</p>
+    <p class="intro">Legen Sie für ein neues Konto Ihr persönliches Passwort fest.</p>
 
     @if (isAccepted()) {
       <div class="success" role="status">
-        Ihr Zugang wurde eingerichtet. Sie können sich jetzt anmelden.
+        @if (existingAccount()) {
+          Ihr bestehendes Kundenkonto hat jetzt zusätzlich Mitarbeiterzugang. Melden Sie sich mit Ihrem bisherigen Passwort an.
+        } @else {
+          Ihr Zugang wurde eingerichtet. Sie können sich jetzt anmelden.
+        }
       </div>
       <button type="button" (click)="goToLogin()">Zur Anmeldung</button>
     } @else {
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <label>
-          <span>Neues Passwort</span>
+          <span>Neues Passwort <small>(nur bei einem neuen Konto)</small></span>
           <input type="password" formControlName="password" autocomplete="new-password" />
         </label>
         <label>
           <span>Passwort wiederholen</span>
           <input type="password" formControlName="passwordConfirmation" autocomplete="new-password" />
         </label>
-        <p class="hint">Mindestens 10 Zeichen.</p>
+        <p class="hint">Besteht bereits ein Kundenkonto mit dieser E-Mail-Adresse, lassen Sie beide Felder leer. Ihr bisheriges Passwort bleibt unverändert.</p>
         @if (error(); as message) { <p class="error" role="alert">{{ message }}</p> }
         <button type="submit" [disabled]="isSubmitting() || token === null">{{ isSubmitting() ? 'Zugang wird eingerichtet …' : 'Zugang einrichten' }}</button>
       </form>
