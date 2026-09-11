@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, input, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Injector, afterNextRender, inject, input, signal, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ChatService, ChatList, ChatDetail, Conversation } from '../../core/chat/chat.service';
@@ -27,12 +27,12 @@ export class ChatImageComponent implements OnInit,OnDestroy {
    
    <h2>Gespräche</h2>
    @for(chat of data.conversations;track chat.id){
-    <button class="conversation" type="button" (click)="open(chat.id)"><span>{{chat.customerName}} · Gespräch #{{chat.id}}<small>{{formatDate(chat.updatedAt)}}</small></span><span>{{chat.status==='open'?'Offen':'Abgeschlossen'}} →</span></button>
+    <button class="conversation" type="button" (click)="open(chat.id)"><span>{{chat.customerName}} · {{chat.subject}}<small>{{formatDate(chat.updatedAt)}}</small></span><span>{{chat.status==='open'?'Offen':'Abgeschlossen'}} →</span></button>
    }@empty{<p>Noch keine Gespräche vorhanden.</p>}
    <nav class="pagination" aria-label="Gesprächsseiten"><button type="button" [disabled]="data.page<=1" (click)="loadList(data.page-1)">Zurück</button><span>Seite {{data.page}}</span><button type="button" [disabled]="data.page*20>=data.total" (click)="loadList(data.page+1)">Weiter</button></nav>
   }@else{
    @if(detail();as current){
-    <div class="conversation-heading"><h2>{{current.conversation.customerName}} · Gespräch #{{current.conversation.id}}</h2>@if(current.conversation.status==='open'){<button type="button" [disabled]="busy()" (click)="close()">Gespräch abschließen</button>}</div>
+    <div class="conversation-heading"><h2>{{current.conversation.customerName}} · {{current.conversation.subject}}</h2>@if(current.conversation.status==='open'){<button type="button" [disabled]="busy()" (click)="close()">Gespräch abschließen</button>}</div>
     @if(hasOlder()){<button type="button" [disabled]="busy()" (click)="older()">Ältere Nachrichten laden</button>}
    }
    <section class="messages" aria-label="Nachrichten">
@@ -45,6 +45,7 @@ export class ChatImageComponent implements OnInit,OnDestroy {
       <time>{{formatDate(message.createdAt)}}</time>
      </article>
     }
+    <div #messageEnd class="message-end" aria-hidden="true"></div>
    </section>
    @if(detail()?.conversation?.status==='closed'){
     <div class="closed"><p>Dieses Gespräch wurde abgeschlossen. Sie können den Verlauf weiterhin lesen.</p></div>
@@ -69,6 +70,11 @@ export class ChatImageComponent implements OnInit,OnDestroy {
 })
 export class ChatPage implements OnInit,OnDestroy {
  private readonly service=inject(ChatService);
+ private readonly injector=inject(Injector);
+ private readonly messageEnd=viewChild<ElementRef<HTMLElement>>('messageEnd');
+ private scrollToLatest():void {
+  afterNextRender(()=>{if(!this.destroyed)this.messageEnd()?.nativeElement.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'end'});},{injector:this.injector});
+ }
  readonly list=signal<ChatList|null>(null); readonly detail=signal<ChatDetail|null>(null);
  readonly loading=signal(true); readonly busy=signal(false); readonly error=signal(''); readonly composing=signal(false); readonly hasOlder=signal(false); readonly preview=signal('');
  draft=''; consent=false; file:File|null=null; private requestId=''; private retryBody:FormData|null=null;
@@ -92,7 +98,19 @@ export class ChatPage implements OnInit,OnDestroy {
   const body=new FormData();body.set('text',this.draft.trim());body.set('conversationId',String(this.detail()?.conversation.id??0));body.set('consent',String(this.consent));body.set('consentVersion',this.list()?.consentVersion??'');if(this.file)body.set('image',this.file);
   if(!this.retryBody||this.retryBody.get('text')!==body.get('text')||this.retryBody.get('conversationId')!==body.get('conversationId'))this.requestId=crypto.randomUUID();
   body.set('requestId',this.requestId);this.retryBody=body;
-  try{const result=await this.service.send(body);this.draft='';this.removeImage();this.retryBody=null;this.busy.set(false);await this.open(result.conversationId);await this.loadList();}
+  try{
+   const result=await this.service.send(body);
+   const next=await this.service.read(result.conversationId);
+   if(this.destroyed)return;
+   const current=this.detail();
+   const merged=new Map((current?.messages??[]).map(message=>[message.id,message]));
+   next.messages.forEach(message=>merged.set(message.id,message));
+   this.detail.set({...next,messages:[...merged.values()].sort((a,b)=>a.id-b.id)});
+   if(!current)this.hasOlder.set(next.hasOlder);
+   this.list.update(list=>list?{...list,consented:true}:list);
+   this.composing.set(false);this.draft='';this.removeImage();this.retryBody=null;
+   this.scrollToLatest();
+  }
   catch(e){this.failure(e);if(e instanceof HttpErrorResponse&&e.status===409){this.busy.set(false);await this.poll();}}finally{this.busy.set(false);}
  }
  async close(){const id=this.detail()?.conversation.id;if(!id||this.busy()||!confirm('Dieses Gespräch wirklich abschließen?'))return;this.busy.set(true);this.generation++;try{await this.service.close(id);this.busy.set(false);await this.open(id);}catch(e){this.failure(e);}finally{this.busy.set(false);}}
