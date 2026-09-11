@@ -65,13 +65,46 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          cat <<EOF > ~/.ssh/config
+          Host $DEPLOY_HOST
+            BatchMode yes
+            ConnectTimeout 10
+            ConnectionAttempts 3
+            ServerAliveInterval 15
+            ServerAliveCountMax 3
+            ControlMaster auto
+            ControlPersist 60s
+            ControlPath ~/.ssh/control-%C
+          EOF
+          chmod 600 ~/.ssh/config
 
       - name: Deploy build artifacts
         run: |
-          ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/client' '$DEPLOY_ROOT/admin' '$DEPLOY_ROOT/server'"
-          rsync -az --delete client/dist/aesculapp/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/client/"
-          rsync -az --delete admin/dist/admin/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/admin/"
-          rsync -az --delete \
+          retry() {
+            local attempts="$1"
+            local delay_seconds="$2"
+            shift 2
+
+            local attempt=1
+            while true; do
+              if "$@"; then
+                return 0
+              fi
+
+              if [ "$attempt" -ge "$attempts" ]; then
+                return 1
+              fi
+
+              echo "Attempt $attempt failed, retrying in ${delay_seconds}s..."
+              attempt=$((attempt + 1))
+              sleep "$delay_seconds"
+            done
+          }
+
+          retry 3 5 ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/client' '$DEPLOY_ROOT/admin' '$DEPLOY_ROOT/server'"
+          retry 3 5 rsync -az --delete client/dist/aesculapp/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/client/"
+          retry 3 5 rsync -az --delete admin/dist/admin/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/admin/"
+          retry 3 5 rsync -az --delete \
             --exclude='.env.local' \
             --exclude='config/jwt/' \
             --exclude='var/' \
@@ -80,4 +113,25 @@ jobs:
 
       - name: Run database migrations and warm cache
         run: |
-          ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache public/uploads/rewards && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
+          retry() {
+            local attempts="$1"
+            local delay_seconds="$2"
+            shift 2
+
+            local attempt=1
+            while true; do
+              if "$@"; then
+                return 0
+              fi
+
+              if [ "$attempt" -ge "$attempts" ]; then
+                return 1
+              fi
+
+              echo "Attempt $attempt failed, retrying in ${delay_seconds}s..."
+              attempt=$((attempt + 1))
+              sleep "$delay_seconds"
+            done
+          }
+
+          retry 3 5 ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache public/uploads/rewards && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
