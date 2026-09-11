@@ -31,6 +31,18 @@ class TenantMembership
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $newsletterEnabled = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $chatPushEnabled = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $rewardPushEnabled = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $newsPushEnabled = false;
+
     /**
      * @param list<string> $roles
      */
@@ -70,4 +82,13 @@ class TenantMembership
     {
         $this->roles = array_values(array_unique($roles));
     }
+
+    public function isNewsletterEnabled(): bool { return $this->newsletterEnabled; }
+    public function setNewsletterEnabled(bool $value): void { $this->newsletterEnabled = $value; }
+    public function isChatPushEnabled(): bool { return $this->chatPushEnabled; }
+    public function setChatPushEnabled(bool $value): void { $this->chatPushEnabled = $value; }
+    public function isRewardPushEnabled(): bool { return $this->rewardPushEnabled; }
+    public function setRewardPushEnabled(bool $value): void { $this->rewardPushEnabled = $value; }
+    public function isNewsPushEnabled(): bool { return $this->newsPushEnabled; }
+    public function setNewsPushEnabled(bool $value): void { $this->newsPushEnabled = $value; }
 }

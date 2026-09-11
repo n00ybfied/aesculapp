@@ -705,6 +705,12 @@ Offene angezeigte Gespräche werden alle fünf Sekunden aktualisiert, ohne über
 
 Kundenbadges zählen ausschließlich noch nicht bestätigte Mitarbeiterantworten. Ein lesender GET verändert den Lesestatus nicht; die sichtbare Chatseite bestätigt explizit die zuletzt angezeigte Nachrichten-ID. Die API prüft dabei Teilnehmer und Mandant und markiert keine später hinzugekommenen Antworten. Historische Nachrichten werden bei Einführung des Lesestatus als gelesen übernommen.
 
+### Kunden-Benachrichtigungseinstellungen
+
+Benachrichtigungseinstellungen werden mandantenbezogen auf der Kunden-Mandantenbeziehung gespeichert, nicht global am Benutzerkonto. Damit kann ein späterer Mehrmandantenkunde für jede Apotheke getrennt entscheiden. Die Kundenprofilseite verwaltet Newsletter per E-Mail sowie die Push-Kategorien Chatantworten, neue Prämien und neue News; alle Einstellungen sind standardmäßig deaktiviert. Eine aktivierte Push-Kategorie setzt zusätzlich eine Browser- beziehungsweise Betriebssystemfreigabe und ein angemeldetes Gerät voraus. Die Chat-Push-Zustellung prüft die gespeicherte Chat-Option unmittelbar vor dem Versand. News- und Prämien-Push verwenden die bereits gespeicherten Optionen erst, wenn ihre Veröffentlichungsprozesse implementiert sind.
+
+Newsletter-Versand und sein rechtssicherer Double-Opt-In werden separat ergänzt. Die aktuelle Einstellung ist daher noch keine Versandfreigabe für Kampagnen.
+
 Die erste Push-Implementierung verwendet Web-Push für Browser/PWA (`minishlink/web-push` mit Guzzle als HTTP-Client), noch keine native APNs-/FCM-Capacitor-Integration. Ein ausschließlich für Push zuständiger Service Worker speichert keine API-Antworten oder privaten Inhalte offline. Eine Browseranmeldung erfolgt ausschließlich nach Klick auf „Benachrichtigungen aktivieren“. HTTPS beziehungsweise localhost und Browserunterstützung sind erforderlich; iOS/iPadOS benötigt eine installierte Home-Screen-Web-App. Browserfreigabe und Zustellung können durch das Betriebssystem eingeschränkt sein.
 
 Push enthält nur „Sie haben eine neue Antwort von Ihrer Apotheke“, niemals Betreff oder Nachrichtentext. Geräteabonnements sind mandanten- und nutzergebunden, ihre Endpoints und Schlüssel werden verschlüsselt gespeichert. Maximal fünf Geräte pro Kunde/Mandant sind erlaubt; ausgehende URLs werden auf bekannte Browser-Push-Anbieter beschränkt, Weiterleitungen deaktiviert. Explizites Abmelden deaktiviert das Browserabonnement. Abgelaufene Abonnements werden beim Versand entfernt.

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace App\Service;
 use App\Entity\{ChatMessage,User,Tenant,WebPushSubscription};
+use App\Repository\TenantMembershipRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -9,7 +10,7 @@ use Minishlink\WebPush\{WebPush,Subscription};
 use Psr\Log\LoggerInterface;
 final class ChatPushService {
  private array $scheduled=[];
- public function __construct(private readonly EntityManagerInterface $em,private readonly ChatCipher $cipher,private readonly LoggerInterface $logger,#[Autowire('%kernel.project_dir%')] private readonly string $projectDir){}
+ public function __construct(private readonly EntityManagerInterface $em,private readonly ChatCipher $cipher,private readonly LoggerInterface $logger,private readonly TenantMembershipRepository $memberships,#[Autowire('%kernel.project_dir%')] private readonly string $projectDir){}
  public function config():?array{
   $path=$_ENV['WEB_PUSH_KEY_FILE']??$this->projectDir.'/var/private/web-push.json';
   if(!is_file($path))return null;
@@ -49,6 +50,8 @@ final class ChatPushService {
    if(!$message)return;
    $this->em->refresh($message);
    if($message->customerReadAt!==null)return;
+   $membership=$this->memberships->findForUserAndTenant($message->conversation->customer,$message->conversation->tenant);
+   if(!$membership?->isChatPushEnabled())return;
    $subs=$this->em->getRepository(WebPushSubscription::class)->findBy(['user'=>$message->conversation->customer,'tenant'=>$message->conversation->tenant]);
    $push=new WebPush(['VAPID'=>$config],['TTL'=>3600],new \GuzzleHttp\Client(['timeout'=>5,'connect_timeout'=>3,'allow_redirects'=>false]));
    $retry=false;
