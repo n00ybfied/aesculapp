@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy, ElementRef, Injector, afterNextRender, in
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ChatService, ChatList, ChatDetail, Conversation } from '../../core/chat/chat.service';
-import { ChatPushService } from '../../core/chat/chat-push.service';
 
 @Component({
  selector:'app-chat-image',
@@ -19,24 +18,17 @@ export class ChatImageComponent implements OnInit,OnDestroy {
  selector:'app-chat-page', imports:[FormsModule,ChatImageComponent],
  template:`
  <main class="chat-page">
- <header><div><p class="eyebrow">IHRE APOTHEKE</p><h1>Chat</h1></div><button type="button" [disabled]="busy()" (click)="overview()">Gesprächsübersicht</button></header>
+ <header><div><p class="eyebrow">IHRE APOTHEKE</p><h1>Chat</h1></div>@if(detail() || composing()){<button type="button" [disabled]="busy()" (click)="overview()">Gesprächsübersicht</button>}</header>
  <p class="test-notice">Testphase: Bitte ausschließlich fiktive Daten und keine echten Rezepte senden. Nicht für medizinische Notfälle geeignet.</p>
- <section class="push-settings" aria-label="Benachrichtigungen">
-  @if(push.supported){
-   <button type="button" [disabled]="push.busy()" (click)="push.enabled()?push.disable():push.enable()">{{push.enabled()?'Benachrichtigungen deaktivieren':'Benachrichtigungen aktivieren'}}</button>
-   <p>Push zeigt nur einen Hinweis auf eine neue Antwort, keine Chatinhalte.</p>
-  }@else{<p>Web-Push ist hier nicht verfügbar. Auf iPhone/iPad die App zum Home-Bildschirm hinzufügen und von dort öffnen.</p>}
-  @if(push.message()){<p role="status">{{push.message()}}</p>}
- </section>
  @if(error()){<p role="alert" class="error">{{error()}}</p>}
  @if(loading()){<div role="status" class="loading"><span class="spinner"></span> Wird geladen …</div>}
  @else if(list(); as data){
   @if(!composing() && !detail()){
-   <button class="primary" type="button" [disabled]="busy() || !!list()?.activeConversationId" (click)="newChat()">Neue Anfrage starten</button>
+   <button class="primary new-chat-button" type="button" [disabled]="busy() || !!list()?.activeConversationId" (click)="newChat()">Neue Anfrage starten</button>
    @if(data.activeConversationId){<p class="test-notice">Sie haben bereits eine offene Anfrage. Bitte öffnen Sie das laufende Gespräch in der Liste.</p>}
    <h2>Ihre Gespräche</h2>
    @for(chat of data.conversations;track chat.id){
-    <button class="conversation" type="button" (click)="open(chat.id)"><span>{{chat.subject}}<small>{{formatDate(chat.updatedAt)}}</small></span><span>@if(chat.unreadCount){<span class="unread-badge" [attr.aria-label]="chat.unreadCount+' ungelesene Antworten'">{{chat.unreadCount}}</span>} {{chat.status==='open'?'Offen':'Abgeschlossen'}} →</span></button>
+    <button class="conversation" type="button" (click)="open(chat.id)"><span>{{chat.subject}}<small>{{formatDate(chat.updatedAt)}}</small></span><span class="conversation-status">@if(chat.unreadCount){<span class="unread-badge" [attr.aria-label]="chat.unreadCount+' ungelesene Antworten'">{{chat.unreadCount}}</span>}<span class="status-badge" [class.status-open]="chat.status==='open'" [class.status-closed]="chat.status==='closed'">{{chat.status==='open'?'Offen':'Abgeschlossen'}}</span></span></button>
    }@empty{<p>Noch keine Gespräche vorhanden.</p>}
    <nav class="pagination" aria-label="Gesprächsseiten"><button type="button" [disabled]="data.page<=1" (click)="loadList(data.page-1)">Zurück</button><span>Seite {{data.page}}</span><button type="button" [disabled]="data.page*20>=data.total" (click)="loadList(data.page+1)">Weiter</button></nav>
   }@else{
@@ -80,19 +72,18 @@ export class ChatImageComponent implements OnInit,OnDestroy {
  </main>`,
  styles:[`
  .message-end{scroll-margin-bottom:8rem}
- .test-notice{margin-bottom:1.25rem}
- .push-settings{margin-bottom:1.25rem;font-size:.85rem;color:var(--chat-muted)}.push-settings p{margin:.5rem 0}.unread-badge{display:inline-block;padding:.15rem .5rem;background:var(--color-danger);color:white;border-radius:999px;font-size:.75rem}
+ .test-notice{margin-bottom:1.25rem}.new-chat-button{margin-bottom:1.25rem}
+ .unread-badge{display:inline-block;padding:.15rem .5rem;background:var(--color-danger);color:white;border-radius:999px;font-size:.75rem}
  .subject-input{display:block;box-sizing:border-box;width:100%;padding:.75rem;margin:.5rem 0 1rem;border:1px solid var(--chat-border);border-radius:.6rem;background:var(--chat-surface);color:inherit;font:inherit}
  .primary:disabled{background:var(--chat-border);border-color:var(--chat-border);color:var(--chat-muted);opacity:1}
  .conversation>span:first-child{min-width:0;overflow-wrap:anywhere}
  .closed p{margin:0 0 1.25rem}
  :host{--chat-surface:var(--color-surface);--chat-primary:var(--color-primary);--chat-border:var(--color-border);--chat-muted:var(--color-muted);display:block}
  .chat-page{max-width:58rem;margin:auto;padding:1.25rem}header,.conversation-heading,.composer-actions,.pagination{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}h1{margin:.2rem 0 1rem;font-size:1.8rem}h2{font-size:1.15rem;margin:1rem 0}.eyebrow,small,time{font-size:.8rem;color:var(--chat-muted)}button,.upload{cursor:pointer;min-height:44px;padding:.65rem .9rem;border:1px solid var(--chat-border);border-radius:.65rem;background:var(--chat-surface);color:inherit;font:inherit}button:disabled{cursor:not-allowed;opacity:.55}.primary{background:var(--chat-primary);color:white;border-color:var(--chat-primary)}button:focus-visible,textarea:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--chat-primary);outline-offset:3px}
- .test-notice{font-size:.85rem;color:var(--chat-muted);line-height:1.5}.error{padding:1rem;border:1px solid currentColor;color:var(--color-danger);border-radius:.75rem}.conversation{display:flex;justify-content:space-between;gap:1rem;width:100%;text-align:left;margin:.6rem 0}.conversation small{display:block;margin-top:.4rem}.messages{display:flex;flex-direction:column;gap:1rem;margin:1rem 0}.bubble{max-width:90%;align-self:flex-start;background:var(--chat-surface);border:1px solid var(--chat-border);padding:.85rem 1rem;border-radius:1rem;overflow-wrap:anywhere}.bubble.own{align-self:flex-end;border-color:var(--chat-primary);background:color-mix(in srgb,var(--chat-primary) 12%,var(--chat-surface))}.bubble p{white-space:pre-wrap;margin:.4rem 0}.bubble time{display:block;margin-top:.5rem}.composer,.consent,.closed{background:var(--chat-surface);padding:1rem;border:1px solid var(--chat-border);border-radius:1rem;margin-top:1rem}.composer textarea{display:block;box-sizing:border-box;width:100%;resize:vertical;padding:.75rem;border:1px solid var(--chat-border);border-radius:.6rem;background:var(--chat-surface);color:inherit;font:inherit;margin:.5rem 0}.consent{font-size:.9rem;line-height:1.6}.consent label{display:flex;gap:.75rem;margin-top:1rem;align-items:flex-start}.consent input{width:24px;height:24px;flex-shrink:0;accent-color:var(--chat-primary)}summary{cursor:pointer;text-decoration:underline}.upload{position:relative;overflow:hidden}.upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.upload:focus-within{outline:3px solid var(--chat-primary)}.preview{display:flex;gap:1rem;align-items:center;margin:.75rem 0}.preview img{max-width:7rem;max-height:7rem;object-fit:contain}.loading{min-height:15rem;display:grid;place-content:center;justify-items:center;gap:1rem}.spinner{width:2rem;height:2rem;border:3px solid var(--chat-border);border-top-color:var(--chat-primary);border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+ .test-notice{font-size:.85rem;color:var(--chat-muted);line-height:1.5}.error{padding:1rem;border:1px solid currentColor;color:var(--color-danger);border-radius:.75rem}.conversation{display:flex;justify-content:space-between;gap:1rem;width:100%;text-align:left;margin:.6rem 0}.conversation-status{display:flex;align-items:center;gap:.5rem;white-space:nowrap}.status-badge{display:inline-flex;min-height:1.75rem;align-items:center;border-radius:999px;padding:0 .65rem;font-size:.8rem;font-weight:700}.status-open{background:color-mix(in srgb,var(--color-success) 14%,var(--chat-surface));color:var(--color-success)}.status-closed{background:color-mix(in srgb,var(--color-danger) 12%,var(--chat-surface));color:var(--color-danger)}.conversation small{display:block;margin-top:.4rem}.messages{display:flex;flex-direction:column;gap:1rem;margin:1rem 0}.bubble{max-width:90%;align-self:flex-start;background:var(--chat-surface);border:1px solid var(--chat-border);padding:.85rem 1rem;border-radius:1rem;overflow-wrap:anywhere}.bubble.own{align-self:flex-end;border-color:var(--chat-primary);background:color-mix(in srgb,var(--chat-primary) 12%,var(--chat-surface))}.bubble p{white-space:pre-wrap;margin:.4rem 0}.bubble time{display:block;margin-top:.5rem}.composer,.consent,.closed{background:var(--chat-surface);padding:1rem;border:1px solid var(--chat-border);border-radius:1rem;margin-top:1rem}.composer textarea{display:block;box-sizing:border-box;width:100%;resize:vertical;padding:.75rem;border:1px solid var(--chat-border);border-radius:.6rem;background:var(--chat-surface);color:inherit;font:inherit;margin:.5rem 0}.consent{font-size:.9rem;line-height:1.6}.consent label{display:flex;gap:.75rem;margin-top:1rem;align-items:flex-start}.consent input{width:24px;height:24px;flex-shrink:0;accent-color:var(--chat-primary)}summary{cursor:pointer;text-decoration:underline}.upload{position:relative;overflow:hidden}.upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.upload:focus-within{outline:3px solid var(--chat-primary)}.preview{display:flex;gap:1rem;align-items:center;margin:.75rem 0}.preview img{max-width:7rem;max-height:7rem;object-fit:contain}.loading{min-height:15rem;display:grid;place-content:center;justify-items:center;gap:1rem}.spinner{width:2rem;height:2rem;border:3px solid var(--chat-border);border-top-color:var(--chat-primary);border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
  `]
 })
 export class ChatPage implements OnInit,OnDestroy {
- readonly push=inject(ChatPushService);
  private lastRead=0;
  private readonly visibilityChanged=()=>{if(!document.hidden){this.acknowledge();void this.poll();}};
  private acknowledge():void{
@@ -112,7 +103,7 @@ export class ChatPage implements OnInit,OnDestroy {
  readonly loading=signal(true); readonly busy=signal(false); readonly error=signal(''); readonly composing=signal(false); readonly hasOlder=signal(false); readonly preview=signal('');
  subject=''; draft=''; consent=false; file:File|null=null; private requestId=''; private retryBody:FormData|null=null;
  private timer:ReturnType<typeof setInterval>|undefined; private destroyed=false; private generation=0; private polling=false;
- async ngOnInit(){void this.push.check();await this.loadList();if(this.destroyed)return;document.addEventListener('visibilitychange',this.visibilityChanged);this.timer=setInterval(()=>void this.poll(),5000);}
+ async ngOnInit(){await this.loadList();if(this.destroyed)return;document.addEventListener('visibilitychange',this.visibilityChanged);this.timer=setInterval(()=>void this.poll(),5000);}
  ngOnDestroy(){document.removeEventListener('visibilitychange',this.visibilityChanged);this.destroyed=true;this.generation++;if(this.timer)clearInterval(this.timer);this.removeImage();}
  formatDate(value:string){return new Intl.DateTimeFormat('de-AT',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));}
  private failure(error:unknown){this.error.set(error instanceof HttpErrorResponse && error.status===409?'Dieses Gespräch wurde inzwischen abgeschlossen.':error instanceof HttpErrorResponse && error.status===422?'Bitte prüfen Sie Ihre Nachricht, Zustimmung und das Bildformat (maximal 5 MB / 16 Megapixel).':'Der Chat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.');}

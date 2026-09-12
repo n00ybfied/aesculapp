@@ -24,7 +24,7 @@ try {
   $user=new App\Entity\User($name,$name,'Chat Test');$user->setPassword('not-a-login');
   $em->persist($user);$em->persist(new App\Entity\TenantMembership($provider->get(),$user,[$role==='staff'?'ROLE_TENANT_STAFF':'ROLE_CUSTOMER']));$users[$role]=$user;
  }
- $em->flush();asUser($storage,$users['customer']);
+ $em->flush();asUser($storage,$users['staff']);$initialAdminUnread=json_decode($api->openCount()->getContent(),true)['count'];asUser($storage,$users['customer']);
  $params=['text'=>'Private regression message','requestId'=>'11111111-1111-4111-8111-111111111111'];
  status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([], $params),false),422);
  $params+=['consent'=>'true','consentVersion'=>App\Controller\ApiChatController::CONSENT_VERSION];
@@ -48,6 +48,14 @@ try {
  asUser($storage,$users['other']);status(fn()=>$api->read($id,new Symfony\Component\HttpFoundation\Request(),false),404);
  asUser($storage,$users['customer']);status(fn()=>$api->list(new Symfony\Component\HttpFoundation\Request(),true),403);
  asUser($storage,$users['staff']);
+ $rawUnread=(int)$em->getConnection()->fetchOne("SELECT COUNT(*) FROM chat_message message JOIN chat_conversation conversation ON conversation.id = message.conversation_id WHERE conversation.id = ? AND message.sender_role = 'customer' AND message.staff_read_at IS NULL",[$id]);
+ $badgeUnread=json_decode($api->openCount()->getContent(),true)['count'];
+ check($rawUnread===1 && $badgeUnread===$initialAdminUnread+1,'Unread customer message not counted for staff (raw '.$rawUnread.', badge '.$badgeUnread.')');
+ $staffRead=json_decode($api->read($id,new Symfony\Component\HttpFoundation\Request(),true)->getContent(),true);
+ check(json_decode($api->openCount()->getContent(),true)['count']===$initialAdminUnread+1,'Admin GET must not mark messages read');
+ $lastCustomer=end($staffRead['messages'])['id'];
+ $api->markStaffRead($id,new Symfony\Component\HttpFoundation\Request(content:json_encode(['lastMessageId'=>$lastCustomer])));
+ check(json_decode($api->openCount()->getContent(),true)['count']===$initialAdminUnread,'Staff read acknowledgement failed');
  $reply=['text'=>'Test reply','conversationId'=>$id,'requestId'=>'44444444-4444-4444-8444-444444444444'];
  $api->send(new Symfony\Component\HttpFoundation\Request([],$reply),true);
  asUser($storage,$users['customer']);
@@ -64,7 +72,7 @@ try {
  status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([],$params),false),409);
  check($cipher->decrypt($cipher->encrypt('secret','context'),'context')==='secret','Cipher roundtrip');
  try {$cipher->decrypt($cipher->encrypt('secret','context'),'other');throw new LogicException('Context accepted');}catch(RuntimeException $expected){}
- echo "Chat checks passed: consent, encryption, roundtrip, idempotency, owner isolation, staff authorization, close locking, cache headers.\n";
+ echo "Chat checks passed: consent, encryption, roundtrip, idempotency, owner isolation, customer/staff unread badges, close locking, cache headers.\n";
 } finally {
  while($em->getConnection()->isTransactionActive())$em->getConnection()->rollBack();
  $kernel->shutdown();

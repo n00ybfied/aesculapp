@@ -3,7 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AdminAuthService } from '../auth/admin-auth.service';
 
-export interface Conversation { id:number; subject:string; status:'open'|'closed'; customerName:string; createdAt:string; updatedAt:string; }
+export interface Conversation { id:number; subject:string; unreadCount:number; status:'open'|'closed'; customerName:string; createdAt:string; updatedAt:string; }
 export interface ChatMessage { id:number; role:'staff'|'customer'; text:string; hasImage:boolean; createdAt:string; }
 export interface ChatList { activeConversationId:number|null; conversations:Conversation[]; total:number; page:number; consentVersion:string; consentText:string; notice:string; consented:boolean; }
 export interface ChatDetail { conversation:Conversation; messages:ChatMessage[]; hasOlder:boolean; }
@@ -24,6 +24,7 @@ export class ChatService {
  private options(){return {headers:new HttpHeaders({Authorization:'Bearer '+this.auth.accessToken()})};}
  list(page=1){return firstValueFrom(this.http.get<ChatList>(this.api+'?page='+page,this.options()));}
  read(id:number,before=0){return firstValueFrom(this.http.get<ChatDetail>(this.api+'/'+id+'?before='+before,this.options()));}
+ async markRead(id:number,lastMessageId:number):Promise<void>{await firstValueFrom(this.http.post(this.api+'/'+id+'/read',{lastMessageId},this.options()));await this.refreshOpenCount();}
  send(data:FormData){return firstValueFrom(this.http.post<{conversationId:number}>(this.api+'/send',data,this.options()));}
  image(chat:number,message:number){return firstValueFrom(this.http.get(this.api+'/'+chat+'/images/'+message,{...this.options(),responseType:'blob'}));}
  async close(id:number){const result=await firstValueFrom(this.http.post(this.api+'/'+id+'/close',{},this.options()));await this.refreshOpenCount();return result;}

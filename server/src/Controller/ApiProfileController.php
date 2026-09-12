@@ -62,8 +62,12 @@ final class ApiProfileController
         $chatPushEnabled = $this->boolean($data['chatPushEnabled'] ?? null);
         $rewardPushEnabled = $this->boolean($data['rewardPushEnabled'] ?? null);
         $newsPushEnabled = $this->boolean($data['newsPushEnabled'] ?? null);
+        $footerHomeEnabled = $this->boolean($data['footerHomeEnabled'] ?? null);
+        $footerChatEnabled = $this->boolean($data['footerChatEnabled'] ?? null);
+        $footerRewardsEnabled = $this->boolean($data['footerRewardsEnabled'] ?? null);
+        $footerWebsiteEnabled = $this->boolean($data['footerWebsiteEnabled'] ?? null);
 
-        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null) {
+        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $footerHomeEnabled === null || $footerChatEnabled === null || $footerRewardsEnabled === null || $footerWebsiteEnabled === null) {
             return $this->invalidProfile();
         }
 
@@ -77,6 +81,10 @@ final class ApiProfileController
         $membership->setChatPushEnabled($chatPushEnabled);
         $membership->setRewardPushEnabled($rewardPushEnabled);
         $membership->setNewsPushEnabled($newsPushEnabled);
+        $membership->setFooterHomeEnabled($footerHomeEnabled);
+        $membership->setFooterChatEnabled($footerChatEnabled);
+        $membership->setFooterRewardsEnabled($footerRewardsEnabled);
+        $membership->setFooterWebsiteEnabled($footerWebsiteEnabled);
         $this->entityManager->flush();
 
         return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
@@ -166,6 +174,10 @@ final class ApiProfileController
             'chatPushEnabled' => $membership->isChatPushEnabled(),
             'rewardPushEnabled' => $membership->isRewardPushEnabled(),
             'newsPushEnabled' => $membership->isNewsPushEnabled(),
+            'footerHomeEnabled' => $membership->isFooterHomeEnabled(),
+            'footerChatEnabled' => $membership->isFooterChatEnabled(),
+            'footerRewardsEnabled' => $membership->isFooterRewardsEnabled(),
+            'footerWebsiteEnabled' => $membership->isFooterWebsiteEnabled(),
         ];
     }
 

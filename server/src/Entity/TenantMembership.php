@@ -42,6 +42,10 @@ class TenantMembership
 
     #[ORM\Column(options: ['default' => false])]
     private bool $newsPushEnabled = false;
+    #[ORM\Column(options: ['default' => true])] private bool $footerHomeEnabled = true;
+    #[ORM\Column(options: ['default' => true])] private bool $footerChatEnabled = true;
+    #[ORM\Column(options: ['default' => true])] private bool $footerRewardsEnabled = true;
+    #[ORM\Column(options: ['default' => true])] private bool $footerWebsiteEnabled = true;
 
     /**
      * @param list<string> $roles
@@ -91,4 +95,12 @@ class TenantMembership
     public function setRewardPushEnabled(bool $value): void { $this->rewardPushEnabled = $value; }
     public function isNewsPushEnabled(): bool { return $this->newsPushEnabled; }
     public function setNewsPushEnabled(bool $value): void { $this->newsPushEnabled = $value; }
+    public function isFooterHomeEnabled(): bool { return $this->footerHomeEnabled; }
+    public function setFooterHomeEnabled(bool $value): void { $this->footerHomeEnabled = $value; }
+    public function isFooterChatEnabled(): bool { return $this->footerChatEnabled; }
+    public function setFooterChatEnabled(bool $value): void { $this->footerChatEnabled = $value; }
+    public function isFooterRewardsEnabled(): bool { return $this->footerRewardsEnabled; }
+    public function setFooterRewardsEnabled(bool $value): void { $this->footerRewardsEnabled = $value; }
+    public function isFooterWebsiteEnabled(): bool { return $this->footerWebsiteEnabled; }
+    public function setFooterWebsiteEnabled(bool $value): void { $this->footerWebsiteEnabled = $value; }
 }

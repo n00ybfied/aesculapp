@@ -7,13 +7,14 @@ import { API_BASE_URL } from '../api/api.config';
 @Injectable({providedIn:'root'})
 export class ChatPushService {
  private readonly http=inject(HttpClient);private readonly auth=inject(AuthService);private readonly api=inject(API_BASE_URL)+'/chat/push';
- readonly supported=typeof window!=='undefined'&&window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
- readonly enabled=signal(false);readonly busy=signal(false);readonly message=signal('');
+ readonly serviceWorkerSupported=typeof window!=='undefined'&&window.isSecureContext&&'serviceWorker' in navigator;
+ readonly supported=this.serviceWorkerSupported&&'PushManager' in window&&'Notification' in window;
+ readonly registered=signal(false);readonly enabled=signal(false);readonly busy=signal(false);readonly message=signal('');
  private options(){return {headers:new HttpHeaders({Authorization:'Bearer '+this.auth.accessToken()})};}
  async initialize():Promise<ServiceWorkerRegistration|null>{
-  if(!this.supported)return null;
-  try{return await navigator.serviceWorker.register('/chat-push-sw.js',{scope:'/'});}
-  catch{return null;}
+  if(!this.serviceWorkerSupported)return null;
+  try{const registration=await navigator.serviceWorker.register('/chat-push-sw.js',{scope:'/'});this.registered.set(true);return registration;}
+  catch{this.registered.set(false);return null;}
  }
  async enable():Promise<void>{
   if(!this.supported||this.busy())return;
