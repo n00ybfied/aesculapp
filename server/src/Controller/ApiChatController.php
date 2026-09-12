@@ -50,13 +50,13 @@ final class ApiChatController {
         if (!$chat || $chat->tenant->getId() !== $this->tenant->get()->getId() || (!$admin && $chat->customer->getId() !== $user->getId())) { throw new HttpException(404); }
         return $chat;
     }
-    private function summary(ChatConversation $chat): array {
+    private function summary(ChatConversation $chat, bool $admin = false): array {
         $subject = $chat->encryptedSubject === null ? null : $this->cipher->decrypt($chat->encryptedSubject,$this->context($chat).':subject');
         if ($subject === null) {
             $first = $this->em->createQueryBuilder()->select('m.encryptedText')->from(ChatMessage::class,'m')->where('m.conversation = :chat')->setParameter('chat',$chat)->orderBy('m.id','ASC')->setMaxResults(1)->getQuery()->getOneOrNullResult();
             $subject = $this->fallbackSubject($first ? $this->cipher->decrypt($first['encryptedText'],$this->context($chat).':text') : '');
         }
-        $unread = $this->em->getRepository(ChatMessage::class)->count(['conversation'=>$chat,'senderRole'=>'staff','customerReadAt'=>null]);
+        $unread = $this->em->getRepository(ChatMessage::class)->count(['conversation'=>$chat,'senderRole'=>$admin ? 'customer' : 'staff',$admin ? 'staffReadAt' : 'customerReadAt'=>null]);
         return ['id'=>$chat->id,'unreadCount'=>$unread,'subject'=>$subject,'status'=>$chat->status,'customerName'=>$chat->customer->getDisplayName(),'createdAt'=>$chat->createdAt->format(DATE_ATOM),'updatedAt'=>$chat->updatedAt->format(DATE_ATOM)];
     }
     #[Route('/api/v1/chat/unread-count', methods:['GET'])]
@@ -75,6 +75,16 @@ final class ApiChatController {
         $this->em->createQueryBuilder()->update(ChatMessage::class,'m')->set('m.customerReadAt',':now')->where('m.conversation = :chat AND m.id <= :last AND m.senderRole = :role AND m.customerReadAt IS NULL')->setParameter('now',new \DateTimeImmutable())->setParameter('chat',$chat)->setParameter('last',$lastId)->setParameter('role','staff')->getQuery()->execute();
         return $this->json(['success'=>true]);
     }
+    #[Route('/api/v1/admin/chat/{id}/read', methods:['POST'], requirements:['id'=>'\d+'])]
+    public function markStaffRead(int $id, Request $request): JsonResponse {
+        $chat=$this->conversation($id,$this->user(true),true);
+        $lastId=$request->toArray()['lastMessageId'] ?? null;
+        if (!is_int($lastId) || $lastId<1) { return $this->json(['message'=>'Ungültige Nachricht.'],422); }
+        $last=$this->em->getRepository(ChatMessage::class)->findOneBy(['id'=>$lastId,'conversation'=>$chat]);
+        if (!$last) { throw new HttpException(404); }
+        $this->em->createQueryBuilder()->update(ChatMessage::class,'m')->set('m.staffReadAt',':now')->where('m.conversation = :chat AND m.id <= :last AND m.senderRole = :role AND m.staffReadAt IS NULL')->setParameter('now',new \DateTimeImmutable())->setParameter('chat',$chat)->setParameter('last',$lastId)->setParameter('role','customer')->getQuery()->execute();
+        return $this->json(['success'=>true]);
+    }
     private function fallbackSubject(string $text):string {
         $text = trim(preg_replace('/\s+/u',' ',$text) ?? '');
         if ($text === '') { return 'Bildanfrage …'; }
@@ -84,7 +94,8 @@ final class ApiChatController {
     #[Route('/api/v1/admin/chat/open-count', methods:['GET'])]
     public function openCount(): JsonResponse {
         $this->user(true);
-        return $this->json(['count'=>$this->em->getRepository(ChatConversation::class)->count(['tenant'=>$this->tenant->get(),'status'=>'open'])]);
+        $count=$this->em->createQueryBuilder()->select('COUNT(m.id)')->from(ChatMessage::class,'m')->join('m.conversation','c')->where('c.tenant = :tenant AND c.status = :status AND m.senderRole = :role AND m.staffReadAt IS NULL')->setParameter('tenant',$this->tenant->get())->setParameter('status','open')->setParameter('role','customer')->getQuery()->getSingleScalarResult();
+        return $this->json(['count'=>(int)$count]);
     }
     #[Route('/api/v1/chat', methods:['GET'], defaults: ['admin'=>false])]
     #[Route('/api/v1/admin/chat', methods:['GET'], defaults: ['admin'=>true])]
@@ -97,7 +108,7 @@ final class ApiChatController {
         $chats = $repo->findBy($criteria, ['updatedAt'=>'DESC','id'=>'DESC'], 20, ($page-1)*20);
         $consent = $this->em->getRepository(ChatConversation::class)->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'consentVersion'=>self::CONSENT_VERSION]);
         $active = $admin ? null : $repo->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'status'=>'open']);
-        return $this->json(['activeConversationId'=>$active?->id,'conversations'=>array_map($this->summary(...),$chats),'total'=>$repo->count($criteria),'page'=>$page,'consentVersion'=>self::CONSENT_VERSION,'consentText'=>self::CONSENT,'notice'=>self::NOTICE,'consented'=>$consent !== null]);
+        return $this->json(['activeConversationId'=>$active?->id,'conversations'=>array_map(fn(ChatConversation $chat) => $this->summary($chat,$admin),$chats),'total'=>$repo->count($criteria),'page'=>$page,'consentVersion'=>self::CONSENT_VERSION,'consentText'=>self::CONSENT,'notice'=>self::NOTICE,'consented'=>$consent !== null]);
     }
     #[Route('/api/v1/chat/{id}', methods:['GET'], requirements:['id'=>'\d+'], defaults:['admin'=>false])]
     #[Route('/api/v1/admin/chat/{id}', methods:['GET'], requirements:['id'=>'\d+'], defaults:['admin'=>true])]
@@ -109,7 +120,7 @@ final class ApiChatController {
         $messages = $query->orderBy('m.id','DESC')->setMaxResults(51)->getQuery()->getResult();
         $more = count($messages)>50;
         $messages = array_reverse(array_slice($messages,0,50));
-        return $this->json(['conversation'=>$this->summary($chat),'hasOlder'=>$more,'messages'=>array_map(fn(array $m)=>[
+        return $this->json(['conversation'=>$this->summary($chat,$admin),'hasOlder'=>$more,'messages'=>array_map(fn(array $m)=>[
             'id'=>$m['id'],'role'=>$m['senderRole'],'text'=>$this->cipher->decrypt($m['encryptedText'],$this->context($chat).':text'),
             'hasImage'=>(bool)$m['hasImage'],'createdAt'=>$m['createdAt']->format(DATE_ATOM)
         ],$messages)]);

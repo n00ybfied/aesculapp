@@ -4,14 +4,14 @@ import { inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom, timeout } from 'rxjs';
 import { AdminAuthService } from '../auth/admin-auth.service';
 
-export interface TenantBranding { readonly logoUrl: string | null; readonly squareLogoUrl: string | null; readonly faviconUrl: string | null; readonly initialPoints: number; readonly birthdayBonusPoints: number; readonly pointsPerEuro: number; readonly allowDuplicateReceiptImports: boolean; readonly showCustomerDebugOutput: boolean; readonly receiptQrPrefix: string | null; readonly smtpHost: string | null; readonly smtpPort: number | null; readonly smtpEncryption: 'tls' | 'ssl' | 'none' | null; readonly smtpUsername: string | null; readonly smtpFrom: string | null; readonly smtpPasswordConfigured: boolean; }
+export interface TenantBranding { readonly logoUrl: string | null; readonly squareLogoUrl: string | null; readonly faviconUrl: string | null; readonly initialPoints: number; readonly birthdayBonusPoints: number; readonly pointsPerEuro: number; readonly allowDuplicateReceiptImports: boolean; readonly showCustomerDebugOutput: boolean; readonly receiptQrPrefix: string | null; readonly websiteUrl: string | null; readonly smtpHost: string | null; readonly smtpPort: number | null; readonly smtpEncryption: 'tls' | 'ssl' | 'none' | null; readonly smtpUsername: string | null; readonly smtpFrom: string | null; readonly smtpPasswordConfigured: boolean; }
 
 @Injectable({ providedIn: 'root' })
 export class TenantBrandingService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AdminAuthService);
   private readonly document = inject(DOCUMENT);
-  private readonly brandingState = signal<TenantBranding>({ logoUrl: null, squareLogoUrl: null, faviconUrl: null, initialPoints: 0, birthdayBonusPoints: 200, pointsPerEuro: 10, allowDuplicateReceiptImports: false, showCustomerDebugOutput: false, receiptQrPrefix: null, smtpHost: null, smtpPort: 587, smtpEncryption: 'tls', smtpUsername: null, smtpFrom: null, smtpPasswordConfigured: false });
+  private readonly brandingState = signal<TenantBranding>({ logoUrl: null, squareLogoUrl: null, faviconUrl: null, initialPoints: 0, birthdayBonusPoints: 200, pointsPerEuro: 10, allowDuplicateReceiptImports: false, showCustomerDebugOutput: false, receiptQrPrefix: null, websiteUrl: null, smtpHost: null, smtpPort: 587, smtpEncryption: 'tls', smtpUsername: null, smtpFrom: null, smtpPasswordConfigured: false });
 
   readonly branding = this.brandingState.asReadonly();
 

@@ -67,6 +67,15 @@
     </details>
 
     <details class="settings-group">
+      <summary>Webseite</summary>
+      <div class="loyalty">
+        <p>Diese Adresse wird in der Kunden-App als eingebettete Webseite angezeigt. Darstellung und Einbettungsfreigabe werden von der jeweiligen Apotheken-Webseite gesteuert.</p>
+        <label>Webadresse<input name="websiteUrl" type="url" maxlength="2048" [(ngModel)]="websiteUrl" placeholder="https://www.apotheke.at" autocomplete="url" /><span>Nur vollständige HTTPS-Adressen.</span></label>
+        <p class="ratio-warning">Damit die Webseite innerhalb der App angezeigt werden darf, muss ihr Webserver das Einbetten in einem iFrame erlauben. Header, Footer und das Design der Webseite werden nicht von AesculApp verändert. Falls Sie eine angepasste Darstellung wünschen oder die Einbettung blockiert wird, setzen Sie sich gegebenenfalls mit Ihrem Webseiten-Administrator in Verbindung.</p>
+      </div>
+    </details>
+
+    <details class="settings-group">
       <summary>E-Mail-Einstellungen</summary>
       <div class="loyalty smtp-settings">
         <p>Optionaler SMTP-Versand für Double-Opt-In- und Passwort-Reset-E-Mails. Ohne vollständige SMTP-Daten wird der Server-Standardversand verwendet.</p>

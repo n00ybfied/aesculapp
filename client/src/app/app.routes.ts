@@ -95,6 +95,11 @@ export const routes: Routes = [
           import('./features/profile/profile.page').then((module) => module.ProfilePage),
         title: 'Mein Profil | Aesculapp',
       },
+      {
+        path: 'webseite',
+        loadComponent: () => import('./features/website/website.page').then((module) => module.WebsitePage),
+        title: 'Webseite | Aesculapp',
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

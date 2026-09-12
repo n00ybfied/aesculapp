@@ -42,6 +42,44 @@
           </label>
         </div>
         <p class="mt-4 text-xs leading-5 text-muted">Push-Benachrichtigungen benötigen zusätzlich die Freigabe in Ihrem Browser oder auf Ihrem Gerät. Den Versand können Sie dort jederzeit blockieren.</p>
+        <div class="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent px-4 py-3">
+          <div>
+            <p class="font-semibold">Push auf diesem Gerät</p>
+            @if (push.enabled()) { <p class="mt-1 text-sm text-muted">Benachrichtigungen sind für dieses Gerät aktiviert.</p> }
+            @else if (!push.supported) { <p class="mt-1 text-sm text-muted">Dieser Browser unterstützt Web-Push nicht. Auf iPhone und iPad ist die installierte App nötig.</p> }
+            @else { <p class="mt-1 text-sm text-muted">Aktivieren Sie die Browserfreigabe für dieses Gerät.</p> }
+          </div>
+          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.busy() || !push.supported || !form.chatPushEnabled" (click)="togglePush()">
+            @if (push.busy()) { Bitte warten … } @else if (push.enabled()) { Deaktivieren } @else { Aktivieren }
+          </button>
+        </div>
+        @if (!form.chatPushEnabled) { <p class="mt-3 text-xs leading-5 text-muted">Aktivieren und speichern Sie zuerst „Chatnachrichten“, bevor Sie Push auf diesem Gerät freigeben.</p> }
+        @if (push.message()) { <p class="mt-3 text-sm text-muted" role="status">{{ push.message() }}</p> }
+      </section>
+      <section class="mt-8 border-t border-border pt-6" aria-labelledby="footer-navigation-title">
+        <p class="text-sm font-semibold text-primary">NAVIGATION</p>
+        <h2 id="footer-navigation-title" class="mt-1 text-lg font-bold">Schnellzugriffe im Footer</h2>
+        <p class="mt-2 text-sm leading-5 text-muted">Wählen Sie, was unten in Ihrer App angezeigt wird. Den Scanner behalten Sie immer fix in der Mitte.</p>
+        <div class="mt-5 space-y-3">
+          <label class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span class="font-semibold">Home</span>
+            <input class="size-6 shrink-0 accent-primary" name="footerHomeEnabled" type="checkbox" [(ngModel)]="form.footerHomeEnabled" />
+          </label>
+          <label class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span class="font-semibold">Chat</span>
+            <input class="size-6 shrink-0 accent-primary" name="footerChatEnabled" type="checkbox" [(ngModel)]="form.footerChatEnabled" />
+          </label>
+          <label class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span class="font-semibold">Prämien</span>
+            <input class="size-6 shrink-0 accent-primary" name="footerRewardsEnabled" type="checkbox" [(ngModel)]="form.footerRewardsEnabled" />
+          </label>
+          @if (theme.websiteUrl) {
+            <label class="flex min-h-14 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+              <span class="font-semibold">Webseite</span>
+              <input class="size-6 shrink-0 accent-primary" name="footerWebsiteEnabled" type="checkbox" [(ngModel)]="form.footerWebsiteEnabled" />
+            </label>
+          }
+        </div>
       </section>
       <button type="submit" class="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 font-bold text-on-primary transition hover:bg-primary-strong disabled:cursor-wait disabled:opacity-60" [disabled]="isSaving() || form.displayName.trim().length < 2">@if (isSaving()) { Speichern … } @else { Profil &amp; Einstellungen speichern }</button>
     </form>

@@ -2,6 +2,8 @@ import { Component, ElementRef, inject, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms';
 import { NgIcon } from '@ng-icons/core';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
+import { ChatPushService } from '../../core/chat/chat-push.service';
+import { ThemeService } from '../../core/theme/theme.service';
 import { CustomerProfile, ProfileService } from '../../core/profile/profile.service';
 
 interface ProfileForm {
@@ -15,6 +17,10 @@ interface ProfileForm {
   chatPushEnabled: boolean;
   rewardPushEnabled: boolean;
   newsPushEnabled: boolean;
+  footerHomeEnabled: boolean;
+  footerChatEnabled: boolean;
+  footerRewardsEnabled: boolean;
+  footerWebsiteEnabled: boolean;
 }
 
 @Component({
@@ -25,6 +31,8 @@ interface ProfileForm {
 export class ProfilePage {
   private readonly profiles = inject(ProfileService);
   private readonly messages = inject(StatusMessageService);
+  protected readonly push = inject(ChatPushService);
+  protected readonly theme = inject(ThemeService).activeTheme;
   private readonly cropCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cropCanvas');
   protected readonly profile = this.profiles.profile;
   protected readonly isLoading = signal(true);
@@ -32,12 +40,13 @@ export class ProfilePage {
   protected readonly cropOpen = signal(false);
   protected readonly zoom = signal(1);
   protected readonly cropImage = signal<HTMLImageElement | null>(null);
-  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '', newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false, newsPushEnabled: false };
+  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '', newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false, newsPushEnabled: false, footerHomeEnabled: true, footerChatEnabled: true, footerRewardsEnabled: true, footerWebsiteEnabled: true };
   private dragStart: { x: number; y: number; offsetX: number; offsetY: number } | null = null;
   private cropOffsetX = 0;
   private cropOffsetY = 0;
 
   async ngOnInit(): Promise<void> {
+    void this.push.initialize().then(() => this.push.check());
     try { this.applyProfile(await this.profiles.load()); } catch { this.messages.error('Das Profil konnte nicht geladen werden.'); } finally { this.isLoading.set(false); }
   }
 
@@ -45,6 +54,8 @@ export class ProfilePage {
     this.isSaving.set(true);
     try { this.applyProfile(await this.profiles.save(this.form)); this.messages.show('Ihre Profil- und Benachrichtigungseinstellungen wurden gespeichert.', { kind: 'success' }); } catch { this.messages.error('Das Profil konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
+
+  protected togglePush(): void { if (this.push.enabled()) void this.push.disable(); else void this.push.enable(); }
 
   protected selectPhoto(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -85,7 +96,7 @@ export class ProfilePage {
     } catch { this.messages.error('Das Profilbild konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
   protected initials(): string { return this.form.displayName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'K'; }
-  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; }
+  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; this.form.footerHomeEnabled = profile.footerHomeEnabled; this.form.footerChatEnabled = profile.footerChatEnabled; this.form.footerRewardsEnabled = profile.footerRewardsEnabled; this.form.footerWebsiteEnabled = profile.footerWebsiteEnabled; }
   private drawCropCanvas(): void {
     const canvas = this.cropCanvas()?.nativeElement;
     const image = this.cropImage();

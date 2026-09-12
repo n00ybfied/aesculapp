@@ -29,11 +29,13 @@ export class AppShellComponent implements OnInit,OnDestroy {
 
   protected readonly navigationOpen = signal(false);
   protected readonly navigationVisible = signal(false);
+  protected readonly pushPromptOpen = signal(false);
+  private pushPromptKey: string | null = null;
   private navigationExitTimer: ReturnType<typeof setTimeout> | undefined;
   private navigationEnterTimer: ReturnType<typeof setTimeout> | undefined;
 
   async ngOnInit(): Promise<void> {
-    void this.push.initialize();
+    void this.initializePushPrompt();
     this.refreshChatBadge();
     this.countTimer=setInterval(this.refreshChatBadge,5000);
     document.addEventListener('visibilitychange',this.refreshChatBadge);
@@ -66,6 +68,17 @@ export class AppShellComponent implements OnInit,OnDestroy {
     void this.router.navigate(['/login']);
   }
 
+  protected dismissPushPrompt(): void {
+    this.rememberPushPrompt();
+    this.pushPromptOpen.set(false);
+  }
+
+  protected enablePushFromPrompt(): void {
+    this.rememberPushPrompt();
+    this.pushPromptOpen.set(false);
+    void this.push.enable();
+  }
+
   protected profileInitials(): string {
     const name = this.profile()?.displayName ?? this.authService.currentUser()?.displayName ?? 'K';
     return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
@@ -76,6 +89,21 @@ export class AppShellComponent implements OnInit,OnDestroy {
     this.clearTimer(this.navigationExitTimer);
     this.navigationEnterTimer = undefined;
     this.navigationExitTimer = undefined;
+  }
+
+  private async initializePushPrompt(): Promise<void> {
+    await this.push.initialize();
+    await this.push.check();
+    const user = this.authService.currentUser();
+    if (!this.push.supported || this.push.enabled() || Notification.permission !== 'default' || user === null) return;
+    this.pushPromptKey = `aesculapp.push-prompt.v1.${user.id}`;
+    try { if (localStorage.getItem(this.pushPromptKey) !== null) return; } catch { return; }
+    this.pushPromptOpen.set(true);
+  }
+
+  private rememberPushPrompt(): void {
+    if (this.pushPromptKey === null) return;
+    try { localStorage.setItem(this.pushPromptKey, 'seen'); } catch { /* Private mode may block storage. */ }
   }
 
   private clearTimer(timer: ReturnType<typeof setTimeout> | undefined): void {

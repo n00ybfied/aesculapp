@@ -7,6 +7,7 @@ export interface ThemeDefinition {
   readonly pointsPerEuro: number;
   readonly allowDuplicateReceiptImports: boolean;
   readonly showCustomerDebugOutput: boolean;
+  readonly websiteUrl: string | null;
 }
 
 /**
@@ -25,4 +26,5 @@ export const activeTheme: ThemeDefinition = {
   pointsPerEuro: 10,
   allowDuplicateReceiptImports: false,
   showCustomerDebugOutput: false,
+  websiteUrl: null,
 };

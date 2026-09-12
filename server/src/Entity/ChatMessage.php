@@ -16,6 +16,7 @@ class ChatMessage {
     #[ORM\Column(length: 36)] public string $requestId;
     #[ORM\Column] public \DateTimeImmutable $createdAt;
     #[ORM\Column(nullable: true)] public ?\DateTimeImmutable $customerReadAt = null;
+    #[ORM\Column(nullable: true)] public ?\DateTimeImmutable $staffReadAt = null;
     #[ORM\Column(options:['default'=>false])] public bool $pushPending = false;
     public function __construct(ChatConversation $conversation, User $sender, string $role, string $requestId) {
         $this->conversation = $conversation; $this->sender = $sender; $this->senderRole = $role;

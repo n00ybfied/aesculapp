@@ -13,6 +13,7 @@ interface BrandingResponse {
     readonly pointsPerEuro: number;
     readonly allowDuplicateReceiptImports: boolean;
     readonly showCustomerDebugOutput: boolean;
+    readonly websiteUrl: string | null;
   };
 }
 
@@ -54,6 +55,7 @@ export class ThemeService {
         pointsPerEuro: branding.pointsPerEuro,
         allowDuplicateReceiptImports: branding.allowDuplicateReceiptImports,
         showCustomerDebugOutput: branding.showCustomerDebugOutput,
+        websiteUrl: branding.websiteUrl,
       };
     } catch {
       // The shipped fallback branding keeps the app usable while the API is unavailable.
