@@ -104,5 +104,5 @@ jobs:
             --exclude='var/' \
             --exclude='public/uploads/' \
             server/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/server/"
-          retry ssh "${ssh_args[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache public/uploads/rewards"
+          retry ssh "${ssh_args[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache public/uploads public/uploads/rewards"
           ssh "${ssh_args[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
