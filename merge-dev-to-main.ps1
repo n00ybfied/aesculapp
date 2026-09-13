@@ -44,7 +44,7 @@ try {
     Invoke-Git push origin dev
     Invoke-Git switch main
     Invoke-Git pull --ff-only origin main
-    Invoke-Git merge --no-ff dev -m 'Merge branch dev into main'
+    Invoke-Git merge --no-ff dev -m $CommitMessage
     Invoke-Git push origin main
     Invoke-Git switch dev
     if ($hasStagedChanges) {
