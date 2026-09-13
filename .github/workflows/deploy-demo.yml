@@ -20,12 +20,6 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_ROOT: ${{ secrets.DEPLOY_ROOT }}
-      SSH_OPTIONS: >-
-        -o ServerAliveInterval=15
-        -o ServerAliveCountMax=3
-        -o TCPKeepAlive=yes
-        -o ConnectTimeout=15
-        -o ConnectionAttempts=3
 
     steps:
       - name: Check out source
@@ -91,10 +85,20 @@ jobs:
             done
           }
 
-          retry ssh $SSH_OPTIONS "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/client' '$DEPLOY_ROOT/admin' '$DEPLOY_ROOT/server'"
-          retry rsync -az --delete -e "ssh $SSH_OPTIONS" client/dist/aesculapp/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/client/"
-          retry rsync -az --delete -e "ssh $SSH_OPTIONS" admin/dist/admin/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/admin/"
-          retry rsync -az --delete -e "ssh $SSH_OPTIONS" \
+          ssh_args=(
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+            -o TCPKeepAlive=yes
+            -o ConnectTimeout=15
+            -o ConnectionAttempts=3
+          )
+          rsync_ssh=$(printf 'ssh %q ' "${ssh_args[@]}")
+          rsync_ssh=${rsync_ssh% }
+
+          retry ssh "${ssh_args[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/client' '$DEPLOY_ROOT/admin' '$DEPLOY_ROOT/server'"
+          retry rsync -az --delete -e "$rsync_ssh" client/dist/aesculapp/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/client/"
+          retry rsync -az --delete -e "$rsync_ssh" admin/dist/admin/browser/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/admin/"
+          retry rsync -az --delete -e "$rsync_ssh" \
             --exclude='.env.local' \
             --exclude='config/jwt/' \
             --exclude='var/' \
@@ -120,4 +124,14 @@ jobs:
             done
           }
 
-          retry ssh $SSH_OPTIONS "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache public/uploads/rewards && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
+          ssh_args=(
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+            -o TCPKeepAlive=yes
+            -o ConnectTimeout=15
+            -o ConnectionAttempts=3
+          )
+
+          retry ssh "${ssh_args[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && mkdir -p var/cache public/uploads/rewards"
+          retry ssh "${ssh_args[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction"
+          retry ssh "${ssh_args[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_ROOT/server' && APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --no-warmup"
