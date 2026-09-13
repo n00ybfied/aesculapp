@@ -10,6 +10,8 @@ export class ChatPushService {
  readonly serviceWorkerSupported=typeof window!=='undefined'&&window.isSecureContext&&'serviceWorker' in navigator;
  readonly supported=this.serviceWorkerSupported&&'PushManager' in window&&'Notification' in window;
  readonly registered=signal(false);readonly enabled=signal(false);readonly busy=signal(false);readonly message=signal('');
+ readonly permission=signal<NotificationPermission|'unsupported'>(this.supported?Notification.permission:'unsupported');
+ readonly serverReady=signal<boolean|null>(null);
  private options(){return {headers:new HttpHeaders({Authorization:'Bearer '+this.auth.accessToken()})};}
  async initialize():Promise<ServiceWorkerRegistration|null>{
   if(!this.serviceWorkerSupported)return null;
@@ -21,9 +23,10 @@ export class ChatPushService {
   this.busy.set(true);this.message.set('');
   try{
    // Permission request runs directly from the user's click.
-   const permission=await Notification.requestPermission();
+   const permission=await Notification.requestPermission();this.permission.set(permission);
    if(permission!=='granted'){this.message.set($localize`:@@chatPushDenied:Benachrichtigungen sind nicht erlaubt. Sie können die Freigabe in den Browsereinstellungen ändern.`);return;}
    const config=await firstValueFrom(this.http.get<{publicKey:string|null}>(this.api,this.options()));
+   this.serverReady.set(config.publicKey!==null);
    if(!config.publicKey){this.message.set($localize`:@@chatPushUnavailable:Push-Benachrichtigungen sind auf dem Server noch nicht eingerichtet.`);return;}
    const registration=await this.initialize();
    if(!registration)throw new Error('Service worker unavailable.');
@@ -36,10 +39,15 @@ export class ChatPushService {
   }catch{this.message.set($localize`:@@chatPushFailed:Benachrichtigungen konnten nicht aktiviert werden. Bitte versuchen Sie es erneut.`);}finally{this.busy.set(false);}
  }
  async check():Promise<void>{
-  this.enabled.set(false);if(!this.supported)return;
-  try{const registration=await this.initialize();const subscription=await registration?.pushManager.getSubscription();
+  this.enabled.set(false);this.serverReady.set(null);if(!this.supported){this.permission.set('unsupported');return;}
+  this.permission.set(Notification.permission);
+  try{
+   const config=await firstValueFrom(this.http.get<{publicKey:string|null}>(this.api,this.options()));
+   this.serverReady.set(config.publicKey!==null);
+   if(!config.publicKey)return;
+   const registration=await this.initialize();const subscription=await registration?.pushManager.getSubscription();
    if(subscription){const result=await firstValueFrom(this.http.post<{subscribed:boolean}>(this.api+'/status',{endpoint:subscription.endpoint},this.options()));this.enabled.set(result.subscribed);}
-  }catch{this.enabled.set(false);}
+  }catch{this.enabled.set(false);this.serverReady.set(null);}
  }
  async disable():Promise<void>{
   if(!this.supported)return;this.busy.set(true);

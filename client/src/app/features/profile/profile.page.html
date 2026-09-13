@@ -45,12 +45,15 @@
         <div class="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent px-4 py-3">
           <div>
             <p class="font-semibold">Push auf diesem Gerät</p>
-            @if (push.enabled()) { <p class="mt-1 text-sm text-muted">Benachrichtigungen sind für dieses Gerät aktiviert.</p> }
+            @if (push.enabled()) { <p class="mt-1 text-sm text-success">Aktiviert: Dieses Gerät ist für Ihr Konto registriert.</p> }
             @else if (!push.supported) { <p class="mt-1 text-sm text-muted">Dieser Browser unterstützt Web-Push nicht. Auf iPhone und iPad ist die installierte App nötig.</p> }
+            @else if (push.permission() === 'denied') { <p class="mt-1 text-sm text-danger">Benachrichtigungen wurden in Ihrem Browser blockiert.</p> }
+            @else if (push.permission() === 'granted' && push.serverReady() === false) { <p class="mt-1 text-sm text-muted">Die Browserfreigabe ist erteilt, Push ist auf dem Server aber noch nicht eingerichtet.</p> }
+            @else if (push.permission() === 'granted') { <p class="mt-1 text-sm text-muted">Die Browserfreigabe ist erteilt. Dieses Gerät ist noch nicht für Ihr Konto registriert.</p> }
             @else { <p class="mt-1 text-sm text-muted">Aktivieren Sie die Browserfreigabe für dieses Gerät.</p> }
           </div>
-          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.busy() || !push.supported || !form.chatPushEnabled" (click)="togglePush()">
-            @if (push.busy()) { Bitte warten … } @else if (push.enabled()) { Deaktivieren } @else { Aktivieren }
+          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.busy() || !push.supported || !form.chatPushEnabled || push.permission() === 'denied'" (click)="togglePush()">
+            @if (push.busy()) { Bitte warten … } @else if (push.enabled()) { Deaktivieren } @else if (push.permission() === 'granted') { Für dieses Konto aktivieren } @else if (push.permission() === 'denied') { Im Browser blockiert } @else { Aktivieren }
           </button>
         </div>
         @if (!form.chatPushEnabled) { <p class="mt-3 text-xs leading-5 text-muted">Aktivieren und speichern Sie zuerst „Chatnachrichten“, bevor Sie Push auf diesem Gerät freigeben.</p> }

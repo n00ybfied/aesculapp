@@ -21,7 +21,10 @@ final class ApiChatController {
     #[Route('/api/v1/chat/push', methods:['GET','POST','DELETE'])]
     public function push(Request $request):JsonResponse{
         $user=$this->user(false);
-        if($request->isMethod('GET'))return $this->json(['publicKey'=>$this->push?->config()['publicKey']??null]);
+        if($request->isMethod('GET')){
+            $config = $this->push?->config();
+            return $this->json(['publicKey' => $config['publicKey'] ?? null]);
+        }
         if(!$this->push)throw new HttpException(503);
         $data=$request->toArray();
         if($request->isMethod('DELETE')){$this->push->remove($user,$this->tenant->get(),(string)($data['endpoint']??''));}
