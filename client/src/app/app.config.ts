@@ -11,6 +11,7 @@ import { ThemeService } from './core/theme/theme.service';
 import { MockReceiptRepository, ReceiptRepository } from './core/receipts/receipt.repository';
 import { MockRewardRepository, RewardRepository } from './core/rewards/reward.repository';
 
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
