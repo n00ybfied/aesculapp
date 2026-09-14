@@ -42,6 +42,24 @@ class TenantMembership
 
     #[ORM\Column(options: ['default' => false])]
     private bool $newsPushEnabled = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $medicationPushEnabled = false;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $familyPushEnabled = true;
+
+    #[ORM\Column(length: 5, options: ['default' => '08:00'])]
+    private string $morningReminderTime = '08:00';
+
+    #[ORM\Column(length: 5, options: ['default' => '12:00'])]
+    private string $noonReminderTime = '12:00';
+
+    #[ORM\Column(length: 5, options: ['default' => '18:00'])]
+    private string $eveningReminderTime = '18:00';
+
+    #[ORM\Column(length: 5, options: ['default' => '22:00'])]
+    private string $nightReminderTime = '22:00';
     #[ORM\Column(options: ['default' => true])] private bool $footerHomeEnabled = true;
     #[ORM\Column(options: ['default' => true])] private bool $footerChatEnabled = true;
     #[ORM\Column(options: ['default' => true])] private bool $footerRewardsEnabled = true;
@@ -95,6 +113,18 @@ class TenantMembership
     public function setRewardPushEnabled(bool $value): void { $this->rewardPushEnabled = $value; }
     public function isNewsPushEnabled(): bool { return $this->newsPushEnabled; }
     public function setNewsPushEnabled(bool $value): void { $this->newsPushEnabled = $value; }
+    public function isMedicationPushEnabled(): bool { return $this->medicationPushEnabled; }
+    public function setMedicationPushEnabled(bool $value): void { $this->medicationPushEnabled = $value; }
+    public function isFamilyPushEnabled(): bool { return $this->familyPushEnabled; }
+    public function setFamilyPushEnabled(bool $value): void { $this->familyPushEnabled = $value; }
+    public function getMorningReminderTime(): string { return $this->morningReminderTime; }
+    public function setMorningReminderTime(string $value): void { $this->morningReminderTime = $value; }
+    public function getNoonReminderTime(): string { return $this->noonReminderTime; }
+    public function setNoonReminderTime(string $value): void { $this->noonReminderTime = $value; }
+    public function getEveningReminderTime(): string { return $this->eveningReminderTime; }
+    public function setEveningReminderTime(string $value): void { $this->eveningReminderTime = $value; }
+    public function getNightReminderTime(): string { return $this->nightReminderTime; }
+    public function setNightReminderTime(string $value): void { $this->nightReminderTime = $value; }
     public function isFooterHomeEnabled(): bool { return $this->footerHomeEnabled; }
     public function setFooterHomeEnabled(bool $value): void { $this->footerHomeEnabled = $value; }
     public function isFooterChatEnabled(): bool { return $this->footerChatEnabled; }

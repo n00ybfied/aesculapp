@@ -31,6 +31,7 @@ export interface PointsHistoryPage {
 
 export interface RewardsOverview {
   readonly availablePoints: number;
+  readonly personalPoints: number;
   readonly rewards: readonly Reward[];
   readonly history: readonly PointsHistoryItem[];
   readonly activeRedemption: ActiveRedemption | null;
@@ -64,6 +65,7 @@ export interface RewardRedemption {
 
 interface PersistedRewardState {
   readonly availablePoints: number;
+  readonly personalPoints: number;
   readonly history: readonly PointsHistoryItem[];
   readonly activeRedemption: ActiveRedemption | null;
 }
@@ -72,6 +74,7 @@ export const rewardStorageKey = 'aesculapp.mock-rewards.v1';
 
 const createInitialState = (): PersistedRewardState => ({
   availablePoints: 1_230,
+  personalPoints: 1_230,
   activeRedemption: null,
   history: [],
 });
@@ -134,6 +137,7 @@ export class MockRewardRepository extends RewardRepository {
 
     this.updateState({
       availablePoints: response.remainingPoints,
+      personalPoints: this.state.personalPoints,
       history: [
         ...items.map((item) => ({
           id: `reward-${item.rewardId}-${Date.now()}-${item.quantity}`,
@@ -156,6 +160,7 @@ export class MockRewardRepository extends RewardRepository {
 
     this.updateState({
       availablePoints: this.state.availablePoints + points,
+      personalPoints: this.state.personalPoints + points,
       history: [{ id: `credit-${Date.now()}`, label, dateLabel: 'Heute', points }, ...this.state.history],
       activeRedemption: this.state.activeRedemption,
     });
@@ -253,6 +258,8 @@ export class MockRewardRepository extends RewardRepository {
       && value !== null
       && 'availablePoints' in value
       && typeof value.availablePoints === 'number'
+      && 'personalPoints' in value
+      && typeof value.personalPoints === 'number'
       && 'history' in value
       && Array.isArray(value.history)
       && 'activeRedemption' in value
@@ -304,6 +311,7 @@ export class MockRewardRepository extends RewardRepository {
   private createOverview(rewards: readonly Reward[] = this.rewards): RewardsOverview {
     return {
       availablePoints: this.state.availablePoints,
+      personalPoints: this.state.personalPoints,
       rewards,
       history: this.state.history,
       activeRedemption: this.state.activeRedemption,
@@ -317,11 +325,11 @@ export class MockRewardRepository extends RewardRepository {
     }
 
     try {
-      const response = await firstValueFrom(this.http.get<{ availablePoints: number }>(
+      const response = await firstValueFrom(this.http.get<{ availablePoints: number; personalPoints: number }>(
         this.apiBaseUrl + '/rewards/balance',
         { headers: new HttpHeaders({ Authorization: 'Bearer ' + token }) },
       ));
-      this.updateState({ ...this.state, availablePoints: response.availablePoints });
+      this.updateState({ ...this.state, availablePoints: response.availablePoints, personalPoints: response.personalPoints });
     } catch {
       // The local fallback is retained only while the API is unavailable.
     }

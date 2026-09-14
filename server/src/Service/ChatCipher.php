@@ -1,18 +1,16 @@
 <?php
 declare(strict_types=1);
 namespace App\Service;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-
-/** Versioned authenticated encryption. Never reuse APP_SECRET as a chat key. */
+/** Versioned authenticated encryption. Never reuse APP_SECRET as a private-data key. */
 final class ChatCipher
 {
-    public function __construct(#[Autowire('%kernel.project_dir%')] private readonly string $projectDir) {}
+    public function __construct(private readonly PrivateDataKeyPath $keyPath) {}
     private function key(): string {
-        $path = $_ENV['CHAT_KEY_FILE'] ?? (getenv('CHAT_KEY_FILE') ?: $this->projectDir.'/var/private/chat.key');
+        $path = $this->keyPath->get();
         $encoded = is_file($path) ? file_get_contents($path) : false;
         $key = $encoded === false ? false : base64_decode(trim($encoded), true);
         if ($key === false || strlen($key) !== SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_KEYBYTES) {
-            throw new \RuntimeException('Chat encryption key is not configured.');
+            throw new \RuntimeException('Private-data encryption key is not configured.');
         }
         return $key;
     }

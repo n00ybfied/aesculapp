@@ -1,0 +1,10 @@
+<?php
+declare(strict_types=1);
+namespace DoctrineMigrations;
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+final class Version20260914090000 extends AbstractMigration {
+ public function getDescription(): string { return 'Add tenant-scoped family connections and directional medication permissions.'; }
+ public function up(Schema $schema): void { $this->addSql("CREATE TABLE family_connection (id INT AUTO_INCREMENT NOT NULL, tenant_id INT NOT NULL, participant_one_id INT NOT NULL, participant_two_id INT NOT NULL, invited_by_id INT NOT NULL, token_hash VARCHAR(64) NOT NULL, status VARCHAR(16) NOT NULL, expires_at DATETIME NOT NULL, accepted_at DATETIME DEFAULT NULL, one_allows_two_medication_view TINYINT(1) NOT NULL DEFAULT 0, one_allows_two_medication_manage TINYINT(1) NOT NULL DEFAULT 0, two_allows_one_medication_view TINYINT(1) NOT NULL DEFAULT 0, two_allows_one_medication_manage TINYINT(1) NOT NULL DEFAULT 0, created_at DATETIME NOT NULL, INDEX IDX_FAMILY_TENANT (tenant_id), INDEX IDX_FAMILY_ONE (participant_one_id), INDEX IDX_FAMILY_TWO (participant_two_id), INDEX IDX_FAMILY_INVITER (invited_by_id), UNIQUE INDEX uniq_family_connection_pair (tenant_id, participant_one_id, participant_two_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB"); $this->addSql('ALTER TABLE family_connection ADD CONSTRAINT FK_FAMILY_TENANT FOREIGN KEY (tenant_id) REFERENCES tenant (id) ON DELETE CASCADE'); $this->addSql('ALTER TABLE family_connection ADD CONSTRAINT FK_FAMILY_ONE FOREIGN KEY (participant_one_id) REFERENCES app_user (id) ON DELETE CASCADE'); $this->addSql('ALTER TABLE family_connection ADD CONSTRAINT FK_FAMILY_TWO FOREIGN KEY (participant_two_id) REFERENCES app_user (id) ON DELETE CASCADE'); $this->addSql('ALTER TABLE family_connection ADD CONSTRAINT FK_FAMILY_INVITER FOREIGN KEY (invited_by_id) REFERENCES app_user (id) ON DELETE CASCADE'); }
+ public function down(Schema $schema): void { $this->addSql('DROP TABLE family_connection'); }
+}

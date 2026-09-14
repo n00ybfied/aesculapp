@@ -19,6 +19,8 @@ export class TenantBrandingComponent implements OnDestroy {
   protected initialPoints = 0; protected birthdayBonusPoints = 200; protected pointsPerEuro = 10;
   protected allowDuplicateReceiptImports = false;
   protected showCustomerDebugOutput = false;
+  protected familyPointSharingEnabled = false;
+  protected familyPointSharingLocked = false;
   protected receiptQrPrefix = '';
   protected websiteUrl = '';
   protected smtpHost = ''; protected smtpPort = 587; protected smtpEncryption: 'tls' | 'ssl' | 'none' = 'tls'; protected smtpUsername = ''; protected smtpPassword = ''; protected smtpFrom = ''; protected smtpPasswordConfigured = false;
@@ -38,6 +40,7 @@ export class TenantBrandingComponent implements OnDestroy {
     if (this.isPointsPerEuroEditingEnabled()) { data.set('pointsPerEuro', String(this.pointsPerEuro)); data.set('confirmPointsPerEuroChange', 'true'); }
     data.set('allowDuplicateReceiptImports', String(this.allowDuplicateReceiptImports));
     data.set('showCustomerDebugOutput', String(this.showCustomerDebugOutput));
+    data.set('familyPointSharingEnabled', String(this.familyPointSharingEnabled));
     data.set('receiptQrPrefix', this.receiptQrPrefix.trim());
     data.set('websiteUrl', this.websiteUrl.trim());
     data.set('smtpHost', this.smtpHost); data.set('smtpPort', String(this.smtpPort)); data.set('smtpEncryption', this.smtpEncryption); data.set('smtpUsername', this.smtpUsername); data.set('smtpPassword', this.smtpPassword); data.set('smtpFrom', this.smtpFrom);
@@ -54,5 +57,5 @@ export class TenantBrandingComponent implements OnDestroy {
     this.files = { ...this.files, [asset]: file }; this.error.set(''); this.previews.update((previews) => ({ ...previews, [asset]: URL.createObjectURL(file) }));
   }
   private showSuccess(message: string): void { this.dismissSuccess(); this.success.set(message); this.successTimeout = setTimeout(() => this.dismissSuccess(), 4000); }
-  private apply(branding: TenantBranding): void { this.previews.set({ logo: branding.logoUrl, squareLogo: branding.squareLogoUrl, favicon: branding.faviconUrl }); this.initialPoints=branding.initialPoints; this.birthdayBonusPoints=branding.birthdayBonusPoints; this.pointsPerEuro=branding.pointsPerEuro; this.allowDuplicateReceiptImports=branding.allowDuplicateReceiptImports; this.showCustomerDebugOutput=branding.showCustomerDebugOutput; this.receiptQrPrefix=branding.receiptQrPrefix ?? ''; this.websiteUrl=branding.websiteUrl ?? ''; this.smtpHost=branding.smtpHost ?? ''; this.smtpPort=branding.smtpPort ?? 587; this.smtpEncryption=branding.smtpEncryption ?? 'tls'; this.smtpUsername=branding.smtpUsername ?? ''; this.smtpFrom=branding.smtpFrom ?? ''; this.smtpPasswordConfigured=branding.smtpPasswordConfigured; this.smtpPassword=''; }
+  private apply(branding: TenantBranding): void { this.previews.set({ logo: branding.logoUrl, squareLogo: branding.squareLogoUrl, favicon: branding.faviconUrl }); this.initialPoints=branding.initialPoints; this.birthdayBonusPoints=branding.birthdayBonusPoints; this.pointsPerEuro=branding.pointsPerEuro; this.allowDuplicateReceiptImports=branding.allowDuplicateReceiptImports; this.showCustomerDebugOutput=branding.showCustomerDebugOutput; this.familyPointSharingEnabled=branding.familyPointSharingEnabled; this.familyPointSharingLocked=branding.familyPointSharingLocked; this.receiptQrPrefix=branding.receiptQrPrefix ?? ''; this.websiteUrl=branding.websiteUrl ?? ''; this.smtpHost=branding.smtpHost ?? ''; this.smtpPort=branding.smtpPort ?? 587; this.smtpEncryption=branding.smtpEncryption ?? 'tls'; this.smtpUsername=branding.smtpUsername ?? ''; this.smtpFrom=branding.smtpFrom ?? ''; this.smtpPasswordConfigured=branding.smtpPasswordConfigured; this.smtpPassword=''; }
 }

@@ -5,6 +5,7 @@ import { RewardRepository, type ActiveRedemption, type RewardsOverview } from '.
 import { PharmacyNewsService, type PharmacyNewsPost } from '../../core/news/pharmacy-news.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
+import { FamilyService } from '../../core/family/family.service';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -16,6 +17,7 @@ export class DashboardPage implements OnInit {
   private readonly newsService = inject(PharmacyNewsService);
   private readonly auth = inject(AuthService);
   private readonly profiles = inject(ProfileService);
+  private readonly family = inject(FamilyService);
 
   protected readonly activeRedemption = signal<ActiveRedemption | null>(null);
   protected readonly pointsOverview = signal<RewardsOverview | null>(null);
@@ -28,13 +30,17 @@ export class DashboardPage implements OnInit {
   protected readonly pushHintDismissed = signal(true);
   protected readonly pushHintVisible = computed(() => {
     const profile = this.profiles.profile();
-    return profile !== null && !this.pushHintDismissed() && !profile.chatPushEnabled && !profile.rewardPushEnabled && !profile.newsPushEnabled;
+    return profile !== null && !this.pushHintDismissed() && !profile.chatPushEnabled && !profile.rewardPushEnabled && !profile.newsPushEnabled && !profile.medicationPushEnabled;
   });
+  protected readonly sharedPointPartners = computed(() => this.family.connections()
+    .filter((connection) => connection.status === 'accepted' && connection.pointSharingStatus === 'accepted')
+    .map((connection) => connection.other.displayName)
+    .join(', '));
 
   async ngOnInit(): Promise<void> {
     this.restorePushHint();
     try {
-      const [overview, news] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null)]);
+      const [overview, news] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null), this.family.load().catch(() => [])]);
       this.pointsOverview.set(overview);
       this.activeRedemption.set(overview.activeRedemption);
       this.news.set(news);

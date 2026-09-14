@@ -17,6 +17,12 @@ interface ProfileForm {
   chatPushEnabled: boolean;
   rewardPushEnabled: boolean;
   newsPushEnabled: boolean;
+  medicationPushEnabled: boolean;
+  familyPushEnabled: boolean;
+  morningReminderTime: string;
+  noonReminderTime: string;
+  eveningReminderTime: string;
+  nightReminderTime: string;
   footerHomeEnabled: boolean;
   footerChatEnabled: boolean;
   footerRewardsEnabled: boolean;
@@ -40,7 +46,7 @@ export class ProfilePage {
   protected readonly cropOpen = signal(false);
   protected readonly zoom = signal(1);
   protected readonly cropImage = signal<HTMLImageElement | null>(null);
-  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '', newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false, newsPushEnabled: false, footerHomeEnabled: true, footerChatEnabled: true, footerRewardsEnabled: true, footerWebsiteEnabled: true };
+  protected readonly form: ProfileForm = { displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '', newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false, newsPushEnabled: false, medicationPushEnabled: false, familyPushEnabled: true, morningReminderTime: '08:00', noonReminderTime: '12:00', eveningReminderTime: '18:00', nightReminderTime: '22:00', footerHomeEnabled: true, footerChatEnabled: true, footerRewardsEnabled: true, footerWebsiteEnabled: true };
   private dragStart: { x: number; y: number; offsetX: number; offsetY: number } | null = null;
   private cropOffsetX = 0;
   private cropOffsetY = 0;
@@ -56,6 +62,7 @@ export class ProfilePage {
   }
 
   protected togglePush(): void { if (this.push.enabled()) void this.push.disable(); else void this.push.enable(); }
+  protected hasSelectedPushCategory(): boolean { return this.form.chatPushEnabled || this.form.rewardPushEnabled || this.form.newsPushEnabled || this.form.medicationPushEnabled || this.form.familyPushEnabled; }
 
   protected selectPhoto(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -96,7 +103,7 @@ export class ProfilePage {
     } catch { this.messages.error('Das Profilbild konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
   protected initials(): string { return this.form.displayName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'K'; }
-  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; this.form.footerHomeEnabled = profile.footerHomeEnabled; this.form.footerChatEnabled = profile.footerChatEnabled; this.form.footerRewardsEnabled = profile.footerRewardsEnabled; this.form.footerWebsiteEnabled = profile.footerWebsiteEnabled; }
+  private applyProfile(profile: CustomerProfile): void { this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; this.form.medicationPushEnabled = profile.medicationPushEnabled; this.form.familyPushEnabled = profile.familyPushEnabled; this.form.morningReminderTime = profile.morningReminderTime; this.form.noonReminderTime = profile.noonReminderTime; this.form.eveningReminderTime = profile.eveningReminderTime; this.form.nightReminderTime = profile.nightReminderTime; this.form.footerHomeEnabled = profile.footerHomeEnabled; this.form.footerChatEnabled = profile.footerChatEnabled; this.form.footerRewardsEnabled = profile.footerRewardsEnabled; this.form.footerWebsiteEnabled = profile.footerWebsiteEnabled; }
   private drawCropCanvas(): void {
     const canvas = this.cropCanvas()?.nativeElement;
     const image = this.cropImage();

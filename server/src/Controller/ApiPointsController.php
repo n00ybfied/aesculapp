@@ -9,6 +9,7 @@ use App\Entity\PointTransaction;
 use App\Entity\User;
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
+use App\Service\FamilyPointSharingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,6 +24,7 @@ final class ApiPointsController
         private readonly ActiveTenantProvider $tenant,
         private readonly TenantMembershipRepository $memberships,
         private readonly EntityManagerInterface $entityManager,
+        private readonly FamilyPointSharingService $familyPoints,
     ) {
     }
 
@@ -34,16 +36,13 @@ final class ApiPointsController
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
 
-        $account = $this->entityManager->getRepository(PointAccount::class)->findOneBy(['owner' => $user, 'tenant' => $this->tenant->get()]);
-        if (!$account instanceof PointAccount) {
-            return new JsonResponse(['availablePoints' => 0]);
-        }
+        $tenant = $this->tenant->get();
+        $account = $this->entityManager->getRepository(PointAccount::class)->findOneBy(['owner' => $user, 'tenant' => $tenant]);
 
-        $points = $this->entityManager->createQuery('SELECT COALESCE(SUM(transaction.points), 0) FROM App\Entity\PointTransaction transaction WHERE transaction.account = :account')
-            ->setParameter('account', $account)
-            ->getSingleScalarResult();
-
-        return new JsonResponse(['availablePoints' => (int) $points]);
+        return new JsonResponse([
+            'availablePoints' => $this->familyPoints->combinedBalance($user, $tenant),
+            'personalPoints' => $account instanceof PointAccount ? $this->familyPoints->balance($account) : 0,
+        ]);
     }
 
     #[Route('/api/v1/rewards/transactions', name: 'api_v1_rewards_transactions', methods: ['GET'])]

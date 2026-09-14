@@ -40,7 +40,25 @@
             <span><span class="block font-semibold">News aus der Apotheke</span><span class="mt-1 block text-sm leading-5 text-muted">Wenn ein neuer Beitrag veröffentlicht wird.</span></span>
             <input class="size-6 shrink-0 accent-primary" name="newsPushEnabled" type="checkbox" [(ngModel)]="form.newsPushEnabled" />
           </label>
+          <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span><span class="block font-semibold">Medikamentenerinnerungen</span><span class="mt-1 block text-sm leading-5 text-muted">Erinnerungen zu den Einnahmezeiten aus Ihrem Medikamentenplan.</span></span>
+            <input class="size-6 shrink-0 accent-primary" name="medicationPushEnabled" type="checkbox" [(ngModel)]="form.medicationPushEnabled" />
+          </label>
+          <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span><span class="block font-semibold">Familienzugang</span><span class="mt-1 block text-sm leading-5 text-muted">Einladungen, Annahmen und Anfragen zur gemeinsamen Punkteteilung.</span></span>
+            <input class="size-6 shrink-0 accent-primary" name="familyPushEnabled" type="checkbox" [(ngModel)]="form.familyPushEnabled" />
+          </label>
         </div>
+        <section class="mt-5 rounded-2xl border border-border bg-accent p-4" aria-labelledby="medication-times-title">
+          <h3 id="medication-times-title" class="font-semibold">Zeiten für Medikamentenerinnerungen</h3>
+          <p class="mt-1 text-sm leading-5 text-muted">Diese Zeiten gelten für alle Medikamente mit dem jeweiligen Morgens–Mittags–Abends–Nachts-Schema.</p>
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <label class="block text-sm font-medium">Morgens<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="morningReminderTime" [(ngModel)]="form.morningReminderTime" type="time" required /></label>
+            <label class="block text-sm font-medium">Mittags<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="noonReminderTime" [(ngModel)]="form.noonReminderTime" type="time" required /></label>
+            <label class="block text-sm font-medium">Abends<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="eveningReminderTime" [(ngModel)]="form.eveningReminderTime" type="time" required /></label>
+            <label class="block text-sm font-medium">Nachts<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="nightReminderTime" [(ngModel)]="form.nightReminderTime" type="time" required /></label>
+          </div>
+        </section>
         <p class="mt-4 text-xs leading-5 text-muted">Push-Benachrichtigungen benötigen zusätzlich die Freigabe in Ihrem Browser oder auf Ihrem Gerät. Den Versand können Sie dort jederzeit blockieren.</p>
         <div class="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent px-4 py-3">
           <div>
@@ -52,11 +70,11 @@
             @else if (push.permission() === 'granted') { <p class="mt-1 text-sm text-muted">Die Browserfreigabe ist erteilt. Dieses Gerät ist noch nicht für Ihr Konto registriert.</p> }
             @else { <p class="mt-1 text-sm text-muted">Aktivieren Sie die Browserfreigabe für dieses Gerät.</p> }
           </div>
-          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.busy() || !push.supported || !form.chatPushEnabled || push.permission() === 'denied'" (click)="togglePush()">
+          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.busy() || !push.supported || !hasSelectedPushCategory() || push.permission() === 'denied'" (click)="togglePush()">
             @if (push.busy()) { Bitte warten … } @else if (push.enabled()) { Deaktivieren } @else if (push.permission() === 'granted') { Für dieses Konto aktivieren } @else if (push.permission() === 'denied') { Im Browser blockiert } @else { Aktivieren }
           </button>
         </div>
-        @if (!form.chatPushEnabled) { <p class="mt-3 text-xs leading-5 text-muted">Aktivieren und speichern Sie zuerst „Chatnachrichten“, bevor Sie Push auf diesem Gerät freigeben.</p> }
+        @if (!hasSelectedPushCategory()) { <p class="mt-3 text-xs leading-5 text-muted">Aktivieren und speichern Sie zuerst mindestens eine Push-Kategorie, bevor Sie Push auf diesem Gerät freigeben.</p> }
         @if (push.message()) { <p class="mt-3 text-sm text-muted" role="status">{{ push.message() }}</p> }
       </section>
       <section class="mt-8 border-t border-border pt-6" aria-labelledby="footer-navigation-title">

@@ -16,6 +16,7 @@
           <p class="text-sm font-semibold text-on-primary/80">AKTUELLER PUNTESTAND</p>
           <h2 id="point-balance-title" class="mt-2 text-4xl font-bold! tracking-tight text-white!">
             {{ rewardsOverview.availablePoints }} <span class="text-xl font-bold text-white">Punkte</span>
+            @if (sharedPointPartners()) { <span class="ml-1 text-base font-semibold text-white/85">(geteilt)</span> }
             @if (cartItemCount() > 0) {
               <span class="mt-2 block text-base font-semibold text-on-primary/80">({{ availablePointsForRewards() }} nach Auswahl)</span>
             }
@@ -29,6 +30,10 @@
         <p class="mt-6 text-sm leading-6 text-on-primary/85">Noch {{ next.requiredPoints - rewardsOverview.availablePoints }} Punkte bis zu „{{ next.title }}“.</p>
       } @else {
         <p class="mt-6 text-sm leading-6 text-on-primary/85">Sie können alle derzeitigen Prämien einlösen.</p>
+      }
+      @if (sharedPointPartners(); as partners) {
+        <p class="mt-4 border-t border-white/20 pt-4 text-sm font-semibold text-white">Sie teilen Ihr Punktekonto mit {{ partners }}.</p>
+        <p class="mt-2 text-sm text-white/85">Ihr persönlicher Punktestand beträgt {{ rewardsOverview.personalPoints }} Punkte.</p>
       }
     </section>
 

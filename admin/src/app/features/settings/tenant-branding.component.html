@@ -58,6 +58,22 @@
     </details>
 
     <details class="settings-group">
+      <summary>Familien-Punktepool</summary>
+      <div class="loyalty">
+        <p>Familienmitglieder können nach beidseitiger Zustimmung ein gemeinsames Punktebudget für Einlösungen nutzen. Die Konten und Buchungen bleiben dabei weiterhin nachvollziehbar getrennt.</p>
+        <label class="confirmation">
+          <input name="familyPointSharingEnabled" type="checkbox" [(ngModel)]="familyPointSharingEnabled" [disabled]="familyPointSharingLocked" />
+          <span>Punkteteilung für Familien erlauben.</span>
+        </label>
+        @if (familyPointSharingLocked) {
+          <p class="ratio-warning">Die Punkteteilung kann nicht mehr deaktiviert werden, weil bereits mindestens ein Familien-Punktepool angelegt wurde.</p>
+        } @else {
+          <small>Die Einstellung kann bis zur ersten Einrichtung eines Familien-Punktepools wieder deaktiviert werden.</small>
+        }
+      </div>
+    </details>
+
+    <details class="settings-group">
       <summary>Rechnungs-QR-Code</summary>
       <div class="loyalty qr-settings">
         <p>Nur QR-Codes, die mit diesem Präfix beginnen, können Punkte gutschreiben. Damit werden gleich formatierte Fremdbelege abgewiesen.</p>
