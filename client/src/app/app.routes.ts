@@ -96,6 +96,12 @@ export const routes: Routes = [
         title: 'Mein Profil | Aesculapp',
       },
       {
+        path: 'medikamente',
+        loadComponent: () => import('./features/medications/medications.page').then((module) => module.MedicationsPage),
+        title: 'Medikamentenplan | Aesculapp',
+      },
+      { path: 'familie', loadComponent: () => import('./features/family/family.page').then((module) => module.FamilyPage), title: 'Familienzugang | Aesculapp' },
+      {
         path: 'webseite',
         loadComponent: () => import('./features/website/website.page').then((module) => module.WebsitePage),
         title: 'Webseite | Aesculapp',

@@ -61,6 +61,12 @@ export class AppShellComponent implements OnInit,OnDestroy {
     this.navigationExitTimer = setTimeout(() => this.navigationVisible.set(false), this.navigationTransitionMs);
   }
 
+  protected navigateAndClose(path: string, event: MouseEvent): void {
+    event.preventDefault();
+    this.closeNavigation();
+    void this.router.navigateByUrl(path);
+  }
+
   protected async logout(): Promise<void> {
     await this.push.disable();
     this.authService.logout();

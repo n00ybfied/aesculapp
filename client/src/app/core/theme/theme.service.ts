@@ -47,7 +47,7 @@ export class ThemeService {
       const { branding } = await firstValueFrom(
         this.http.get<BrandingResponse>(`${this.apiBaseUrl}/branding`).pipe(timeout(3500)),
       );
-      this.theme = {
+      Object.assign(this.theme, {
         ...activeTheme,
         logoPath: branding.logoUrl ?? activeTheme.logoPath,
         squareLogoPath: branding.squareLogoUrl ?? activeTheme.squareLogoPath,
@@ -56,10 +56,10 @@ export class ThemeService {
         allowDuplicateReceiptImports: branding.allowDuplicateReceiptImports,
         showCustomerDebugOutput: branding.showCustomerDebugOutput,
         websiteUrl: branding.websiteUrl,
-      };
+      });
     } catch {
       // The shipped fallback branding keeps the app usable while the API is unavailable.
-      this.theme = { ...activeTheme };
+      Object.assign(this.theme, activeTheme);
     }
 
     this.applyThemeIcons();

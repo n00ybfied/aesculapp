@@ -62,12 +62,18 @@ final class ApiProfileController
         $chatPushEnabled = $this->boolean($data['chatPushEnabled'] ?? null);
         $rewardPushEnabled = $this->boolean($data['rewardPushEnabled'] ?? null);
         $newsPushEnabled = $this->boolean($data['newsPushEnabled'] ?? null);
+        $medicationPushEnabled = $this->boolean($data['medicationPushEnabled'] ?? null);
+        $familyPushEnabled = $this->boolean($data['familyPushEnabled'] ?? null);
+        $morningReminderTime = $this->time($data['morningReminderTime'] ?? null);
+        $noonReminderTime = $this->time($data['noonReminderTime'] ?? null);
+        $eveningReminderTime = $this->time($data['eveningReminderTime'] ?? null);
+        $nightReminderTime = $this->time($data['nightReminderTime'] ?? null);
         $footerHomeEnabled = $this->boolean($data['footerHomeEnabled'] ?? null);
         $footerChatEnabled = $this->boolean($data['footerChatEnabled'] ?? null);
         $footerRewardsEnabled = $this->boolean($data['footerRewardsEnabled'] ?? null);
         $footerWebsiteEnabled = $this->boolean($data['footerWebsiteEnabled'] ?? null);
 
-        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $footerHomeEnabled === null || $footerChatEnabled === null || $footerRewardsEnabled === null || $footerWebsiteEnabled === null) {
+        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerHomeEnabled === null || $footerChatEnabled === null || $footerRewardsEnabled === null || $footerWebsiteEnabled === null) {
             return $this->invalidProfile();
         }
 
@@ -81,6 +87,12 @@ final class ApiProfileController
         $membership->setChatPushEnabled($chatPushEnabled);
         $membership->setRewardPushEnabled($rewardPushEnabled);
         $membership->setNewsPushEnabled($newsPushEnabled);
+        $membership->setMedicationPushEnabled($medicationPushEnabled);
+        $membership->setFamilyPushEnabled($familyPushEnabled);
+        $membership->setMorningReminderTime($morningReminderTime);
+        $membership->setNoonReminderTime($noonReminderTime);
+        $membership->setEveningReminderTime($eveningReminderTime);
+        $membership->setNightReminderTime($nightReminderTime);
         $membership->setFooterHomeEnabled($footerHomeEnabled);
         $membership->setFooterChatEnabled($footerChatEnabled);
         $membership->setFooterRewardsEnabled($footerRewardsEnabled);
@@ -155,6 +167,7 @@ final class ApiProfileController
 
     private function birthDate(mixed $value): \DateTimeImmutable|false|null { if ($value === null || $value === '') { return null; } if (!is_string($value)) { return false; } try { $date = new \DateTimeImmutable($value); return $date > new \DateTimeImmutable('-14 years') || $date < new \DateTimeImmutable('-120 years') ? false : $date; } catch (\Exception) { return false; } }
     private function boolean(mixed $value): ?bool { return is_bool($value) ? $value : null; }
+    private function time(mixed $value): string|false { return is_string($value) && preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D', $value) === 1 ? $value : false; }
 
     /** @return array{id:int,username:string,email:string,displayName:string,phone:?string,streetAddress:?string,postalCode:?string,city:?string,profileImageUrl:?string} */
     private function serialize(User $user, TenantMembership $membership, Request $request): array
@@ -174,6 +187,12 @@ final class ApiProfileController
             'chatPushEnabled' => $membership->isChatPushEnabled(),
             'rewardPushEnabled' => $membership->isRewardPushEnabled(),
             'newsPushEnabled' => $membership->isNewsPushEnabled(),
+            'medicationPushEnabled' => $membership->isMedicationPushEnabled(),
+            'familyPushEnabled' => $membership->isFamilyPushEnabled(),
+            'morningReminderTime' => $membership->getMorningReminderTime(),
+            'noonReminderTime' => $membership->getNoonReminderTime(),
+            'eveningReminderTime' => $membership->getEveningReminderTime(),
+            'nightReminderTime' => $membership->getNightReminderTime(),
             'footerHomeEnabled' => $membership->isFooterHomeEnabled(),
             'footerChatEnabled' => $membership->isFooterChatEnabled(),
             'footerRewardsEnabled' => $membership->isFooterRewardsEnabled(),

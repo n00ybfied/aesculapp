@@ -11,7 +11,7 @@ $services = new Symfony\Component\DependencyInjection\Container();
 $services->set('security.token_storage',$storage);
 $security = new Symfony\Bundle\SecurityBundle\Security($services);
 $provider = new App\Service\ActiveTenantProvider($em,$_ENV['APP_TENANT_SLUG']);
-$cipher = new App\Service\ChatCipher(dirname(__DIR__));
+$cipher = new App\Service\ChatCipher(new App\Service\PrivateDataKeyPath(dirname(__DIR__)));
 $api = new App\Controller\ApiChatController($security,$provider,$em->getRepository(App\Entity\TenantMembership::class),$em,$cipher);
 function check(bool $ok, string $message): void { if (!$ok) { throw new RuntimeException($message); } }
 function status(callable $call,int $expected): void { try { $response=$call(); check($response->getStatusCode()===$expected,'Unexpected status'); } catch(Symfony\Component\HttpKernel\Exception\HttpException $e) { check($e->getStatusCode()===$expected,'Unexpected exception status '.$e->getStatusCode()); } }

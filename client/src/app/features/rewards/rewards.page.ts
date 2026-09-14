@@ -5,6 +5,7 @@ import { StatusMessageService } from '../../core/feedback/status-message.service
 import { statusMessages } from '../../core/i18n/status-messages';
 import { RewardRepository, type ActiveRedemption, type Reward, type RewardsOverview } from '../../core/rewards/reward.repository';
 import { ThemeService } from '../../core/theme/theme.service';
+import { FamilyService } from '../../core/family/family.service';
 
 interface RewardCartItem {
   readonly reward: Reward;
@@ -21,6 +22,7 @@ export class RewardsPage implements OnInit {
   private readonly statusMessages = inject(StatusMessageService);
   private readonly router = inject(Router);
   protected readonly theme = inject(ThemeService);
+  private readonly family = inject(FamilyService);
 
   protected readonly overview = signal<RewardsOverview | null>(null);
   protected readonly cart = signal<readonly RewardCartItem[]>([]);
@@ -44,9 +46,13 @@ export class RewardsPage implements OnInit {
     const overview = this.overview();
     return overview?.rewards.find((reward) => reward.requiredPoints > overview.availablePoints) ?? null;
   });
+  protected readonly sharedPointPartners = computed(() => this.family.connections()
+    .filter((connection) => connection.status === 'accepted' && connection.pointSharingStatus === 'accepted')
+    .map((connection) => connection.other.displayName)
+    .join(', '));
 
   async ngOnInit(): Promise<void> {
-    await this.loadOverview();
+    await Promise.all([this.loadOverview(), this.family.load().catch(() => [])]);
   }
 
   protected addReward(reward: Reward): void {

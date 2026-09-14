@@ -56,5 +56,10 @@ services:
             $adminUrl: '%app.auth.admin_url%'
             $mailFrom: '%app.auth.mail_from%'
 
+    App\Controller\ApiFamilyController:
+        arguments:
+            $clientUrl: '%app.auth.client_url%'
+            $mailFrom: '%app.auth.mail_from%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

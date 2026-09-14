@@ -49,6 +49,12 @@ final class ApiAdminBrandingController
         foreach (['birthdayBonusPoints' => 'setBirthdayBonusPoints', 'pointsPerEuro' => 'setPointsPerEuro'] as $field => $setter) { $value = $request->request->get($field); if ($value !== null) { if ($field === 'pointsPerEuro' && $request->request->get('confirmPointsPerEuroChange') !== 'true') { return new JsonResponse(['message' => 'Bitte bestätigen Sie die Änderung des Punkteverhältnisses.'], 422); } if (!is_string($value) || !ctype_digit($value) || (int) $value > 100000) { return new JsonResponse(['message' => 'Bitte prüfen Sie die Punkte-Einstellungen.'], 422); } $tenant->$setter((int) $value); } }
         $tenant->setAllowDuplicateReceiptImports($request->request->get('allowDuplicateReceiptImports') === 'true');
         $tenant->setShowCustomerDebugOutput($request->request->get('showCustomerDebugOutput') === 'true');
+        $familyPointSharing = $request->request->get('familyPointSharingEnabled');
+        if ($familyPointSharing !== null) {
+            $enabled = $familyPointSharing === 'true';
+            if (!$enabled && $tenant->isFamilyPointSharingLocked()) return new JsonResponse(['message' => 'Die Punkteteilung kann nicht mehr deaktiviert werden, weil bereits ein Familien-Punktepool angelegt wurde.'], 422);
+            $tenant->setFamilyPointSharingEnabled($enabled);
+        }
         $receiptQrPrefix = trim((string) $request->request->get('receiptQrPrefix', ''));
         if (mb_strlen($receiptQrPrefix) > 120 || str_contains($receiptQrPrefix, "\n") || str_contains($receiptQrPrefix, "\r")) {
             return new JsonResponse(['message' => 'Der Rechnungs-QR-Präfix ist ungültig.'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -109,7 +115,7 @@ final class ApiAdminBrandingController
     private function serialize(Tenant $tenant, Request $request, bool $includeSmtp = false): array
     {
         $origin = $request->getSchemeAndHttpHost();
-        $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput(), 'websiteUrl' => $tenant->getWebsiteUrl()];
+        $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput(), 'familyPointSharingEnabled' => $tenant->isFamilyPointSharingEnabled(), 'familyPointSharingLocked' => $tenant->isFamilyPointSharingLocked(), 'websiteUrl' => $tenant->getWebsiteUrl()];
         if ($includeSmtp) { $branding['receiptQrPrefix'] = $tenant->getReceiptQrPrefix(); }
         if ($includeSmtp) { $branding += ['smtpHost' => $tenant->getSmtpHost(), 'smtpPort' => $tenant->getSmtpPort(), 'smtpEncryption' => $tenant->getSmtpEncryption(), 'smtpUsername' => $tenant->getSmtpUsername(), 'smtpFrom' => $tenant->getSmtpFrom(), 'smtpPasswordConfigured' => $tenant->getSmtpPasswordEncrypted() !== null]; }
         return $branding;

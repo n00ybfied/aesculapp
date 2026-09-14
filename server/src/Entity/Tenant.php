@@ -52,6 +52,8 @@ class Tenant
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $receiptQrPrefix = null;
     #[ORM\Column(length: 2048, nullable: true)] private ?string $websiteUrl = null;
+    #[ORM\Column(options: ['default' => false])] private bool $familyPointSharingEnabled = false;
+    #[ORM\Column(options: ['default' => false])] private bool $familyPointSharingLocked = false;
     #[ORM\Column(length: 255, nullable: true)] private ?string $smtpHost = null;
     #[ORM\Column(nullable: true)] private ?int $smtpPort = null;
     #[ORM\Column(length: 20, nullable: true)] private ?string $smtpEncryption = null;
@@ -105,6 +107,10 @@ class Tenant
     public function getReceiptQrPrefix(): ?string { return $this->receiptQrPrefix; }
     public function setReceiptQrPrefix(?string $value): void { $this->receiptQrPrefix = $value; }
     public function getWebsiteUrl(): ?string { return $this->websiteUrl; } public function setWebsiteUrl(?string $value): void { $this->websiteUrl = $value; }
+    public function isFamilyPointSharingEnabled(): bool { return $this->familyPointSharingEnabled; }
+    public function setFamilyPointSharingEnabled(bool $value): void { if (!$value && $this->familyPointSharingLocked) throw new \LogicException('Family point sharing cannot be disabled after a pool exists.'); $this->familyPointSharingEnabled = $value; }
+    public function isFamilyPointSharingLocked(): bool { return $this->familyPointSharingLocked; }
+    public function lockFamilyPointSharing(): void { $this->familyPointSharingLocked = true; $this->familyPointSharingEnabled = true; }
     public function getSmtpHost(): ?string { return $this->smtpHost; } public function setSmtpHost(?string $value): void { $this->smtpHost = $value; }
     public function getSmtpPort(): ?int { return $this->smtpPort; } public function setSmtpPort(?int $value): void { $this->smtpPort = $value; }
     public function getSmtpEncryption(): ?string { return $this->smtpEncryption; } public function setSmtpEncryption(?string $value): void { $this->smtpEncryption = $value; }
