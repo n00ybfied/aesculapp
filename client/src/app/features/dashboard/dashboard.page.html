@@ -16,6 +16,18 @@
       </span>
     </a>
   }
+  @if (activeCouponRedemption(); as redemption) {
+    <a routerLink="/gutscheine/einloesung" class="mb-7 flex items-center gap-4 rounded-2xl border-2 border-danger bg-danger-soft p-4 text-danger shadow-soft transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-danger" aria-label="Aktive Gutschein-Einlösung dem Apotheken-Team zeigen">
+      <span class="grid size-12 shrink-0 place-items-center rounded-2xl border border-danger bg-surface" aria-hidden="true">
+        <ng-icon name="lucideTicket" size="1.5rem" />
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-bold tracking-wide">AKTIVE GUTSCHEINE</span>
+        <span class="mt-1 block font-bold">{{ redemption.items.length }} {{ redemption.items.length === 1 ? 'Gutschein' : 'Gutscheine' }} jetzt vorzeigen</span>
+        <span class="mt-1 block text-sm">Zum Apotheken-Team</span>
+      </span>
+    </a>
+  }
 
   <section aria-labelledby="welcome-title">
     <p class="text-sm font-semibold text-primary">GUTEN MORGEN</p>

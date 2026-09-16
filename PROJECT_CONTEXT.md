@@ -87,10 +87,10 @@ Wichtige Dateien: `server/src/Controller/ApiRewardController.php`, `ApiRedemptio
 
 ### Gutscheine
 
-- Gutscheine (`Coupon`) sind bewusst **getrennt** von Punkte-Prämien. Sie benötigen keine Punkte und sollen später je Kunde einmal mit demselben fünfminütigen Vorzeigeablauf eingelöst werden.
-- Aktuell umgesetzt: eigene Entität/API, Adminliste/-editor, Gutscheinheft in der Kunden-App, Sichtbarkeit und optionaler Verfügbarkeitszeitraum, Rich Text und Bild aus der Mediathek.
+- Gutscheine (`Coupon`) sind bewusst **getrennt** von Punkte-Prämien und benötigen keine Punkte. Kunden können mehrere unterschiedliche Gutscheine in einem Warenkorb atomar einlösen; der gemeinsame Vorgang erzeugt ein fünfminütiges Vorzeigefenster auf einer eigenen Seite. Ein Adminabbruch gibt alle Gutscheine des Vorgangs wieder frei, der bloße Ablauf nicht.
+- Umgesetzt: eigene Entität/API, Adminliste/-editor, Gutscheinheft in der Kunden-App, Sichtbarkeit und optionaler Verfügbarkeitszeitraum, Rich Text und Bild aus der Mediathek. Eingelöste sichtbare Gutscheine bleiben auch nach Verfügbarkeitsende ausgegraut sichtbar.
 - Ein Gutscheinbild ist optional; die Auswahl erfolgt über den gemeinsamen `MediaPickerComponent`, der Upload und Mediathek kombiniert. API prüft den Besitz des `MediaAsset` am aktuellen Mandanten.
-- **Noch offen:** Einmal-Einlösung, Anzeige eines bereits eingelösten Gutscheins, aktive Gutschein-Einlösung und Adminabbruch. Nicht versehentlich die Prämien-Punkte-Logik für Gutscheine wiederverwenden.
+- Dashboard, Gutscheinheft und Admin-Live-Übersicht zeigen aktive Gutschein-Einlösungen. Die Adminansicht kann den gesamten Vorgang abbrechen. Die serverseitige Einmaligkeit ist mandanten- und kundenbezogen; keine Wiederverwendung der Prämien-Punkte-Logik.
 
 Wichtige Dateien: `server/src/Entity/Coupon.php`, `server/src/Controller/ApiCouponController.php`, `admin/src/app/features/coupons/`, `client/src/app/features/coupons/`.
 
@@ -151,7 +151,7 @@ Terminarten/Ressourcen sind bewusst generisch, damit später Räume, Geräte ode
 - Das Terminmodul ist ein unfertiger MVP und darf nicht als abgeschlossen kommuniziert werden (siehe Liste oben).
 - Die neu angelegten Termin-Dateien sind sehr kompakt formatiert. Beim nächsten Ausbau in normale, gut getestete Klassen/DTOs/Services überführen statt noch mehr Controllerlogik anzuhäufen.
 - Für allgemeine Formulare ist die Pflichtfeld-/Fehlermeldungs-Konvention noch nicht flächendeckend nachgezogen. Prämien und Gutscheine dienen als aktuelle Referenz.
-- Coupon-Medien sind fertig auswählbar; Coupon-Einlösung fehlt vollständig.
+- Coupon-Medien und einmalige Einlösung sind umgesetzt; für produktiven Einsatz bleiben fachliche Abnahmetests und UX-Prüfung des Vorzeigeablaufs sinnvoll.
 - Remote Deployment/SSH kann aufgrund externer Brute-Force-Last instabil sein. Fail2ban ist aktiv; keine anderen Node-Prozesse auf dem Server stoppen.
 - Composer auf dem Remote-Server war veraltet; Deployment überträgt `vendor/` aus GitHub Actions. Remote Composer nicht als Voraussetzung für reguläre Deploys behandeln.
 

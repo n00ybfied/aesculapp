@@ -1,5 +1,6 @@
 # Local backup of the Angular CLI repository metadata
 /.client-git-backup/
+/.runtime/node/
 
 # System files
 .DS_Store

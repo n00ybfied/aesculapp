@@ -78,6 +78,7 @@ export const routes: Routes = [
           import('./features/rewards/rewards.page').then((module) => module.RewardsPage),
         title: 'Punkte & Prämien | Aesculapp',
       },
+      { path: 'gutscheine/einloesung', loadComponent: () => import('./features/coupons/active-coupon-redemption.page').then(m => m.ActiveCouponRedemptionPage), title: 'Gutscheine vorzeigen | Aesculapp' },
       { path: 'gutscheine', loadComponent: () => import('./features/coupons/coupons.page').then(m => m.CouponsPage), title: 'Gutscheinheft | Aesculapp' },
       { path: 'termine', loadComponent: () => import('./features/appointments/appointments.page').then(m => m.AppointmentsPage), title: 'Termine | Aesculapp' },
       {

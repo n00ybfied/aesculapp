@@ -5,6 +5,12 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSCommandPath
 $runtimeDirectory = Join-Path $projectRoot '.runtime'
 $pidFile = Join-Path $runtimeDirectory 'dev-processes.json'
+$localNodeDirectory = Join-Path $runtimeDirectory 'node\node_modules\node\bin'
+
+# Prefer the project-local Node runtime when one is installed for this machine.
+if (Test-Path -LiteralPath (Join-Path $localNodeDirectory 'node.exe')) {
+    $env:Path = "$localNodeDirectory;$env:Path"
+}
 
 function Stop-ProcessTree {
     param([int]$ProcessId)
