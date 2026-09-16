@@ -6,6 +6,7 @@ import { PharmacyNewsService, type PharmacyNewsPost } from '../../core/news/phar
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
 import { FamilyService } from '../../core/family/family.service';
+import { CouponService, type CouponRedemption } from '../../core/coupons/coupon.service';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -18,8 +19,10 @@ export class DashboardPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly profiles = inject(ProfileService);
   private readonly family = inject(FamilyService);
+  private readonly coupons = inject(CouponService);
 
   protected readonly activeRedemption = signal<ActiveRedemption | null>(null);
+  protected readonly activeCouponRedemption = signal<CouponRedemption | null>(null);
   protected readonly pointsOverview = signal<RewardsOverview | null>(null);
   protected readonly nextReward = computed(() => {
     const overview = this.pointsOverview();
@@ -40,9 +43,10 @@ export class DashboardPage implements OnInit {
   async ngOnInit(): Promise<void> {
     this.restorePushHint();
     try {
-      const [overview, news] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null), this.family.load().catch(() => [])]);
+      const [overview, news, , , activeCouponRedemption] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null), this.family.load().catch(() => []), this.coupons.active().catch(() => null)]);
       this.pointsOverview.set(overview);
       this.activeRedemption.set(overview.activeRedemption);
+      this.activeCouponRedemption.set(activeCouponRedemption);
       this.news.set(news);
     } finally {
       this.isLoading.set(false);

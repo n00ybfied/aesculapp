@@ -1,10 +1,22 @@
 <?php
 declare(strict_types=1);
 namespace App\Controller;
-use App\Entity\{Coupon,MediaAsset,User}; use App\Repository\TenantMembershipRepository; use App\Service\{ActiveTenantProvider,RichTextSanitizer}; use Doctrine\ORM\EntityManagerInterface; use Symfony\Bundle\SecurityBundle\Security; use Symfony\Component\HttpFoundation\{JsonResponse,Request,Response}; use Symfony\Component\Routing\Attribute\Route;
+use App\Entity\{Coupon,CouponRedemption,MediaAsset,User}; use App\Repository\TenantMembershipRepository; use App\Service\{ActiveTenantProvider,RichTextSanitizer}; use Doctrine\ORM\EntityManagerInterface; use Symfony\Bundle\SecurityBundle\Security; use Symfony\Component\HttpFoundation\{JsonResponse,Request,Response}; use Symfony\Component\Routing\Attribute\Route;
 final class ApiCouponController {
  public function __construct(private readonly EntityManagerInterface $em,private readonly ActiveTenantProvider $tenant,private readonly TenantMembershipRepository $memberships,private readonly Security $security,private readonly RichTextSanitizer $richText){}
- #[Route('/api/v1/coupons',methods:['GET'])] public function customer(Request $request):JsonResponse{$now=new \DateTimeImmutable();$items=$this->em->createQueryBuilder()->select('coupon')->from(Coupon::class,'coupon')->where('coupon.tenant=:tenant')->andWhere('coupon.isVisible=true')->andWhere('(coupon.availableFrom IS NULL OR coupon.availableFrom<=:now)')->andWhere('(coupon.availableUntil IS NULL OR coupon.availableUntil>=:now)')->orderBy('coupon.id','DESC')->setParameter('tenant',$this->tenant->get())->setParameter('now',$now)->getQuery()->getResult();return new JsonResponse(['coupons'=>array_map(fn(Coupon $coupon)=>$this->serialize($coupon,$request),$items)]);}
+ #[Route('/api/v1/coupons',methods:['GET'])] public function customer(Request $request):JsonResponse{
+  $user=$this->security->getUser();
+  if(!$user instanceof User||!$this->memberships->hasActiveMembershipFor($user,$this->tenant->get()))return new JsonResponse(['message'=>'Unauthorized.'],Response::HTTP_UNAUTHORIZED);
+  $redemptions=$this->em->getRepository(CouponRedemption::class)->findBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'status'=>'active']);
+  $redeemedIds=[];
+  foreach($redemptions as $redemption)$redeemedIds[$redemption->getCoupon()->getId()]=true;
+  $now=new \DateTimeImmutable();
+  $query=$this->em->createQueryBuilder()->select('coupon')->from(Coupon::class,'coupon')->where('coupon.tenant=:tenant')->andWhere('coupon.isVisible=true')->setParameter('tenant',$this->tenant->get())->orderBy('coupon.id','DESC');
+  if($redeemedIds!==[])$query->andWhere('(((coupon.availableFrom IS NULL OR coupon.availableFrom<=:now) AND (coupon.availableUntil IS NULL OR coupon.availableUntil>=:now)) OR coupon.id IN (:redeemedIds))')->setParameter('redeemedIds',array_keys($redeemedIds));
+  else $query->andWhere('(coupon.availableFrom IS NULL OR coupon.availableFrom<=:now)')->andWhere('(coupon.availableUntil IS NULL OR coupon.availableUntil>=:now)');
+  $items=$query->setParameter('now',$now)->getQuery()->getResult();
+  return new JsonResponse(['coupons'=>array_map(fn(Coupon $coupon)=>[...$this->serialize($coupon,$request),'isRedeemed'=>isset($redeemedIds[$coupon->getId()])],$items)]);
+ }
  #[Route('/api/v1/admin/coupons',methods:['GET'])] public function adminList(Request $request):JsonResponse{if(!$this->admin())return new JsonResponse(['message'=>'Forbidden.'],403);$items=$this->em->getRepository(Coupon::class)->findBy(['tenant'=>$this->tenant->get()],['id'=>'DESC']);return new JsonResponse(['coupons'=>array_map(fn(Coupon $coupon)=>$this->serialize($coupon,$request),$items)]);}
  #[Route('/api/v1/admin/coupons/{id}',methods:['GET'])] public function one(int $id,Request $request):JsonResponse{$coupon=$this->find($id);return $this->admin()&&$coupon?new JsonResponse(['coupon'=>$this->serialize($coupon,$request)]):new JsonResponse(['message'=>'Gutschein nicht gefunden.'],404);}
  #[Route('/api/v1/admin/coupons',methods:['POST'])] public function create(Request $request):JsonResponse{if(!$this->admin())return new JsonResponse(['message'=>'Forbidden.'],403);[$title,$subtitle,$description,$from,$until]=$this->data($request);$image=$this->mediaPath($request);if($title===''||$subtitle===''||$description===''||$from===false||$until===false||$image===false||($from&&$until&&$from>$until))return new JsonResponse(['message'=>'Ungültige Gutscheinangaben.'],422);$coupon=new Coupon($this->tenant->get(),$title,$subtitle,$description,$image,'true'===$request->request->get('isVisible','true'),$from,$until);$this->em->persist($coupon);$this->em->flush();return new JsonResponse(['coupon'=>$this->serialize($coupon,$request)],201);}
