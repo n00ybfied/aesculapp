@@ -30,6 +30,7 @@ export class AppShellComponent implements OnInit,OnDestroy {
   protected readonly navigationOpen = signal(false);
   protected readonly navigationVisible = signal(false);
   protected readonly pushPromptOpen = signal(false);
+  protected readonly appNoticeOpen = signal(false);
   private pushPromptKey: string | null = null;
   private navigationExitTimer: ReturnType<typeof setTimeout> | undefined;
   private navigationEnterTimer: ReturnType<typeof setTimeout> | undefined;
@@ -44,6 +45,7 @@ export class AppShellComponent implements OnInit,OnDestroy {
     } catch {
       // The profile page presents a detailed retry message; the shell keeps its initials fallback.
     }
+    this.initializeAppNotice();
   }
 
   protected openNavigation(): void {
@@ -79,6 +81,17 @@ export class AppShellComponent implements OnInit,OnDestroy {
     this.pushPromptOpen.set(false);
   }
 
+  protected dismissAppNotice(): void { this.appNoticeOpen.set(false); }
+
+  protected hideAppNoticeForThirtyDays(): void {
+    const user = this.authService.currentUser();
+    const title = this.theme.appNoticeTitle ?? '';
+    if (user !== null) {
+      try { localStorage.setItem(this.appNoticeKey(user.id), JSON.stringify({ until: Date.now() + 30 * 24 * 60 * 60 * 1000, signature: `${title}|${this.theme.appNoticeHtml}` })); } catch { /* Private mode may block storage. */ }
+    }
+    this.appNoticeOpen.set(false);
+  }
+
   protected enablePushFromPrompt(): void {
     this.rememberPushPrompt();
     this.pushPromptOpen.set(false);
@@ -106,6 +119,19 @@ export class AppShellComponent implements OnInit,OnDestroy {
     try { if (localStorage.getItem(this.pushPromptKey) !== null) return; } catch { return; }
     this.pushPromptOpen.set(true);
   }
+
+  private initializeAppNotice(): void {
+    const user = this.authService.currentUser();
+    if (!this.theme.appNoticeEnabled || this.theme.appNoticeTitle === null || this.theme.appNoticeHtml === '' || user === null) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(this.appNoticeKey(user.id)) ?? 'null') as { until?: unknown; signature?: unknown } | null;
+      const signature = `${this.theme.appNoticeTitle}|${this.theme.appNoticeHtml}`;
+      if (stored !== null && stored.signature === signature && typeof stored.until === 'number' && stored.until > Date.now()) return;
+    } catch { /* An unreadable value must never hide an important pharmacy notice. */ }
+    this.appNoticeOpen.set(true);
+  }
+
+  private appNoticeKey(userId: number): string { return `aesculapp.app-notice.v1.${this.theme.id}.${userId}`; }
 
   private rememberPushPrompt(): void {
     if (this.pushPromptKey === null) return;

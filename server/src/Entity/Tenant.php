@@ -60,6 +60,18 @@ class Tenant
     #[ORM\Column(length: 255, nullable: true)] private ?string $smtpUsername = null;
     #[ORM\Column(type: 'text', nullable: true)] private ?string $smtpPasswordEncrypted = null;
     #[ORM\Column(length: 255, nullable: true)] private ?string $smtpFrom = null;
+    #[ORM\Column(options: ['default' => false])] private bool $appNoticeEnabled = false;
+    #[ORM\Column(length: 160, nullable: true)] private ?string $appNoticeTitle = null;
+    #[ORM\Column(type: 'text', nullable: true)] private ?string $appNoticeHtml = null;
+    #[ORM\Column(length: 255, nullable: true)] private ?string $contactAddress = null;
+    #[ORM\Column(length: 80, nullable: true)] private ?string $contactPhone = null;
+    #[ORM\Column(length: 255, nullable: true)] private ?string $contactEmail = null;
+    #[ORM\Column(type: 'json', nullable: true)] private ?array $contactOpeningHours = null;
+    #[ORM\Column(nullable: true)] private ?float $contactLatitude = null;
+    #[ORM\Column(nullable: true)] private ?float $contactLongitude = null;
+    #[ORM\Column(nullable: true)] private ?int $contactMapZoom = null;
+    #[ORM\Column(length: 2048, nullable: true)] private ?string $contactGoogleMapsUrl = null;
+    #[ORM\Column(type: 'text', nullable: true)] private ?string $contactAdditionalHtml = null;
 
     public function __construct(string $name, string $slug)
     {
@@ -117,4 +129,19 @@ class Tenant
     public function getSmtpUsername(): ?string { return $this->smtpUsername; } public function setSmtpUsername(?string $value): void { $this->smtpUsername = $value; }
     public function getSmtpPasswordEncrypted(): ?string { return $this->smtpPasswordEncrypted; } public function setSmtpPasswordEncrypted(?string $value): void { $this->smtpPasswordEncrypted = $value; }
     public function getSmtpFrom(): ?string { return $this->smtpFrom; } public function setSmtpFrom(?string $value): void { $this->smtpFrom = $value; }
+    public function isAppNoticeEnabled(): bool { return $this->appNoticeEnabled; } public function setAppNoticeEnabled(bool $value): void { $this->appNoticeEnabled = $value; }
+    public function getAppNoticeTitle(): ?string { return $this->appNoticeTitle; } public function setAppNoticeTitle(?string $value): void { $this->appNoticeTitle = $value; }
+    public function getAppNoticeHtml(): ?string { return $this->appNoticeHtml; } public function setAppNoticeHtml(?string $value): void { $this->appNoticeHtml = $value; }
+    public function getContactAddress(): ?string { return $this->contactAddress; } public function setContactAddress(?string $value): void { $this->contactAddress = $value; }
+    public function getContactPhone(): ?string { return $this->contactPhone; } public function setContactPhone(?string $value): void { $this->contactPhone = $value; }
+    public function getContactEmail(): ?string { return $this->contactEmail; } public function setContactEmail(?string $value): void { $this->contactEmail = $value; }
+    /** @return array<string, string>|null */
+    public function getContactOpeningHours(): ?array { return $this->contactOpeningHours; }
+    /** @param array<string, string>|null $value */
+    public function setContactOpeningHours(?array $value): void { $this->contactOpeningHours = $value; }
+    public function getContactLatitude(): ?float { return $this->contactLatitude; } public function setContactLatitude(?float $value): void { $this->contactLatitude = $value; }
+    public function getContactLongitude(): ?float { return $this->contactLongitude; } public function setContactLongitude(?float $value): void { $this->contactLongitude = $value; }
+    public function getContactMapZoom(): ?int { return $this->contactMapZoom; } public function setContactMapZoom(?int $value): void { $this->contactMapZoom = $value; }
+    public function getContactGoogleMapsUrl(): ?string { return $this->contactGoogleMapsUrl; } public function setContactGoogleMapsUrl(?string $value): void { $this->contactGoogleMapsUrl = $value; }
+    public function getContactAdditionalHtml(): ?string { return $this->contactAdditionalHtml; } public function setContactAdditionalHtml(?string $value): void { $this->contactAdditionalHtml = $value; }
 }

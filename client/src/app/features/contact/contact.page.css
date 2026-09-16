@@ -1,0 +1,8 @@
+.contact-line { display:flex; align-items:flex-start; gap:.75rem; color:var(--color-foreground); text-decoration:none; }
+a.contact-line:hover { color:var(--color-primary); }
+.contact-additional :is(h2,h3) { margin:1.25rem 0 .5rem; }
+.contact-additional :is(h2,h3):first-child { margin-top:0; }
+.contact-additional p { margin:.65rem 0; line-height:1.65; }
+.contact-additional a { color:var(--color-primary); text-decoration:underline; }
+.contact-additional img { display:block; max-width:100%; height:auto; margin:1rem 0; }
+:host ::ng-deep .contact-map-marker { display:grid; place-items:center; border:3px solid white; border-radius:50%; background:var(--color-primary); color:white; font-size:1.4rem; font-weight:700; box-shadow:0 .2rem .8rem rgb(0 0 0 / 24%); }

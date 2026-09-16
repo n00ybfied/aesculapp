@@ -8,6 +8,7 @@
 @import '@fontsource/roboto/400.css';
 @import '@fontsource/roboto/500.css';
 @import '@fontsource/roboto/700.css';
+@import 'leaflet/dist/leaflet.css';
 @import 'tailwindcss';
 
 :root {
@@ -127,6 +128,12 @@ input {
 button:not(:disabled) {
   cursor: pointer;
 }
+
+.app-notice-content :is(h2, h3) { margin: 1rem 0 .4rem; }
+.app-notice-content :is(h2, h3):first-child { margin-top: 0; }
+.app-notice-content p { margin: .65rem 0; }
+.app-notice-content a { color: var(--color-primary); text-decoration: underline; }
+.app-notice-content img { display: block; max-width: 100%; height: auto; margin: 1rem 0; }
 
 @keyframes scan-sweep {
   0%,

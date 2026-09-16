@@ -7,9 +7,9 @@ import { MediaPickerComponent, PickedMedia } from '../../shared/media-picker.com
 @Component({
  selector:'app-reward-editor', imports:[ReactiveFormsModule,RouterLink,RichTextEditorComponent,MediaPickerComponent],
  template:`
- <a routerLink="/praemien">← Zu allen Gutscheinen</a>
- <h2>{{id===null?'Gutschein anlegen':'Gutschein bearbeiten'}}</h2>
- @if(loading()){<p role="status">Gutschein wird geladen …</p>}
+ <a routerLink="/praemien">← Zu allen Prämien</a>
+ <h2>{{id===null?'Prämie anlegen':'Prämie bearbeiten'}}</h2>
+ @if(loading()){<p role="status">Prämie wird geladen …</p>}
  @else if(loadFailed()){<p role="alert">{{error()}}</p>}
  @else {
  <form [formGroup]="form" (ngSubmit)="save()">
@@ -18,13 +18,15 @@ import { MediaPickerComponent, PickedMedia } from '../../shared/media-picker.com
  <label>Titel<input formControlName="title" maxlength="160" /></label>
  <label>Untertitel<input formControlName="subtitle" maxlength="200" /></label>
  <label>Punktekosten<input formControlName="requiredPoints" type="number" min="0" step="1" /></label>
+ <label>Verfügbar ab (optional)<input formControlName="availableFrom" type="datetime-local" /></label>
+ <label>Verfügbar bis (optional)<input formControlName="availableUntil" type="datetime-local" /></label>
  <label class="check"><input type="checkbox" formControlName="isVisible" /> Sichtbar in der Kunden-App</label>
  </div>
  <p>Beschreibung</p><app-rich-text-editor [(value)]="description" />
- <p>Gutscheinbild (optional)</p><app-media-picker (selected)="selectImage($event)" />
- @if(imageUrl()){<div class="preview"><img [src]="imageUrl()" alt="Gutscheinbild" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}
+ <p>Prämienbild (optional)</p><app-media-picker (selected)="selectImage($event)" />
+ @if(imageUrl()){<div class="preview"><img [src]="imageUrl()" alt="Prämienbild" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}
  @if(error()){<p role="alert">{{error()}}</p>}
- <div class="actions"><button type="submit">{{saving()?'Speichert …':'Gutschein speichern'}}</button><a routerLink="/praemien">Abbrechen</a></div>
+ <div class="actions"><button type="submit">{{saving()?'Speichert …':'Prämie speichern'}}</button><a routerLink="/praemien">Abbrechen</a></div>
  </fieldset>
  </form>}
  `,
@@ -43,7 +45,7 @@ export class RewardEditorComponent {
  private readonly router=inject(Router);
  private readonly route=inject(ActivatedRoute);
  protected readonly id=this.route.snapshot.paramMap.has('id')?Number(this.route.snapshot.paramMap.get('id')):null;
- protected readonly form=inject(FormBuilder).nonNullable.group({title:['',[Validators.required,Validators.maxLength(160)]],subtitle:['',[Validators.required,Validators.maxLength(200)]],requiredPoints:[0,[Validators.required,Validators.min(0)]],isVisible:[true]});
+ protected readonly form=inject(FormBuilder).nonNullable.group({title:['',[Validators.required,Validators.maxLength(160)]],subtitle:['',[Validators.required,Validators.maxLength(200)]],requiredPoints:[0,[Validators.required,Validators.min(0)]],availableFrom:[''],availableUntil:[''],isVisible:[true]});
  protected readonly description=signal('');
  protected readonly imageUrl=signal<string|null>(null);
  protected readonly loading=signal(this.id!==null);
@@ -53,14 +55,16 @@ export class RewardEditorComponent {
  private mediaPath:string|null=null;
  private imageRemoved=false;
  constructor(){if(this.id!==null)void this.load();}
- private async load(){try{const item=await this.service.get(this.id!);this.form.patchValue(item);this.description.set(item.description);this.imageUrl.set(item.imageUrl);}catch{this.loadFailed.set(true);this.error.set('Gutschein konnte nicht geladen werden.');}finally{this.loading.set(false);}}
+ private async load(){try{const item=await this.service.get(this.id!);this.form.patchValue({...item,availableFrom:this.localDateTime(item.availableFrom),availableUntil:this.localDateTime(item.availableUntil)});this.description.set(item.description);this.imageUrl.set(item.imageUrl);}catch{this.loadFailed.set(true);this.error.set('Prämie konnte nicht geladen werden.');}finally{this.loading.set(false);}}
  protected selectImage(item:PickedMedia){this.mediaPath=new URL(item.url).pathname;this.imageUrl.set(item.url);this.imageRemoved=false;}
  protected removeImage(){this.mediaPath=null;this.imageUrl.set(null);this.imageRemoved=true;}
  protected async save(){
  if(this.saving())return;
  const value=this.form.getRawValue();
  if(this.form.invalid||!value.title.trim()||!value.subtitle.trim()||!Number.isInteger(value.requiredPoints)||!this.description().replace(/<[^>]*>/g,'').trim()&&!this.description().includes('<img')){this.error.set('Bitte Titel, Untertitel, Beschreibung und ganzzahlige Punktekosten prüfen.');this.form.markAllAsTouched();return;}
+ if(value.availableFrom&&value.availableUntil&&value.availableFrom>value.availableUntil){this.error.set('Der Endzeitpunkt muss nach dem Startzeitpunkt liegen.');return;}
  const data=new FormData();Object.entries(value).forEach(([key,value])=>data.set(key,String(value)));data.set('description',this.description());data.set('removeImage',String(this.imageRemoved));if(this.mediaPath)data.set('mediaPath',this.mediaPath);
- this.saving.set(true);this.error.set('');try{await this.service.save(this.id,data);await this.router.navigateByUrl('/praemien');}catch{this.error.set('Gutschein konnte nicht gespeichert werden. Bitte Eingaben prüfen.');}finally{this.saving.set(false);}
+ this.saving.set(true);this.error.set('');try{await this.service.save(this.id,data);await this.router.navigateByUrl('/praemien');}catch{this.error.set('Prämie konnte nicht gespeichert werden. Bitte Eingaben prüfen.');}finally{this.saving.set(false);}
  }
+ private localDateTime(value:string|null):string{return value?value.slice(0,16):'';}
 }

@@ -45,6 +45,7 @@ services:
 
     App\Controller\ApiAdminBrandingController:
         arguments:
+            $richText: '@App\Service\RichTextSanitizer'
             $appSecret: '%env(APP_SECRET)%'
 
     App\Controller\ApiMaintenanceController:

@@ -1,17 +1,17 @@
 <section class="list">
- <p class="eyebrow">Prämien</p><h2>Gutscheine</h2>
- <p><a routerLink="/praemien/neu">Neuen Gutschein anlegen</a></p>
+ <p class="eyebrow">Prämien</p><h2>Prämien</h2>
+ <p><a class="create" routerLink="/praemien/neu">Neue Prämie anlegen</a></p>
  @if(error()){<p class="error" role="alert">{{error()}}</p>}
- @if(loading()){<p role="status">Gutscheine werden geladen …</p>}
+ @if(loading()){<p role="status">Prämien werden geladen …</p>}
  @else {
  @for(reward of rewards();track reward.id){
  <article>
  @if(reward.imageUrl){<img [src]="reward.imageUrl" alt="" />}
  <div><h3>{{reward.title}}</h3><p>{{reward.subtitle}} · {{reward.requiredPoints}} Punkte</p><small>{{reward.isVisible?'Sichtbar':'Ausgeblendet'}}</small></div>
- <a [routerLink]="['/praemien',reward.id]">Bearbeiten</a>
+ <a class="edit" [routerLink]="['/praemien',reward.id]">Bearbeiten</a>
  <button type="button" [disabled]="busy()" (click)="toggle(reward)">{{reward.isVisible?'Ausblenden':'Einblenden'}}</button>
  <button type="button" class="delete" [disabled]="busy()" (click)="remove(reward)">Löschen</button>
  </article>
- } @empty {<p>Noch keine Gutscheine angelegt.</p>}
+ } @empty {<p>Noch keine Prämien angelegt.</p>}
  }
 </section>

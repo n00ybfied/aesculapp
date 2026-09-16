@@ -36,10 +36,15 @@ final class ApiRewardController
     #[Route('/api/v1/rewards', name: 'api_v1_rewards', methods: ['GET'])]
     public function customerList(Request $request): JsonResponse
     {
-        $rewards = $this->entityManager->getRepository(Reward::class)->findBy([
-            'tenant' => $this->activeTenant->get(),
-            'isVisible' => true,
-        ], ['id' => 'DESC']);
+        $now = new \DateTimeImmutable();
+        $rewards = $this->entityManager->createQueryBuilder()
+            ->select('reward')->from(Reward::class, 'reward')
+            ->where('reward.tenant = :tenant')->andWhere('reward.isVisible = true')
+            ->andWhere('(reward.availableFrom IS NULL OR reward.availableFrom <= :now)')
+            ->andWhere('(reward.availableUntil IS NULL OR reward.availableUntil >= :now)')
+            ->orderBy('reward.id', 'DESC')
+            ->setParameter('tenant', $this->activeTenant->get())->setParameter('now', $now)
+            ->getQuery()->getResult();
 
         return new JsonResponse(['rewards' => array_map(fn (Reward $reward) => $this->serialize($reward, $request), $rewards)]);
     }
@@ -60,7 +65,7 @@ final class ApiRewardController
     {
         if (!$this->isAdmin()) { return new JsonResponse(['message'=>'Forbidden.'],403); }
         $reward=$this->findTenantReward($id);
-        return $reward ? new JsonResponse(['reward'=>$this->serialize($reward,$request)]) : new JsonResponse(['message'=>'Gutschein nicht gefunden.'],404);
+        return $reward ? new JsonResponse(['reward'=>$this->serialize($reward,$request)]) : new JsonResponse(['message'=>'Prämie nicht gefunden.'],404);
     }
 
     #[Route('/api/v1/admin/rewards', name: 'api_v1_admin_reward_create', methods: ['POST'])]
@@ -74,9 +79,10 @@ final class ApiRewardController
         $subtitle = trim((string) $request->request->get('subtitle', ''));
         $description = $this->richText->sanitize((string) $request->request->get('description', ''));
         $requiredPoints = filter_var($request->request->get('requiredPoints'), FILTER_VALIDATE_INT);
+        [$availableFrom, $availableUntil] = $this->availability($request);
         $image = $request->files->get('image');
 
-        if ($title === '' || $subtitle === '' || $description === '' || false === $requiredPoints || $requiredPoints < 0) {
+        if ($title === '' || $subtitle === '' || $description === '' || false === $requiredPoints || $requiredPoints < 0 || $availableFrom === false || $availableUntil === false || ($availableFrom !== null && $availableUntil !== null && $availableFrom > $availableUntil)) {
             return new JsonResponse(['message' => 'Invalid reward data.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -101,6 +107,8 @@ final class ApiRewardController
             $imagePath,
             (int) $requiredPoints,
             'true' === $request->request->get('isVisible', 'true'),
+            $availableFrom,
+            $availableUntil,
         );
         $this->entityManager->persist($reward);
         $this->entityManager->flush();
@@ -124,7 +132,8 @@ final class ApiRewardController
         $subtitle = trim((string) $request->request->get('subtitle', ''));
         $description = $this->richText->sanitize((string) $request->request->get('description', ''));
         $requiredPoints = filter_var($request->request->get('requiredPoints'), FILTER_VALIDATE_INT);
-        if ($title === '' || $subtitle === '' || $description === '' || false === $requiredPoints || $requiredPoints < 0) {
+        [$availableFrom, $availableUntil] = $this->availability($request);
+        if ($title === '' || $subtitle === '' || $description === '' || false === $requiredPoints || $requiredPoints < 0 || $availableFrom === false || $availableUntil === false || ($availableFrom !== null && $availableUntil !== null && $availableFrom > $availableUntil)) {
             return new JsonResponse(['message' => 'Invalid reward data.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -144,7 +153,7 @@ final class ApiRewardController
             if (!$asset) { return new JsonResponse(['message'=>'Ungültiges Bild.'],422); }
             $imagePath=$asset->getPath();
         }
-        $reward->update($title, $subtitle, $description, $imagePath, (int) $requiredPoints, 'true' === $request->request->get('isVisible', 'true'));
+        $reward->update($title, $subtitle, $description, $imagePath, (int) $requiredPoints, 'true' === $request->request->get('isVisible', 'true'), $availableFrom, $availableUntil);
         $this->entityManager->flush();
         if ($oldImagePath !== '' && $oldImagePath !== $imagePath) {
             $this->deleteImage($oldImagePath);
@@ -240,7 +249,7 @@ final class ApiRewardController
         }
     }
 
-    /** @return array{id: int, title: string, subtitle: string, description: string, imageUrl: ?string, requiredPoints: int, isVisible: bool} */
+    /** @return array{id: int, title: string, subtitle: string, description: string, imageUrl: ?string, requiredPoints: int, isVisible: bool, availableFrom: ?string, availableUntil: ?string} */
     private function serialize(Reward $reward, Request $request): array
     {
         return [
@@ -251,6 +260,22 @@ final class ApiRewardController
             'imageUrl' => $reward->getImagePath() === '' ? null : $request->getSchemeAndHttpHost().$reward->getImagePath(),
             'requiredPoints' => $reward->getRequiredPoints(),
             'isVisible' => $reward->isVisible(),
+            'availableFrom' => $reward->getAvailableFrom()?->format(DATE_ATOM),
+            'availableUntil' => $reward->getAvailableUntil()?->format(DATE_ATOM),
         ];
+    }
+
+    /** @return array{0: \DateTimeImmutable|false|null, 1: \DateTimeImmutable|false|null} */
+    private function availability(Request $request): array
+    {
+        return [$this->dateTime($request->request->get('availableFrom')), $this->dateTime($request->request->get('availableUntil'))];
+    }
+
+    private function dateTime(mixed $value): \DateTimeImmutable|false|null
+    {
+        if ($value === null || $value === '') return null;
+        if (!is_string($value)) return false;
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d\\TH:i', $value);
+        return $date !== false && $date->format('Y-m-d\\TH:i') === $value ? $date : false;
     }
 }

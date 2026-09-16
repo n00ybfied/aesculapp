@@ -8,6 +8,7 @@ use App\Entity\Tenant;
 use App\Entity\User;
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
+use App\Service\RichTextSanitizer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -21,7 +22,12 @@ final class ApiAdminBrandingController
     /** @var list<string> */
     private const ADMIN_ROLES = ['ROLE_TENANT_STAFF', 'ROLE_TENANT_ADMIN'];
 
-    public function __construct(private readonly ActiveTenantProvider $activeTenant, private readonly TenantMembershipRepository $memberships, private readonly Security $security, private readonly EntityManagerInterface $entityManager, private readonly string $appSecret) {}
+    private readonly RichTextSanitizer $richText;
+
+    public function __construct(private readonly ActiveTenantProvider $activeTenant, private readonly TenantMembershipRepository $memberships, private readonly Security $security, private readonly EntityManagerInterface $entityManager, private readonly string $appSecret, ?RichTextSanitizer $richText = null)
+    {
+        $this->richText = $richText ?? new RichTextSanitizer();
+    }
 
     #[Route('/api/v1/admin/settings/branding', name: 'api_v1_admin_branding', methods: ['GET'])]
     public function get(Request $request): JsonResponse
@@ -66,6 +72,11 @@ final class ApiAdminBrandingController
             if (false === filter_var($websiteUrl, FILTER_VALIDATE_URL) || !is_array($websiteParts) || ($websiteParts['scheme'] ?? null) !== 'https' || !isset($websiteParts['host'])) { return new JsonResponse(['message' => 'Bitte hinterlegen Sie eine vollständige HTTPS-Webadresse.'], Response::HTTP_UNPROCESSABLE_ENTITY); }
         }
         $tenant->setWebsiteUrl($websiteUrl === '' ? null : $websiteUrl);
+        $noticeTitle = trim((string) $request->request->get('appNoticeTitle', ''));
+        $noticeHtml = $this->richText->sanitize((string) $request->request->get('appNoticeHtml', ''));
+        $noticeEnabled = $request->request->get('appNoticeEnabled') === 'true';
+        if (mb_strlen($noticeTitle) > 160 || ($noticeEnabled && ($noticeTitle === '' || $noticeHtml === ''))) return new JsonResponse(['message' => 'Für den aktiven App-Hinweis sind Titel und Text erforderlich.'], 422);
+        $tenant->setAppNoticeEnabled($noticeEnabled); $tenant->setAppNoticeTitle($noticeTitle === '' ? null : $noticeTitle); $tenant->setAppNoticeHtml($noticeHtml === '' ? null : $noticeHtml);
         $smtpHost = trim((string) $request->request->get('smtpHost', '')); $smtpFrom = trim((string) $request->request->get('smtpFrom', '')); $smtpPort = $request->request->get('smtpPort'); $smtpEncryption = $request->request->get('smtpEncryption');
         if ($smtpHost !== '' || $smtpFrom !== '') { if ($smtpHost === '' || false === filter_var($smtpFrom, FILTER_VALIDATE_EMAIL) || !is_string($smtpPort) || !ctype_digit($smtpPort) || (int) $smtpPort < 1 || (int) $smtpPort > 65535 || !is_string($smtpEncryption) || !in_array($smtpEncryption, ['tls','ssl','none'], true)) { return new JsonResponse(['message' => 'Bitte prüfen Sie die SMTP-Einstellungen.'], 422); } $tenant->setSmtpHost($smtpHost); $tenant->setSmtpPort((int) $smtpPort); $tenant->setSmtpEncryption($smtpEncryption); $tenant->setSmtpUsername(trim((string) $request->request->get('smtpUsername', '')) ?: null); $tenant->setSmtpFrom($smtpFrom); $password = $request->request->get('smtpPassword'); if (is_string($password) && $password !== '') { $tenant->setSmtpPasswordEncrypted(base64_encode(sodium_crypto_secretbox($password, $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), hash('sha256', $this->appSecret, true))) . ':' . base64_encode($nonce)); } }
         foreach (['logo' => 'LogoPath', 'squareLogo' => 'SquareLogoPath', 'favicon' => 'FaviconPath'] as $field => $property) {
@@ -115,7 +126,7 @@ final class ApiAdminBrandingController
     private function serialize(Tenant $tenant, Request $request, bool $includeSmtp = false): array
     {
         $origin = $request->getSchemeAndHttpHost();
-        $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput(), 'familyPointSharingEnabled' => $tenant->isFamilyPointSharingEnabled(), 'familyPointSharingLocked' => $tenant->isFamilyPointSharingLocked(), 'websiteUrl' => $tenant->getWebsiteUrl()];
+        $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput(), 'familyPointSharingEnabled' => $tenant->isFamilyPointSharingEnabled(), 'familyPointSharingLocked' => $tenant->isFamilyPointSharingLocked(), 'websiteUrl' => $tenant->getWebsiteUrl(), 'appNoticeEnabled' => $tenant->isAppNoticeEnabled(), 'appNoticeTitle' => $tenant->getAppNoticeTitle(), 'appNoticeHtml' => $this->richText->sanitize($tenant->getAppNoticeHtml() ?? '')];
         if ($includeSmtp) { $branding['receiptQrPrefix'] = $tenant->getReceiptQrPrefix(); }
         if ($includeSmtp) { $branding += ['smtpHost' => $tenant->getSmtpHost(), 'smtpPort' => $tenant->getSmtpPort(), 'smtpEncryption' => $tenant->getSmtpEncryption(), 'smtpUsername' => $tenant->getSmtpUsername(), 'smtpFrom' => $tenant->getSmtpFrom(), 'smtpPasswordConfigured' => $tenant->getSmtpPasswordEncrypted() !== null]; }
         return $branding;

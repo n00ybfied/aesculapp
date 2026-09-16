@@ -142,7 +142,7 @@ final class ApiRedemptionController
             if (!is_array($selection)) return [null, []];
             $reward = $this->em->getRepository(Reward::class)->find((int) ($selection['rewardId'] ?? 0));
             $quantity = (int) ($selection['quantity'] ?? 0);
-            if (!$reward instanceof Reward || $reward->getTenant() !== $this->tenant->get() || !$reward->isVisible() || $quantity < 1) return [null, []];
+            if (!$reward instanceof Reward || $reward->getTenant() !== $this->tenant->get() || !$reward->isVisible() || !$reward->isCurrentlyAvailable(new \DateTimeImmutable()) || $quantity < 1) return [null, []];
             $total += $reward->getRequiredPoints() * $quantity;
             $titles[] = $quantity.'× '.$reward->getTitle();
         }

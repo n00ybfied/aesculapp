@@ -8,6 +8,9 @@ export interface ThemeDefinition {
   readonly allowDuplicateReceiptImports: boolean;
   readonly showCustomerDebugOutput: boolean;
   readonly websiteUrl: string | null;
+  readonly appNoticeEnabled: boolean;
+  readonly appNoticeTitle: string | null;
+  readonly appNoticeHtml: string;
 }
 
 /**
@@ -27,4 +30,7 @@ export const activeTheme: ThemeDefinition = {
   allowDuplicateReceiptImports: false,
   showCustomerDebugOutput: false,
   websiteUrl: null,
+  appNoticeEnabled: false,
+  appNoticeTitle: null,
+  appNoticeHtml: '',
 };
