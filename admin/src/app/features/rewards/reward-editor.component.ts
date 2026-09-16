@@ -15,14 +15,14 @@ import { MediaPickerComponent, PickedMedia } from '../../shared/media-picker.com
  <form [formGroup]="form" (ngSubmit)="save()">
  <fieldset [disabled]="saving()">
  <div class="fields">
- <label>Titel<input formControlName="title" maxlength="160" /></label>
- <label>Untertitel<input formControlName="subtitle" maxlength="200" /></label>
- <label>Punktekosten<input formControlName="requiredPoints" type="number" min="0" step="1" /></label>
+ <label><span class="label-text">Titel <span aria-hidden="true">*</span></span><input formControlName="title" maxlength="160" [attr.aria-invalid]="form.controls.title.invalid && form.touched" /></label>
+ <label><span class="label-text">Untertitel <span aria-hidden="true">*</span></span><input formControlName="subtitle" maxlength="200" [attr.aria-invalid]="form.controls.subtitle.invalid && form.touched" /></label>
+ <label><span class="label-text">Punktekosten <span aria-hidden="true">*</span></span><input formControlName="requiredPoints" type="number" min="0" step="1" [attr.aria-invalid]="form.controls.requiredPoints.invalid && form.touched" /></label>
  <label>Verfügbar ab (optional)<input formControlName="availableFrom" type="datetime-local" /></label>
  <label>Verfügbar bis (optional)<input formControlName="availableUntil" type="datetime-local" /></label>
  <label class="check"><input type="checkbox" formControlName="isVisible" /> Sichtbar in der Kunden-App</label>
  </div>
- <p>Beschreibung</p><app-rich-text-editor [(value)]="description" />
+ <p>Beschreibung <span aria-hidden="true">*</span></p><app-rich-text-editor [(value)]="description" />
  <p>Prämienbild (optional)</p><app-media-picker (selected)="selectImage($event)" />
  @if(imageUrl()){<div class="preview"><img [src]="imageUrl()" alt="Prämienbild" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}
  @if(error()){<p role="alert">{{error()}}</p>}
@@ -32,7 +32,7 @@ import { MediaPickerComponent, PickedMedia } from '../../shared/media-picker.com
  `,
  styles:[`
  :host{display:block;max-width:60rem}form{background:var(--admin-surface);border:1px solid var(--admin-border);border-radius:1rem;padding:1.5rem}
- fieldset{border:0;padding:0;min-width:0}.fields{display:grid;grid-template-columns:1fr 1fr;gap:1rem}label{display:grid;gap:.4rem;font-weight:400}input{min-width:0;min-height:2.8rem;padding:.6rem;border:1px solid var(--admin-border);border-radius:.5rem;font:inherit}
+ fieldset{border:0;padding:0;min-width:0}.fields{display:grid;grid-template-columns:1fr 1fr;gap:1rem}label{display:grid;gap:.4rem;font-weight:400}.label-text>span,form>p span{color:var(--admin-danger)}input{min-width:0;min-height:2.8rem;padding:.6rem;border:1px solid var(--admin-border);border-radius:.5rem;font:inherit}input[aria-invalid=true]{border-color:var(--admin-danger)}
  .check{display:flex;align-items:center;gap:.6rem}.check input{width:1.4rem}
  .preview{display:flex;gap:1rem;align-items:center;margin:1rem 0}.preview img{width:8rem;height:6rem;object-fit:contain}
  button{min-height:2.8rem;padding:.6rem 1rem;border:1px solid var(--admin-border);border-radius:.5rem;background:var(--admin-primary);color:white}

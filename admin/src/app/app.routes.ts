@@ -26,6 +26,7 @@ export const routes: Routes = [
       { path: 'gutscheine/neu', loadComponent: () => import('./features/coupons/coupon-editor.component').then(m => m.CouponEditorComponent) },
       { path: 'gutscheine/:id', loadComponent: () => import('./features/coupons/coupon-editor.component').then(m => m.CouponEditorComponent) },
       { path: 'gutscheine', loadComponent: () => import('./features/coupons/admin-coupons.component').then(m => m.AdminCouponsComponent) },
+      { path: 'termine', loadComponent: () => import('./features/appointments/admin-appointments.component').then(m => m.AdminAppointmentsComponent) },
       { path: 'inhalte', loadComponent: () => import('./features/news/news-list.component').then((module) => module.NewsListComponent) },
       { path: 'inhalte/neu', loadComponent: () => import('./features/news/news-editor.component').then((module) => module.NewsEditorComponent) },
       { path: 'inhalte/:id', loadComponent: () => import('./features/news/news-editor.component').then((module) => module.NewsEditorComponent) },
