@@ -37,7 +37,13 @@ class Reward
     #[ORM\Column(options: ['default' => true])]
     private bool $isVisible;
 
-    public function __construct(Tenant $tenant, string $title, string $subtitle, string $description, string $imagePath, int $requiredPoints, bool $isVisible)
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $availableFrom;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $availableUntil;
+
+    public function __construct(Tenant $tenant, string $title, string $subtitle, string $description, string $imagePath, int $requiredPoints, bool $isVisible, ?\DateTimeImmutable $availableFrom = null, ?\DateTimeImmutable $availableUntil = null)
     {
         $this->tenant = $tenant;
         $this->title = $title;
@@ -46,6 +52,8 @@ class Reward
         $this->imagePath = $imagePath;
         $this->requiredPoints = $requiredPoints;
         $this->isVisible = $isVisible;
+        $this->availableFrom = $availableFrom;
+        $this->availableUntil = $availableUntil;
     }
 
     public function getId(): ?int { return $this->id; }
@@ -56,8 +64,15 @@ class Reward
     public function getImagePath(): string { return $this->imagePath; }
     public function getRequiredPoints(): int { return $this->requiredPoints; }
     public function isVisible(): bool { return $this->isVisible; }
+    public function getAvailableFrom(): ?\DateTimeImmutable { return $this->availableFrom; }
+    public function getAvailableUntil(): ?\DateTimeImmutable { return $this->availableUntil; }
+    public function isCurrentlyAvailable(\DateTimeImmutable $now): bool
+    {
+        return ($this->availableFrom === null || $this->availableFrom <= $now)
+            && ($this->availableUntil === null || $this->availableUntil >= $now);
+    }
     public function setVisible(bool $isVisible): void { $this->isVisible = $isVisible; }
-    public function update(string $title, string $subtitle, string $description, string $imagePath, int $requiredPoints, bool $isVisible): void
+    public function update(string $title, string $subtitle, string $description, string $imagePath, int $requiredPoints, bool $isVisible, ?\DateTimeImmutable $availableFrom, ?\DateTimeImmutable $availableUntil): void
     {
         $this->title = $title;
         $this->subtitle = $subtitle;
@@ -65,5 +80,7 @@ class Reward
         $this->imagePath = $imagePath;
         $this->requiredPoints = $requiredPoints;
         $this->isVisible = $isVisible;
+        $this->availableFrom = $availableFrom;
+        $this->availableUntil = $availableUntil;
     }
 }

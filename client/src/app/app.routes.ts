@@ -78,10 +78,11 @@ export const routes: Routes = [
           import('./features/rewards/rewards.page').then((module) => module.RewardsPage),
         title: 'Punkte & Prämien | Aesculapp',
       },
+      { path: 'gutscheine', loadComponent: () => import('./features/coupons/coupons.page').then(m => m.CouponsPage), title: 'Gutscheinheft | Aesculapp' },
       {
         path: 'punkte/praemien/:id',
         loadComponent: () => import('./features/rewards/reward-detail.page').then(module => module.RewardDetailPage),
-        title: 'Gutschein | Aesculapp',
+        title: 'Prämie | Aesculapp',
       },
       {
         path: 'scanner',
@@ -101,6 +102,7 @@ export const routes: Routes = [
         title: 'Medikamentenplan | Aesculapp',
       },
       { path: 'familie', loadComponent: () => import('./features/family/family.page').then((module) => module.FamilyPage), title: 'Familienzugang | Aesculapp' },
+      { path: 'kontakt', loadComponent: () => import('./features/contact/contact.page').then((module) => module.ContactPage), title: 'Kontakt | Aesculapp' },
       {
         path: 'webseite',
         loadComponent: () => import('./features/website/website.page').then((module) => module.WebsitePage),

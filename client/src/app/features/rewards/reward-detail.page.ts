@@ -8,7 +8,7 @@ import type { Reward } from '../../core/rewards/reward.repository';
   imports: [RouterLink],
   template: `
     @if (loading()) {
-      <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center bg-background" aria-label="Gutschein wird geladen" i18n-aria-label>
+      <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center bg-background" aria-label="Prämie wird geladen" i18n-aria-label>
         <span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary" aria-hidden="true"></span>
       </main>
     } @else {
@@ -46,9 +46,9 @@ export class RewardDetailPage {
     try {
       const reward = this.id ? await this.catalog.getVisibleReward(this.id) : null;
       this.reward.set(reward);
-      if (!reward) this.error.set($localize`:@@reward.detail.not-found:Dieser Gutschein ist nicht mehr verfügbar.`);
+      if (!reward) this.error.set($localize`:@@reward.detail.not-found:Dieser Prämie ist nicht mehr verfügbar.`);
     } catch {
-      this.error.set($localize`:@@reward.detail.load-error:Der Gutschein konnte nicht geladen werden. Bitte versuchen Sie es später erneut.`);
+      this.error.set($localize`:@@reward.detail.load-error:Der Prämie konnte nicht geladen werden. Bitte versuchen Sie es später erneut.`);
     } finally {
       this.loading.set(false);
     }

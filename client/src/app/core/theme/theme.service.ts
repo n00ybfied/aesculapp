@@ -14,6 +14,9 @@ interface BrandingResponse {
     readonly allowDuplicateReceiptImports: boolean;
     readonly showCustomerDebugOutput: boolean;
     readonly websiteUrl: string | null;
+    readonly appNoticeEnabled: boolean;
+    readonly appNoticeTitle: string | null;
+    readonly appNoticeHtml: string;
   };
 }
 
@@ -56,6 +59,9 @@ export class ThemeService {
         allowDuplicateReceiptImports: branding.allowDuplicateReceiptImports,
         showCustomerDebugOutput: branding.showCustomerDebugOutput,
         websiteUrl: branding.websiteUrl,
+        appNoticeEnabled: branding.appNoticeEnabled,
+        appNoticeTitle: branding.appNoticeTitle,
+        appNoticeHtml: branding.appNoticeHtml,
       });
     } catch {
       // The shipped fallback branding keeps the app usable while the API is unavailable.

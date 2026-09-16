@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AdminAuthService } from '../auth/admin-auth.service';
-export interface AdminReward { id:number; title:string; subtitle:string; description:string; imageUrl:string|null; requiredPoints:number; isVisible:boolean; }
+export interface AdminReward { id:number; title:string; subtitle:string; description:string; imageUrl:string|null; requiredPoints:number; isVisible:boolean; availableFrom:string|null; availableUntil:string|null; }
 @Injectable({providedIn:'root'})
 export class AdminRewardService {
   private readonly http=inject(HttpClient);

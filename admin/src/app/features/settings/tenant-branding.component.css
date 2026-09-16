@@ -234,12 +234,18 @@ h3 {
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
+.loyalty textarea { width:100%; min-height:7rem; box-sizing:border-box; resize:vertical; border:1px solid #cddde8; border-radius:.55rem; background:var(--admin-surface); color:var(--admin-foreground); font:inherit; padding:.55rem .7rem; }
+.loyalty textarea:focus { outline:0; border-color:var(--admin-primary); box-shadow:0 0 0 3px color-mix(in srgb,var(--admin-primary) 18%,transparent); }
+.contact-settings { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.opening-hours,.map-settings,.additional-info { grid-column:1 / -1; display:grid; gap:1rem; padding-top:.5rem; }
+.opening-hours h3,.map-settings h3,.additional-info h3 { margin:0; }
+.opening-hours { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.opening-hours h3 { grid-column:1 / -1; }
+.opening-hours label { grid-template-columns:9rem minmax(0,1fr); align-items:center; }
+.map-settings > div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+
 .loyalty select {
   width: 100%; min-height: 3rem; box-sizing: border-box; border: 1px solid #cddde8; border-radius: .55rem; background: var(--admin-surface); color: var(--admin-foreground); font: inherit; padding: .55rem .7rem;
-}
-
-.loyalty input:hover {
-  border-color: color-mix(in srgb, var(--admin-primary) 55%, #cddde8);
 }
 
 .loyalty input:focus {
@@ -344,7 +350,9 @@ h3 {
 
 @media (max-width: 800px) {
   .assets,
-  .loyalty {
+  .loyalty,
+  .opening-hours,
+  .map-settings > div {
     grid-template-columns: 1fr;
   }
 

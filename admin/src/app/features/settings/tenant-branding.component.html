@@ -92,6 +92,38 @@
     </details>
 
     <details class="settings-group">
+      <summary>Hinweis beim App-Start</summary>
+      <div class="loyalty announcement-settings">
+        <p>Ein aktiver Hinweis erscheint direkt nach dem Start der Kunden-App. Nach normalem Schließen wird er beim nächsten App-Start erneut angezeigt.</p>
+        <label class="confirmation"><input name="appNoticeEnabled" type="checkbox" [(ngModel)]="appNoticeEnabled" /><span>Hinweis aktivieren</span></label>
+        <label>Titel<input name="appNoticeTitle" maxlength="160" [(ngModel)]="appNoticeTitle" placeholder="z. B. Wichtige Information" /></label>
+        <div class="additional-info"><h3>Text</h3><app-rich-text-editor [(value)]="appNoticeHtml" /></div>
+        <small>„Nicht mehr anzeigen“ blendet diesen Hinweis beim jeweiligen Kunden für 30 Tage aus. Änderungen am Inhalt zeigen den Hinweis wieder an.</small>
+      </div>
+    </details>
+
+    <details class="settings-group">
+      <summary>Kontakt &amp; Öffnungszeiten</summary>
+      <div class="loyalty contact-settings">
+        <p>Diese Informationen erscheinen auf der Kontaktseite der Kunden-App. Die Karte wird aus den unten angegebenen Koordinaten mit OpenStreetMap geladen.</p>
+        <label>Adresse<textarea name="contactAddress" rows="3" maxlength="255" [(ngModel)]="contactAddress" placeholder="Straße, Hausnummer&#10;PLZ Ort"></textarea></label>
+        <label>Telefon<input name="contactPhone" maxlength="80" [(ngModel)]="contactPhone" placeholder="+43 …" type="tel" /></label>
+        <label>E-Mail<input name="contactEmail" maxlength="255" [(ngModel)]="contactEmail" placeholder="office@apotheke.at" type="email" /></label>
+        <div class="opening-hours">
+          <h3>Öffnungszeiten</h3>
+          @for (day of contactDays; track day.key) { <label><span>{{ day.label }}</span><input [name]="'opening-' + day.key" maxlength="120" [(ngModel)]="openingHours[day.key]" placeholder="z. B. 08:00 – 18:00" /></label> }
+        </div>
+        <div class="map-settings">
+          <h3>Karte</h3>
+          <div><label>Breitengrad<input name="contactLatitude" [(ngModel)]="contactLatitude" type="number" step="any" min="-90" max="90" placeholder="47.425" /></label><label>Längengrad<input name="contactLongitude" [(ngModel)]="contactLongitude" type="number" step="any" min="-180" max="180" placeholder="14.900" /></label><label>Zoomstufe<input name="contactMapZoom" [(ngModel)]="contactMapZoom" type="number" min="1" max="20" /></label></div>
+          <label>Link zu Google Maps<input name="contactGoogleMapsUrl" [(ngModel)]="contactGoogleMapsUrl" type="url" maxlength="2048" placeholder="https://maps.google.com/…" /></label>
+          <small>Ohne vollständige Koordinaten wird keine Karte angezeigt.</small>
+        </div>
+        <div class="additional-info"><h3>Sonstiges</h3><p>Optionaler Zusatztext, etwa für Parkhinweise oder Hinweise zum Nachtdienst.</p><app-rich-text-editor [(value)]="contactAdditionalHtml" /></div>
+      </div>
+    </details>
+
+    <details class="settings-group">
       <summary>E-Mail-Einstellungen</summary>
       <div class="loyalty smtp-settings">
         <p>Optionaler SMTP-Versand für Double-Opt-In- und Passwort-Reset-E-Mails. Ohne vollständige SMTP-Daten wird der Server-Standardversand verwendet.</p>

@@ -1,0 +1,21 @@
+<main class="min-h-[calc(100dvh-8.5rem)] bg-background px-5 py-7">
+  <section class="mx-auto max-w-xl">
+    <p class="text-sm font-semibold text-primary">IHRE APOTHEKE</p>
+    <h1 class="mt-1 text-3xl font-bold">Kontakt</h1>
+    @if (isLoading()) { <div class="grid min-h-72 place-items-center"><span class="size-9 animate-spin rounded-full border-4 border-border border-t-primary" aria-label="Kontaktinformationen laden"></span></div> }
+    @else if (hasError()) { <p class="mt-6 rounded-2xl border border-danger bg-danger-soft p-4 text-sm text-danger">Die Kontaktinformationen konnten nicht geladen werden.</p> }
+    @else if (contact(); as info) {
+      <div class="mt-6 grid gap-4">
+        @if (info.address || info.phone || info.email) { <section class="rounded-3xl border border-border bg-surface p-5 shadow-card"><h2 class="text-xl font-bold">So erreichen Sie uns</h2><div class="mt-4 grid gap-4 text-sm leading-6">
+          @if (info.address) { <div class="contact-line"><ng-icon name="lucideMapPin" size="1.3rem" aria-hidden="true" /><span class="whitespace-pre-line">{{ info.address }}</span></div> }
+          @if (info.phone) { <a class="contact-line" [href]="'tel:' + info.phone"><ng-icon name="lucidePhone" size="1.3rem" aria-hidden="true" /><span>{{ info.phone }}</span></a> }
+          @if (info.email) { <a class="contact-line" [href]="'mailto:' + info.email"><ng-icon name="lucideMail" size="1.3rem" aria-hidden="true" /><span>{{ info.email }}</span></a> }
+        </div></section> }
+        @if (hasOpeningHours(info)) { <section class="rounded-3xl border border-border bg-surface p-5 shadow-card"><div class="flex items-center gap-2"><ng-icon name="lucideClock3" class="text-primary" size="1.3rem" aria-hidden="true" /><h2 class="text-xl font-bold">Öffnungszeiten</h2></div><dl class="mt-4 divide-y divide-border">@for (day of days; track day.key) { @if (info.openingHours[day.key]) { <div class="flex items-start justify-between gap-5 py-3 text-sm"><dt class="font-semibold">{{ day.label }}</dt><dd class="whitespace-pre-line text-right text-muted">{{ info.openingHours[day.key] }}</dd></div> } }</dl></section> }
+        @if (hasMap(info)) { <section class="relative z-0 overflow-hidden rounded-3xl border border-border bg-surface shadow-card"><div #mapHost class="h-72 w-full" aria-label="Karte mit Standort der Apotheke"></div>@if (info.googleMapsUrl) { <a class="block border-t border-border px-5 py-4 text-sm font-semibold text-primary" [href]="info.googleMapsUrl" target="_blank" rel="noopener noreferrer">In Google Maps öffnen</a> }</section> }
+        @if (info.additionalHtml) { <section class="contact-additional rounded-3xl border border-border bg-surface p-5 shadow-card" [innerHTML]="info.additionalHtml"></section> }
+        @if (!info.address && !info.phone && !info.email && !hasOpeningHours(info) && !info.additionalHtml) { <p class="rounded-2xl bg-accent p-4 text-sm text-muted">Ihre Apotheke hat noch keine Kontaktinformationen hinterlegt.</p> }
+      </div>
+    }
+  </section>
+</main>
