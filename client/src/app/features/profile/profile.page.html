@@ -45,6 +45,10 @@
             <input class="size-6 shrink-0 accent-primary" name="medicationPushEnabled" type="checkbox" [(ngModel)]="form.medicationPushEnabled" />
           </label>
           <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
+            <span><span class="block font-semibold">Terminerinnerungen</span><span class="mt-1 block text-sm leading-5 text-muted">Am Vortag Ihres Termins. Die E-Mail wird immer versendet, Push können Sie hier abschalten.</span></span>
+            <input class="size-6 shrink-0 accent-primary" name="appointmentPushEnabled" type="checkbox" [(ngModel)]="form.appointmentPushEnabled" />
+          </label>
+          <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
             <span><span class="block font-semibold">Familienzugang</span><span class="mt-1 block text-sm leading-5 text-muted">Einladungen, Annahmen und Anfragen zur gemeinsamen Punkteteilung.</span></span>
             <input class="size-6 shrink-0 accent-primary" name="familyPushEnabled" type="checkbox" [(ngModel)]="form.familyPushEnabled" />
           </label>
@@ -75,6 +79,15 @@
           </button>
         </div>
         @if (!hasSelectedPushCategory()) { <p class="mt-3 text-xs leading-5 text-muted">Aktivieren und speichern Sie zuerst mindestens eine Push-Kategorie, bevor Sie Push auf diesem Gerät freigeben.</p> }
+        @if (push.enabled()) {
+          <div class="mt-3 rounded-2xl border border-border bg-background px-4 py-3">
+            <p class="font-semibold">Push testen</p>
+            <p class="mt-1 text-sm leading-5 text-muted">Die Test-Benachrichtigung wird nur an die für dieses Konto registrierten Geräte gesendet.</p>
+            <button type="button" class="mt-3 min-h-11 rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.testing()" (click)="push.sendTest()">
+              @if (push.testing()) { Test wird gesendet … } @else { Test-Benachrichtigung senden }
+            </button>
+          </div>
+        }
         @if (push.message()) { <p class="mt-3 text-sm text-muted" role="status">{{ push.message() }}</p> }
       </section>
       <section class="mt-8 border-t border-border pt-6" aria-labelledby="footer-navigation-title">
