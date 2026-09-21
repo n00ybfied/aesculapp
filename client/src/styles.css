@@ -30,6 +30,10 @@
   --color-success: #287565;
   --color-warning: #9a6700;
   --color-warning-soft: #fff7df;
+  --color-celebration-pink: #c13f7c;
+  --color-celebration-pink-soft: #ffe5f0;
+  --color-celebration-blue: #2876b8;
+  --color-celebration-blue-soft: #e2f2ff;
   --color-focus: rgb(40 117 101 / 22%);
   --shadow-card: 0 18px 50px rgb(26 59 52 / 9%);
   --shadow-soft: 0 8px 20px rgb(31 98 85 / 18%);
@@ -54,6 +58,10 @@
   --color-success: #317a68;
   --color-warning: #936811;
   --color-warning-soft: #fff6dc;
+  --color-celebration-pink: #cf4d87;
+  --color-celebration-pink-soft: #ffe6f1;
+  --color-celebration-blue: #3f83c3;
+  --color-celebration-blue-soft: #e1f2ff;
   --color-focus: rgb(75 134 176 / 28%);
   --shadow-card: 0 16px 42px rgb(34 54 69 / 8%);
   --shadow-soft: 0 10px 24px rgb(75 134 176 / 22%);
@@ -75,6 +83,10 @@
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-warning-soft: var(--color-warning-soft);
+  --color-celebration-pink: var(--color-celebration-pink);
+  --color-celebration-pink-soft: var(--color-celebration-pink-soft);
+  --color-celebration-blue: var(--color-celebration-blue);
+  --color-celebration-blue-soft: var(--color-celebration-blue-soft);
   --color-focus: var(--color-focus);
   --shadow-card: var(--shadow-card);
   --shadow-soft: var(--shadow-soft);

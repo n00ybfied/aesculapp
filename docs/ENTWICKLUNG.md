@@ -747,6 +747,8 @@ Kontaktinformationen gehören zum Mandanten: Adresse, Telefon, E-Mail, Öffnungs
 
 Ein mandantenbezogener App-Start-Hinweis wird über die Einstellungen mit Aktivierung, Titel und bereinigtem Rich Text gepflegt und im Branding-Abruf bereitgestellt. Er öffnet sich nach dem Login über dem App-Inhalt. Normales Schließen ist nur für den laufenden App-Start gültig; „Nicht mehr anzeigen“ speichert pro Kunde, Mandant und Gerät eine lokale Ausblendung für 30 Tage. Eine inhaltliche Änderung des Hinweises hebt diese lokale Ausblendung auf.
 
+Der mandantenbezogene Geburtstagsgruß ist davon unabhängig. Aktivierung, Titel, Klartext, optionales Bild und der Punktebonus werden im gemeinsamen Geburtstagsbereich der Einstellungen gepflegt und über den öffentlichen Branding-Abruf ausgeliefert. Das Dashboard zeigt den Banner ausschließlich am Monat und Tag des im Kundenprofil gespeicherten Geburtstags. Der separate Befehl `app:award-birthday-bonuses` bucht den konfigurierten Punktebonus je Punktekonto höchstens einmal je Kalenderjahr und muss produktiv täglich geplant ausgeführt werden. Wurde er für den aktuellen Tag tatsächlich gebucht, zeigt der Banner die gutgeschriebene Punktzahl; ein konfigurierter, aber noch nicht gebuchter Wert wird nie als Geschenk dargestellt.
+
 ### Statistik und Ereignisse
 
 Das Adminportal zeigt eine mandantenbezogene Statistik zu Kundenwachstum, Inhaltsbestand, Einlösungen, Inhaltsinteresse und App-Nutzung. Historische Registrierungen und Einlösungen werden aus ihren Fachdatensätzen berechnet. Neue Nutzungsdaten werden nur über den zentralen Kunden-Service `AnalyticsService` als schlanke Ereignisse gespeichert; Fachkomponenten senden keine technischen Tracking-Requests direkt.

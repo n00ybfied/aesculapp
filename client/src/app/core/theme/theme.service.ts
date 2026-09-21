@@ -17,6 +17,10 @@ interface BrandingResponse {
     readonly appNoticeEnabled: boolean;
     readonly appNoticeTitle: string | null;
     readonly appNoticeHtml: string;
+    readonly birthdayGreetingEnabled: boolean;
+    readonly birthdayGreetingTitle: string | null;
+    readonly birthdayGreetingText: string | null;
+    readonly birthdayGreetingImageUrl: string | null;
   };
 }
 
@@ -62,6 +66,10 @@ export class ThemeService {
         appNoticeEnabled: branding.appNoticeEnabled,
         appNoticeTitle: branding.appNoticeTitle,
         appNoticeHtml: branding.appNoticeHtml,
+        birthdayGreetingEnabled: branding.birthdayGreetingEnabled,
+        birthdayGreetingTitle: branding.birthdayGreetingTitle,
+        birthdayGreetingText: branding.birthdayGreetingText,
+        birthdayGreetingImageUrl: branding.birthdayGreetingImageUrl,
       });
     } catch {
       // The shipped fallback branding keeps the app usable while the API is unavailable.

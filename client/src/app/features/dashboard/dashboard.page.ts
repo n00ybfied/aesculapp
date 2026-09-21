@@ -7,6 +7,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
 import { FamilyService } from '../../core/family/family.service';
 import { CouponService, type CouponRedemption } from '../../core/coupons/coupon.service';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -20,6 +21,7 @@ export class DashboardPage implements OnInit {
   private readonly profiles = inject(ProfileService);
   private readonly family = inject(FamilyService);
   private readonly coupons = inject(CouponService);
+  protected readonly theme = inject(ThemeService).activeTheme;
 
   protected readonly activeRedemption = signal<ActiveRedemption | null>(null);
   protected readonly activeCouponRedemption = signal<CouponRedemption | null>(null);
@@ -39,6 +41,16 @@ export class DashboardPage implements OnInit {
     .filter((connection) => connection.status === 'accepted' && connection.pointSharingStatus === 'accepted')
     .map((connection) => connection.other.displayName)
     .join(', '));
+  protected readonly birthdayGreetingVisible = computed(() => {
+    const birthDate = this.profiles.profile()?.birthDate;
+    return birthDate !== null
+      && birthDate !== undefined
+      && this.theme.birthdayGreetingEnabled
+      && this.theme.birthdayGreetingTitle !== null
+      && this.theme.birthdayGreetingText !== null
+      && this.isBirthdayToday(birthDate);
+  });
+  protected readonly birthdayBonusPoints = computed(() => this.pointsOverview()?.birthdayBonusPoints ?? 0);
 
   async ngOnInit(): Promise<void> {
     this.restorePushHint();
@@ -75,4 +87,10 @@ export class DashboardPage implements OnInit {
   }
 
   private pushHintKey(userId: number): string { return `aesculapp.push-categories-hint.v1.${userId}`; }
+
+  private isBirthdayToday(birthDate: string): boolean {
+    const today = new Date();
+    const [, month, day] = birthDate.split('-');
+    return Number(month) === today.getMonth() + 1 && Number(day) === today.getDate();
+  }
 }

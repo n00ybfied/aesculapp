@@ -67,6 +67,10 @@ class Tenant
     #[ORM\Column(options: ['default' => false])] private bool $appNoticeEnabled = false;
     #[ORM\Column(length: 160, nullable: true)] private ?string $appNoticeTitle = null;
     #[ORM\Column(type: 'text', nullable: true)] private ?string $appNoticeHtml = null;
+    #[ORM\Column(options: ['default' => false])] private bool $birthdayGreetingEnabled = false;
+    #[ORM\Column(length: 160, nullable: true)] private ?string $birthdayGreetingTitle = null;
+    #[ORM\Column(type: 'text', nullable: true)] private ?string $birthdayGreetingText = null;
+    #[ORM\Column(length: 255, nullable: true)] private ?string $birthdayGreetingImagePath = null;
     #[ORM\Column(length: 255, nullable: true)] private ?string $contactAddress = null;
     #[ORM\Column(length: 80, nullable: true)] private ?string $contactPhone = null;
     #[ORM\Column(length: 255, nullable: true)] private ?string $contactEmail = null;
@@ -140,6 +144,10 @@ class Tenant
     public function isAppNoticeEnabled(): bool { return $this->appNoticeEnabled; } public function setAppNoticeEnabled(bool $value): void { $this->appNoticeEnabled = $value; }
     public function getAppNoticeTitle(): ?string { return $this->appNoticeTitle; } public function setAppNoticeTitle(?string $value): void { $this->appNoticeTitle = $value; }
     public function getAppNoticeHtml(): ?string { return $this->appNoticeHtml; } public function setAppNoticeHtml(?string $value): void { $this->appNoticeHtml = $value; }
+    public function isBirthdayGreetingEnabled(): bool { return $this->birthdayGreetingEnabled; } public function setBirthdayGreetingEnabled(bool $value): void { $this->birthdayGreetingEnabled = $value; }
+    public function getBirthdayGreetingTitle(): ?string { return $this->birthdayGreetingTitle; } public function setBirthdayGreetingTitle(?string $value): void { $this->birthdayGreetingTitle = $value; }
+    public function getBirthdayGreetingText(): ?string { return $this->birthdayGreetingText; } public function setBirthdayGreetingText(?string $value): void { $this->birthdayGreetingText = $value; }
+    public function getBirthdayGreetingImagePath(): ?string { return $this->birthdayGreetingImagePath; } public function setBirthdayGreetingImagePath(?string $value): void { $this->birthdayGreetingImagePath = $value; }
     public function getContactAddress(): ?string { return $this->contactAddress; } public function setContactAddress(?string $value): void { $this->contactAddress = $value; }
     public function getContactPhone(): ?string { return $this->contactPhone; } public function setContactPhone(?string $value): void { $this->contactPhone = $value; }
     public function getContactEmail(): ?string { return $this->contactEmail; } public function setContactEmail(?string $value): void { $this->contactEmail = $value; }

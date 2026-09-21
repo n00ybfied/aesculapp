@@ -35,7 +35,8 @@ export class ContactPage implements OnDestroy {
   private async load(): Promise<void> { try { this.contact.set(await this.contacts.get()); } catch { this.hasError.set(true); } finally { this.isLoading.set(false); } }
   private async renderMap(contact: PharmacyContact, host: HTMLElement): Promise<void> {
     if (this.map) return;
-    const leaflet = await import('leaflet');
+    const leafletModule = await import('leaflet') as typeof import('leaflet') & { readonly default?: typeof import('leaflet') };
+    const leaflet = leafletModule.default ?? leafletModule;
     if (this.map) return;
     this.map = leaflet.map(host, { scrollWheelZoom: false, zoomControl: true }).setView([contact.latitude!, contact.longitude!], contact.mapZoom);
     leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende' }).addTo(this.map);

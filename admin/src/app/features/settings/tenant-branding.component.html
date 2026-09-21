@@ -44,7 +44,6 @@
       <div class="loyalty">
         <p>Gilt für neue Kundinnen und Kunden.</p>
         <label>Startguthaben<input name="initialPoints" type="number" min="0" [(ngModel)]="initialPoints" /><span>Punkte</span></label>
-        <label>Geburtstagsbonus<input name="birthdayBonusPoints" type="number" min="0" [(ngModel)]="birthdayBonusPoints" /><span>Punkte</span></label>
         <div class="ratio-setting">
           <label>Punkte pro Euro<input name="pointsPerEuro" type="number" min="0" [disabled]="!isPointsPerEuroEditingEnabled()" [(ngModel)]="pointsPerEuro" /><span>Punkte</span></label>
           <label class="confirmation">
@@ -53,7 +52,23 @@
           </label>
           <p id="points-per-euro-warning" class="ratio-warning">Die Änderung betrifft künftige Punktegutschriften. Bereits gebuchte Transaktionen bleiben unverändert.</p>
         </div>
-        <small>Geburtstagsboni werden pro Konto nur einmal im Jahr gebucht.</small>
+      </div>
+    </details>
+
+    <details class="settings-group">
+      <summary>Geburtstagsgruß</summary>
+      <div class="loyalty">
+        <p>Der Gruß erscheint nur am Geburtstag auf der persönlichen Kundenübersicht.</p>
+        <label class="confirmation"><input name="birthdayGreetingEnabled" type="checkbox" [(ngModel)]="birthdayGreetingEnabled" /><span>Geburtstagsgruß in der Kunden-App anzeigen.</span></label>
+        <label>Geburtstagspunkte<input name="birthdayBonusPoints" type="number" min="0" [(ngModel)]="birthdayBonusPoints" /><span>0 deaktiviert die Punktegutschrift.</span></label>
+        <small>Geburtstagspunkte werden pro Konto nur einmal im Kalenderjahr gutgeschrieben.</small>
+        <label>Titel<input name="birthdayGreetingTitle" maxlength="160" [(ngModel)]="birthdayGreetingTitle" placeholder="Alles Gute zum Geburtstag!" /></label>
+        <label>Glückwunschtext<textarea name="birthdayGreetingText" maxlength="1000" rows="3" [(ngModel)]="birthdayGreetingText" placeholder="Wir wünschen Ihnen einen wunderschönen Tag." ></textarea></label>
+        <label class="dropzone" (dragover)="dragOver($event)" (drop)="dropImage('birthdayGreetingImage', $event)">
+          <input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('birthdayGreetingImage', $event)" />
+          <span>Bild für den Geburtstagsgruß ablegen oder auswählen</span>
+        </label>
+        @if (previews().birthdayGreetingImage; as preview) { <img class="wide-preview" [src]="preview" alt="Vorschau des Geburtstagsbilds" /> }
       </div>
     </details>
 
