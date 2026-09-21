@@ -29,6 +29,26 @@
     </a>
   }
 
+  @if (birthdayGreetingVisible()) {
+    <section class="relative mb-7 mt-5 overflow-hidden rounded-3xl border border-celebration-pink/35 bg-gradient-to-br from-celebration-pink-soft via-warning-soft to-celebration-blue-soft shadow-soft" aria-labelledby="birthday-greeting-title">
+      <span class="absolute -bottom-10 -left-8 size-32 rounded-full bg-celebration-pink/20 blur-2xl" aria-hidden="true"></span>
+      <span class="absolute -right-5 top-28 size-24 rounded-full bg-celebration-blue/20 blur-2xl" aria-hidden="true"></span>
+      <span class="absolute right-1 top-1 z-20 grid size-16 rotate-12 place-items-center text-celebration-pink drop-shadow-sm" aria-hidden="true">
+        <span class="text-7xl leading-none">★</span>
+        <span class="absolute z-10 grid size-7 place-items-center rounded-full bg-celebration-blue text-surface shadow-sm">
+          <ng-icon name="lucideGift" size="1rem" />
+        </span>
+      </span>
+      @if (theme.birthdayGreetingImageUrl; as imageUrl) { <img class="relative z-10 h-40 w-full border-b border-celebration-pink/25 object-cover" [src]="imageUrl" alt="" /> }
+      <div class="relative z-10 p-5 pr-16">
+        <p class="text-sm font-semibold tracking-wide text-primary">HEUTE IST IHR TAG</p>
+        <h2 id="birthday-greeting-title" class="mt-1 text-2xl font-bold">{{ theme.birthdayGreetingTitle }}</h2>
+        <p class="mt-2 leading-6 text-muted">{{ theme.birthdayGreetingText }}</p>
+        @if (birthdayBonusPoints() > 0) { <p class="mt-4 rounded-xl bg-surface px-4 py-3 font-bold text-primary">Zur Feier haben wir Ihnen {{ birthdayBonusPoints() }} Punkte geschenkt!</p> }
+      </div>
+    </section>
+  }
+
   <section aria-labelledby="welcome-title">
     <p class="text-sm font-semibold text-primary">GUTEN MORGEN</p>
     <h1 id="welcome-title" class="mt-1 text-3xl font-bold tracking-tight">Schön, dass Sie da sind.</h1>

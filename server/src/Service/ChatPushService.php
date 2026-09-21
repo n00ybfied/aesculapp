@@ -32,10 +32,29 @@ final class ChatPushService
     public function config(): ?array
     {
         $path = $_ENV['WEB_PUSH_KEY_FILE'] ?? $this->projectDir.'/var/private/web-push.json';
-        if (!is_file($path)) return null;
-        $keys = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        if (!is_file($path) || !is_readable($path)) {
+            return null;
+        }
 
-        return ['subject' => $_ENV['APP_CLIENT_URL'] ?? 'https://aesculapp.floatbox.at', 'publicKey' => $keys['publicKey'], 'privateKey' => $keys['privateKey']];
+        try {
+            $contents = file_get_contents($path);
+            $keys = is_string($contents) ? json_decode($contents, true, 512, JSON_THROW_ON_ERROR) : null;
+            $publicKey = is_array($keys) ? $keys['publicKey'] ?? null : null;
+            $privateKey = is_array($keys) ? $keys['privateKey'] ?? null : null;
+
+            if (!is_string($publicKey) || $publicKey === '' || !is_string($privateKey) || $privateKey === '') {
+                return null;
+            }
+
+            return [
+                'subject' => $_ENV['APP_CLIENT_URL'] ?? 'https://aesculapp.floatbox.at',
+                'publicKey' => $publicKey,
+                'privateKey' => $privateKey,
+            ];
+        } catch (\Throwable $exception) {
+            $this->logger->warning('push.config.invalid', ['errorClass' => $exception::class]);
+            return null;
+        }
     }
 
     public function subscribe(User $user, Tenant $tenant, array $data): void

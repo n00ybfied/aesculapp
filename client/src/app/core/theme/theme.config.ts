@@ -11,6 +11,10 @@ export interface ThemeDefinition {
   readonly appNoticeEnabled: boolean;
   readonly appNoticeTitle: string | null;
   readonly appNoticeHtml: string;
+  readonly birthdayGreetingEnabled: boolean;
+  readonly birthdayGreetingTitle: string | null;
+  readonly birthdayGreetingText: string | null;
+  readonly birthdayGreetingImageUrl: string | null;
 }
 
 /**
@@ -33,4 +37,8 @@ export const activeTheme: ThemeDefinition = {
   appNoticeEnabled: false,
   appNoticeTitle: null,
   appNoticeHtml: '',
+  birthdayGreetingEnabled: false,
+  birthdayGreetingTitle: null,
+  birthdayGreetingText: null,
+  birthdayGreetingImageUrl: null,
 };

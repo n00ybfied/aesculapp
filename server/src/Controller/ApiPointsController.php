@@ -38,10 +38,23 @@ final class ApiPointsController
 
         $tenant = $this->tenant->get();
         $account = $this->entityManager->getRepository(PointAccount::class)->findOneBy(['owner' => $user, 'tenant' => $tenant]);
+        $birthdayBonusPoints = 0;
+        if ($account instanceof PointAccount) {
+            $today = new \DateTimeImmutable('today');
+            $birthdayBonusPoints = (int) $this->entityManager->createQuery(
+                'SELECT COALESCE(SUM(transaction.points), 0) FROM App\\Entity\\PointTransaction transaction WHERE transaction.account = :account AND transaction.type = :type AND transaction.createdAt >= :today AND transaction.createdAt < :tomorrow',
+            )
+                ->setParameter('account', $account)
+                ->setParameter('type', 'birthday_bonus')
+                ->setParameter('today', $today)
+                ->setParameter('tomorrow', $today->modify('+1 day'))
+                ->getSingleScalarResult();
+        }
 
         return new JsonResponse([
             'availablePoints' => $this->familyPoints->combinedBalance($user, $tenant),
             'personalPoints' => $account instanceof PointAccount ? $this->familyPoints->balance($account) : 0,
+            'birthdayBonusPoints' => $birthdayBonusPoints,
         ]);
     }
 

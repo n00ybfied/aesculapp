@@ -32,6 +32,7 @@ export interface PointsHistoryPage {
 export interface RewardsOverview {
   readonly availablePoints: number;
   readonly personalPoints: number;
+  readonly birthdayBonusPoints: number;
   readonly rewards: readonly Reward[];
   readonly history: readonly PointsHistoryItem[];
   readonly activeRedemption: ActiveRedemption | null;
@@ -66,6 +67,7 @@ export interface RewardRedemption {
 interface PersistedRewardState {
   readonly availablePoints: number;
   readonly personalPoints: number;
+  readonly birthdayBonusPoints?: number;
   readonly history: readonly PointsHistoryItem[];
   readonly activeRedemption: ActiveRedemption | null;
 }
@@ -75,6 +77,7 @@ export const rewardStorageKey = 'aesculapp.mock-rewards.v1';
 const createInitialState = (): PersistedRewardState => ({
   availablePoints: 1_230,
   personalPoints: 1_230,
+  birthdayBonusPoints: 0,
   activeRedemption: null,
   history: [],
 });
@@ -312,6 +315,7 @@ export class MockRewardRepository extends RewardRepository {
     return {
       availablePoints: this.state.availablePoints,
       personalPoints: this.state.personalPoints,
+      birthdayBonusPoints: this.state.birthdayBonusPoints ?? 0,
       rewards,
       history: this.state.history,
       activeRedemption: this.state.activeRedemption,
@@ -325,11 +329,11 @@ export class MockRewardRepository extends RewardRepository {
     }
 
     try {
-      const response = await firstValueFrom(this.http.get<{ availablePoints: number; personalPoints: number }>(
+      const response = await firstValueFrom(this.http.get<{ availablePoints: number; personalPoints: number; birthdayBonusPoints: number }>(
         this.apiBaseUrl + '/rewards/balance',
         { headers: new HttpHeaders({ Authorization: 'Bearer ' + token }) },
       ));
-      this.updateState({ ...this.state, availablePoints: response.availablePoints, personalPoints: response.personalPoints });
+      this.updateState({ ...this.state, availablePoints: response.availablePoints, personalPoints: response.personalPoints, birthdayBonusPoints: response.birthdayBonusPoints });
     } catch {
       // The local fallback is retained only while the API is unavailable.
     }
