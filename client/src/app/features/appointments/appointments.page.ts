@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import {
   AppointmentService,
@@ -22,6 +22,7 @@ interface CalendarDay {
 })
 export class AppointmentsPage {
   private readonly appointmentsService = inject(AppointmentService);
+  private readonly router = inject(Router);
 
   protected readonly types = signal<readonly AppointmentType[]>([]);
   protected readonly slots = signal<readonly AppointmentSlot[]>([]);
@@ -102,8 +103,7 @@ export class AppointmentsPage {
       this.note = '';
       this.selectedSlot.set(null);
       this.isConfirmationOpen.set(false);
-      this.message.set('Ihr Termin wurde erfolgreich reserviert.');
-      await this.loadCalendar();
+      await this.router.navigateByUrl('/termine/meine');
     } catch {
       this.error.set('Dieser Termin ist leider nicht mehr verfügbar. Bitte wählen Sie eine andere Uhrzeit.');
       await this.loadSlots();

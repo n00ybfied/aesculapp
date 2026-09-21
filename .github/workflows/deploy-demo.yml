@@ -77,6 +77,8 @@ jobs:
             --exclude='var/' \
             --exclude='public/uploads/' \
             server/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/server/"
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/server/public/uploads/demo'"
+          rsync -az server/public/uploads/demo/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/server/public/uploads/demo/"
 
       - name: Run database migrations and warm cache
         run: |

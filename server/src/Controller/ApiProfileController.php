@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\{User, TenantMembership};
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
+use App\Service\ChatPushService;
 use App\Service\ImageProcessor;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -25,6 +26,7 @@ final class ApiProfileController
         private readonly TenantMembershipRepository $memberships,
         private readonly EntityManagerInterface $entityManager,
         private readonly ImageProcessor $imageProcessor,
+        private readonly ChatPushService $push,
     ) {
     }
 
@@ -63,6 +65,7 @@ final class ApiProfileController
         $rewardPushEnabled = $this->boolean($data['rewardPushEnabled'] ?? null);
         $newsPushEnabled = $this->boolean($data['newsPushEnabled'] ?? null);
         $medicationPushEnabled = $this->boolean($data['medicationPushEnabled'] ?? null);
+        $appointmentPushEnabled = $this->boolean($data['appointmentPushEnabled'] ?? null);
         $familyPushEnabled = $this->boolean($data['familyPushEnabled'] ?? null);
         $morningReminderTime = $this->time($data['morningReminderTime'] ?? null);
         $noonReminderTime = $this->time($data['noonReminderTime'] ?? null);
@@ -73,7 +76,7 @@ final class ApiProfileController
         $footerRewardsEnabled = $this->boolean($data['footerRewardsEnabled'] ?? null);
         $footerWebsiteEnabled = $this->boolean($data['footerWebsiteEnabled'] ?? null);
 
-        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerHomeEnabled === null || $footerChatEnabled === null || $footerRewardsEnabled === null || $footerWebsiteEnabled === null) {
+        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerHomeEnabled === null || $footerChatEnabled === null || $footerRewardsEnabled === null || $footerWebsiteEnabled === null) {
             return $this->invalidProfile();
         }
 
@@ -88,6 +91,7 @@ final class ApiProfileController
         $membership->setRewardPushEnabled($rewardPushEnabled);
         $membership->setNewsPushEnabled($newsPushEnabled);
         $membership->setMedicationPushEnabled($medicationPushEnabled);
+        $membership->setAppointmentPushEnabled($appointmentPushEnabled);
         $membership->setFamilyPushEnabled($familyPushEnabled);
         $membership->setMorningReminderTime($morningReminderTime);
         $membership->setNoonReminderTime($noonReminderTime);
@@ -100,6 +104,28 @@ final class ApiProfileController
         $this->entityManager->flush();
 
         return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
+    }
+
+    #[Route('/api/v1/profile/push/test', name: 'api_v1_profile_push_test', methods: ['POST'])]
+    public function sendPushTest(): JsonResponse
+    {
+        $membership = $this->currentTenantMembership();
+        if (!$membership instanceof TenantMembership) {
+            return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $result = $this->push->sendTestNotification($membership->getUser(), $this->activeTenant->get());
+        if (!$result['configured']) {
+            return new JsonResponse(['message' => 'Push-Benachrichtigungen sind auf dem Server noch nicht eingerichtet.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+        if ($result['subscriptions'] === 0) {
+            return new JsonResponse(['message' => 'Für dieses Konto ist noch kein Gerät für Push-Benachrichtigungen registriert.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if ($result['delivered'] === 0) {
+            return new JsonResponse(['message' => 'Die Test-Benachrichtigung konnte nicht zugestellt werden.'], Response::HTTP_BAD_GATEWAY);
+        }
+
+        return new JsonResponse(['success' => true, 'subscriptions' => $result['subscriptions']]);
     }
 
     #[Route('/api/v1/profile/photo', name: 'api_v1_profile_photo', methods: ['POST'])]
@@ -188,6 +214,7 @@ final class ApiProfileController
             'rewardPushEnabled' => $membership->isRewardPushEnabled(),
             'newsPushEnabled' => $membership->isNewsPushEnabled(),
             'medicationPushEnabled' => $membership->isMedicationPushEnabled(),
+            'appointmentPushEnabled' => $membership->isAppointmentPushEnabled(),
             'familyPushEnabled' => $membership->isFamilyPushEnabled(),
             'morningReminderTime' => $membership->getMorningReminderTime(),
             'noonReminderTime' => $membership->getNoonReminderTime(),

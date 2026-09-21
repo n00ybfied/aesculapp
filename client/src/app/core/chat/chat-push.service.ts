@@ -7,9 +7,11 @@ import { API_BASE_URL } from '../api/api.config';
 @Injectable({providedIn:'root'})
 export class ChatPushService {
  private readonly http=inject(HttpClient);private readonly auth=inject(AuthService);private readonly api=inject(API_BASE_URL)+'/chat/push';
+  private readonly testApi = inject(API_BASE_URL) + '/profile/push/test';
  readonly serviceWorkerSupported=typeof window!=='undefined'&&window.isSecureContext&&'serviceWorker' in navigator;
  readonly supported=this.serviceWorkerSupported&&'PushManager' in window&&'Notification' in window;
  readonly registered=signal(false);readonly enabled=signal(false);readonly busy=signal(false);readonly message=signal('');
+  readonly testing = signal(false);
  readonly permission=signal<NotificationPermission|'unsupported'>(this.supported?Notification.permission:'unsupported');
  readonly serverReady=signal<boolean|null>(null);
  private options(){return {headers:new HttpHeaders({Authorization:'Bearer '+this.auth.accessToken()})};}
@@ -56,4 +58,18 @@ export class ChatPushService {
    this.enabled.set(false);this.message.set($localize`:@@chatPushDisabled:Benachrichtigungen wurden deaktiviert.`);
   }catch{this.enabled.set(false);this.message.set($localize`:@@chatPushDisableFailed:Bitte prüfen Sie die Benachrichtigungsfreigabe in den Browsereinstellungen.`);}finally{this.busy.set(false);}
  }
+  async sendTest(): Promise<void> {
+    if (!this.enabled() || this.testing()) return;
+    this.testing.set(true);
+    this.message.set('');
+    try {
+      const result = await firstValueFrom(this.http.post<{ success: boolean; subscriptions: number }>(this.testApi, {}, this.options()));
+      const devices = result.subscriptions === 1 ? 'ein registriertes Gerät' : `${result.subscriptions} registrierte Geräte`;
+      this.message.set($localize`:@@chatPushTestSent:Die Test-Benachrichtigung wurde an ${devices} gesendet.`);
+    } catch {
+      this.message.set($localize`:@@chatPushTestFailed:Die Test-Benachrichtigung konnte nicht zugestellt werden. Bitte prüfen Sie die Gerätefreigabe und versuchen Sie es erneut.`);
+    } finally {
+      this.testing.set(false);
+    }
+  }
 }

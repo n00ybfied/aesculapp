@@ -47,6 +47,9 @@ class TenantMembership
     private bool $medicationPushEnabled = false;
 
     #[ORM\Column(options: ['default' => true])]
+    private bool $appointmentPushEnabled = true;
+
+    #[ORM\Column(options: ['default' => true])]
     private bool $familyPushEnabled = true;
 
     #[ORM\Column(length: 5, options: ['default' => '08:00'])]
@@ -120,6 +123,8 @@ class TenantMembership
     public function setNewsPushEnabled(bool $value): void { $this->newsPushEnabled = $value; }
     public function isMedicationPushEnabled(): bool { return $this->medicationPushEnabled; }
     public function setMedicationPushEnabled(bool $value): void { $this->medicationPushEnabled = $value; }
+    public function isAppointmentPushEnabled(): bool { return $this->appointmentPushEnabled; }
+    public function setAppointmentPushEnabled(bool $value): void { $this->appointmentPushEnabled = $value; }
     public function isFamilyPushEnabled(): bool { return $this->familyPushEnabled; }
     public function setFamilyPushEnabled(bool $value): void { $this->familyPushEnabled = $value; }
     public function getMorningReminderTime(): string { return $this->morningReminderTime; }

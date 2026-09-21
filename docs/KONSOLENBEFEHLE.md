@@ -120,6 +120,12 @@ Geburtstagspunkte werden nicht beim Öffnen des Dashboards gebucht. Der folgende
 php bin/console app:award-birthday-bonuses
 ```
 
+Terminerinnerungen für alle am folgenden Tag stattfindenden reservierten Termine versenden. Der Befehl sendet eine transaktionale E-Mail sowie – falls vom Kunden aktiviert und auf einem Gerät eingerichtet – eine Push-Nachricht. Jede erfolgreiche Erinnerung wird je Kanal am Termin gespeichert und nicht doppelt versendet. Der Produktivserver soll ihn täglich, zum Beispiel um 09:00 Uhr, ausführen:
+
+```powershell
+php bin/console app:appointments:send-reminders
+```
+
 Ausstehende Chat-Push-Benachrichtigungen erneut zustellen:
 
 ```powershell

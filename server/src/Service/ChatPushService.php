@@ -105,6 +105,50 @@ final class ChatPushService
         $this->scheduledFamilyNotifications[] = ['user' => $user, 'tenant' => $tenant, 'title' => $title, 'body' => $body, 'url' => '/familie', 'tag' => 'aesculapp-family-access'];
     }
 
+    public function sendAppointmentReminder(User $user, Tenant $tenant, string $body): bool
+    {
+        if (!$this->memberships->findForUserAndTenant($user, $tenant)?->isAppointmentPushEnabled()) {
+            return true;
+        }
+
+        $config = $this->config();
+        if ($config === null) {
+            return false;
+        }
+
+        try {
+            $this->deliverToSubscriptions($user, $tenant, 'Terminerinnerung', $body, '/termine/meine', 'aesculapp-appointment-reminder', $config, null, 'appointment');
+            return true;
+        } catch (\Throwable $exception) {
+            $this->logger->warning('appointment.push.failed', ['errorClass' => $exception::class]);
+            return false;
+        }
+    }
+
+    /** @return array{subscriptions: int, delivered: int, failed: int, configured: bool} */
+    public function sendTestNotification(User $user, Tenant $tenant): array
+    {
+        $config = $this->config();
+        if ($config === null) {
+            return ['subscriptions' => 0, 'delivered' => 0, 'failed' => 0, 'configured' => false];
+        }
+
+        return [
+            ...$this->deliverToSubscriptions(
+                $user,
+                $tenant,
+                'AesculApp-Test',
+                'Push-Benachrichtigungen funktionieren auf diesem Gerät.',
+                '/profil',
+                'aesculapp-push-test',
+                $config,
+                null,
+                'test',
+            ),
+            'configured' => true,
+        ];
+    }
+
     public function flushScheduled(): void
     {
         foreach ($this->scheduled as $id) $this->deliver($id);
@@ -148,27 +192,39 @@ final class ChatPushService
         }
     }
 
-    private function deliverToSubscriptions(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, array $config, ?int $messageId = null): void
+    /** @return array{subscriptions: int, delivered: int, failed: int} */
+    private function deliverToSubscriptions(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, array $config, ?int $messageId = null, string $kind = 'family'): array
     {
         $subs = $this->em->getRepository(WebPushSubscription::class)->findBy(['user' => $user, 'tenant' => $tenant]);
         $push = new WebPush(['VAPID' => $config], ['TTL' => 3600], new \GuzzleHttp\Client(['timeout' => 5, 'connect_timeout' => 3, 'allow_redirects' => false]));
         $retry = false;
+        $delivered = 0;
+        $failed = 0;
         foreach ($subs as $sub) {
             try {
                 $data = json_decode($this->cipher->decrypt($sub->encryptedSubscription, 'push:'.$sub->endpointHash), true, 512, JSON_THROW_ON_ERROR);
                 $payload = json_encode(['title' => $title, 'body' => $body, 'url' => $url, 'tag' => $tag], JSON_THROW_ON_ERROR);
                 $report = $push->sendOneNotification(Subscription::create($data), $payload);
-                if ($report->isSubscriptionExpired()) $this->em->remove($sub);
+                if ($report->isSubscriptionExpired()) {
+                    $this->em->remove($sub);
+                    ++$failed;
+                }
+                elseif ($report->isSuccess()) {
+                    ++$delivered;
+                }
                 elseif (!$report->isSuccess()) {
                     $retry = true;
-                    $this->logger->warning('push.delivery_failed', ['kind' => $messageId === null ? 'family' : 'chat']);
+                    ++$failed;
+                    $this->logger->warning('push.delivery_failed', ['kind' => $messageId === null ? $kind : 'chat']);
                 }
             } catch (\Throwable $e) {
                 $retry = true;
-                $this->logger->warning('push.delivery_failed', ['kind' => $messageId === null ? 'family' : 'chat', 'errorClass' => $e::class]);
+                ++$failed;
+                $this->logger->warning('push.delivery_failed', ['kind' => $messageId === null ? $kind : 'chat', 'errorClass' => $e::class]);
             }
         }
         $this->em->flush();
         if ($retry && $messageId !== null) $this->em->getConnection()->executeStatement('UPDATE chat_message SET push_pending = 1 WHERE id = ?', [$messageId]);
+        return ['subscriptions' => count($subs), 'delivered' => $delivered, 'failed' => $failed];
     }
 }
