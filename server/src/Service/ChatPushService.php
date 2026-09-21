@@ -196,7 +196,12 @@ final class ChatPushService
     private function deliverToSubscriptions(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, array $config, ?int $messageId = null, string $kind = 'family'): array
     {
         $subs = $this->em->getRepository(WebPushSubscription::class)->findBy(['user' => $user, 'tenant' => $tenant]);
-        $push = new WebPush(['VAPID' => $config], ['TTL' => 3600], new \GuzzleHttp\Client(['timeout' => 5, 'connect_timeout' => 3, 'allow_redirects' => false]));
+        $push = new WebPush(
+            ['VAPID' => $config],
+            ['TTL' => 3600],
+            new \GuzzleHttp\Client(['timeout' => 5, 'connect_timeout' => 3, 'allow_redirects' => false]),
+            logger: $this->logger,
+        );
         $retry = false;
         $delivered = 0;
         $failed = 0;
