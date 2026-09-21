@@ -27,8 +27,11 @@ export class AdminNewsService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AdminAuthService);
 
-  async list(page = 1): Promise<NewsPage> {
-    return firstValueFrom(this.http.get<NewsPage>(this.api() + '/admin/news', { params: { page: String(page), pageSize: '10' }, headers: this.headers() }));
+  async list(page = 1, pageSize: 10 | 25 | 50 | 'all' = 25, query = ''): Promise<NewsPage> {
+    return firstValueFrom(this.http.get<NewsPage>(this.api() + '/admin/news', {
+      params: { page: String(page), pageSize: String(pageSize), query },
+      headers: this.headers(),
+    }));
   }
 
   async get(id: number): Promise<AdminNewsPost> {

@@ -7,6 +7,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService } from '../../core/profile/profile.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { SnackbarComponent } from '../feedback/snackbar.component';
+import { AnalyticsService } from '../../core/analytics/analytics.service';
 
 @Component({
   selector: 'app-shell',
@@ -19,10 +20,11 @@ export class AppShellComponent implements OnInit,OnDestroy {
   protected readonly unreadReplies=this.chats.unreadCount;
   private countTimer:ReturnType<typeof setInterval>|undefined;
   private readonly refreshChatBadge=()=>{if(!document.hidden)void this.chats.refreshUnreadCount();};
-  ngOnDestroy():void{if(this.countTimer)clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshChatBadge);this.chats.unreadCount.set(null);this.clearNavigationTimers();}
+  ngOnDestroy():void{if(this.countTimer)clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshChatBadge);this.analytics.stopSession();this.chats.unreadCount.set(null);this.clearNavigationTimers();}
   private readonly navigationTransitionMs = 220;
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly analytics = inject(AnalyticsService);
   private readonly profiles = inject(ProfileService);
   protected readonly theme = inject(ThemeService).activeTheme;
   protected readonly profile = this.profiles.profile;
@@ -36,6 +38,7 @@ export class AppShellComponent implements OnInit,OnDestroy {
   private navigationEnterTimer: ReturnType<typeof setTimeout> | undefined;
 
   async ngOnInit(): Promise<void> {
+    this.analytics.startSession();
     void this.initializePushPrompt();
     this.refreshChatBadge();
     this.countTimer=setInterval(this.refreshChatBadge,5000);

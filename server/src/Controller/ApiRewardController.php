@@ -56,8 +56,33 @@ final class ApiRewardController
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
 
-        $rewards = $this->entityManager->getRepository(Reward::class)->findBy(['tenant' => $this->activeTenant->get()], ['id' => 'DESC']);
-        return new JsonResponse(['rewards' => array_map(fn (Reward $reward) => $this->serialize($reward, $request), $rewards)]);
+        $pageSize = $this->adminPageSize($request);
+        $query = trim((string) $request->query->get('query', ''));
+        $rewardsQuery = $this->entityManager->createQueryBuilder()
+            ->select('reward')
+            ->from(Reward::class, 'reward')
+            ->where('reward.tenant = :tenant')
+            ->setParameter('tenant', $this->activeTenant->get());
+
+        if ($query !== '') {
+            $rewardsQuery->andWhere('LOWER(reward.title) LIKE :query')->setParameter('query', '%'.mb_strtolower($query).'%');
+        }
+
+        $total = (int) (clone $rewardsQuery)->select('COUNT(reward.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = $pageSize === null ? 1 : max(1, (int) ceil($total / $pageSize));
+        $page = min(max(1, $request->query->getInt('page', 1)), $totalPages);
+        $rewardsQuery->orderBy('reward.id', 'DESC');
+        if ($pageSize !== null) {
+            $rewardsQuery->setFirstResult(($page - 1) * $pageSize)->setMaxResults($pageSize);
+        }
+        $rewards = $rewardsQuery->getQuery()->getResult();
+
+        return new JsonResponse([
+            'rewards' => array_map(fn (Reward $reward) => $this->serialize($reward, $request), $rewards),
+            'page' => $page,
+            'total' => $total,
+            'totalPages' => $totalPages,
+        ]);
     }
 
     #[Route('/api/v1/admin/rewards/{id}', methods: ['GET'])]
@@ -208,6 +233,16 @@ final class ApiRewardController
 
         $membership = $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
         return $membership !== null && [] !== array_intersect(self::ADMIN_ROLES, $membership->getRoles());
+    }
+
+    private function adminPageSize(Request $request): ?int
+    {
+        if ($request->query->get('pageSize') === 'all') {
+            return null;
+        }
+
+        $pageSize = $request->query->getInt('pageSize', 25);
+        return in_array($pageSize, [10, 25, 50], true) ? $pageSize : 25;
     }
 
     private function findTenantReward(int $id): ?Reward

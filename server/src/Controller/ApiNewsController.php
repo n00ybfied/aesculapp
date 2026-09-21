@@ -37,15 +37,19 @@ final class ApiNewsController
     public function customerList(Request $request): JsonResponse
     {
         $now = new \DateTimeImmutable();
-        $posts = $this->entityManager->createQueryBuilder()
+        $page = max(1, $request->query->getInt('page', 1));
+        $pageSize = $request->query->has('page') ? 10 : 3;
+        $query = $this->entityManager->createQueryBuilder()
             ->select('post')->from(NewsPost::class, 'post')
             ->where('post.tenant = :tenant')->andWhere('post.isVisible = true')
             ->andWhere('(post.showFrom IS NULL OR post.showFrom <= :now)')
             ->andWhere('(post.showUntil IS NULL OR post.showUntil >= :now)')
             ->setParameter('tenant', $this->activeTenant->get())->setParameter('now', $now)
-            ->orderBy('post.publishedAt', 'DESC')->setMaxResults(3)->getQuery()->getResult();
+            ->orderBy('post.publishedAt', 'DESC');
+        $total = (int) (clone $query)->select('COUNT(post.id)')->getQuery()->getSingleScalarResult();
+        $posts = $query->setFirstResult(($page - 1) * $pageSize)->setMaxResults($pageSize)->getQuery()->getResult();
 
-        return new JsonResponse(['posts' => array_map(fn (NewsPost $post) => $this->serialize($post, $request), $posts)]);
+        return new JsonResponse(['posts' => array_map(fn (NewsPost $post) => $this->serialize($post, $request), $posts), 'page' => $page, 'totalPages' => (int) ceil($total / $pageSize)]);
     }
 
     #[Route('/api/v1/news/{id}', name: 'api_v1_news_one', methods: ['GET'], priority: 10)]
@@ -64,14 +68,28 @@ final class ApiNewsController
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
 
-        $page = max(1, $request->query->getInt('page', 1));
-        $pageSize = min(50, max(1, $request->query->getInt('pageSize', 10)));
-        $repository = $this->entityManager->getRepository(NewsPost::class);
-        $criteria = ['tenant' => $this->activeTenant->get()];
-        $total = $repository->count($criteria);
-        $posts = $repository->findBy($criteria, ['publishedAt' => 'DESC', 'id' => 'DESC'], $pageSize, ($page - 1) * $pageSize);
+        $pageSize = $this->adminPageSize($request);
+        $query = trim((string) $request->query->get('query', ''));
+        $postsQuery = $this->entityManager->createQueryBuilder()
+            ->select('post')
+            ->from(NewsPost::class, 'post')
+            ->where('post.tenant = :tenant')
+            ->setParameter('tenant', $this->activeTenant->get());
 
-        return new JsonResponse(['posts' => array_map(fn (NewsPost $post) => $this->serialize($post, $request), $posts), 'page' => $page, 'total' => $total, 'totalPages' => (int) ceil($total / $pageSize)]);
+        if ($query !== '') {
+            $postsQuery->andWhere('LOWER(post.title) LIKE :query')->setParameter('query', '%'.mb_strtolower($query).'%');
+        }
+
+        $total = (int) (clone $postsQuery)->select('COUNT(post.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = $pageSize === null ? 1 : max(1, (int) ceil($total / $pageSize));
+        $page = min(max(1, $request->query->getInt('page', 1)), $totalPages);
+        $postsQuery->orderBy('post.publishedAt', 'DESC')->addOrderBy('post.id', 'DESC');
+        if ($pageSize !== null) {
+            $postsQuery->setFirstResult(($page - 1) * $pageSize)->setMaxResults($pageSize);
+        }
+        $posts = $postsQuery->getQuery()->getResult();
+
+        return new JsonResponse(['posts' => array_map(fn (NewsPost $post) => $this->serialize($post, $request), $posts), 'page' => $page, 'total' => $total, 'totalPages' => $totalPages]);
     }
 
     #[Route('/api/v1/admin/news/{id}', name: 'api_v1_admin_news_one', methods: ['GET'])]
@@ -159,6 +177,16 @@ final class ApiNewsController
         if (!$user instanceof User) { return false; }
         $membership = $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
         return $membership !== null && [] !== array_intersect(self::ADMIN_ROLES, $membership->getRoles());
+    }
+
+    private function adminPageSize(Request $request): ?int
+    {
+        if ($request->query->get('pageSize') === 'all') {
+            return null;
+        }
+
+        $pageSize = $request->query->getInt('pageSize', 25);
+        return in_array($pageSize, [10, 25, 50], true) ? $pageSize : 25;
     }
 
     private function findTenantPost(int $id): ?NewsPost

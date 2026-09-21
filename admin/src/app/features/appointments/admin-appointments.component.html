@@ -1,0 +1,134 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">TERMINE</p>
+      <h2>Terminverwaltung</h2>
+      <p class="intro">Verwalten Sie Buchungen, Terminarten, Personen und verfügbare Zeiten.</p>
+    </div>
+    <div class="actions">
+      <button type="button" (click)="createModal('type')">Terminart anlegen</button>
+      <button type="button" (click)="createModal('resource')">Person anlegen</button>
+      <button type="button" (click)="createModal('availability')">Verfügbarkeit anlegen</button>
+      <button type="button" (click)="createModal('block')">Sperrzeit anlegen</button>
+    </div>
+  </div>
+
+  @if (message()) {
+    <p class="message" role="status">{{ message() }}</p>
+  }
+  @if (error() && modal() === null) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="loading">Termindaten werden geladen …</p>
+  } @else {
+    <section class="card">
+      <div class="section-header"><h3>Angelegte Termine</h3><span>{{ appointments().length }}</span></div>
+      @for (appointment of appointments(); track appointment.id) {
+        <article class="appointment">
+          <div>
+            <strong>{{ appointment.type }}</strong>
+            <p>{{ appointment.customer }} · {{ appointment.resource }}</p>
+            <small>{{ formatDate(appointment.startsAt) }} – {{ formatDate(appointment.endsAt) }}</small>
+          </div>
+          <span class="status" [class.cancelled]="appointment.status === 'cancelled'">
+            {{ appointment.status === 'cancelled' ? 'Abgesagt' : 'Gebucht' }}
+          </span>
+          <button type="button" class="danger" [disabled]="appointment.status === 'cancelled'" (click)="cancel(appointment)">Absagen</button>
+        </article>
+      } @empty {
+        <p class="empty">Noch keine Termine angelegt.</p>
+      }
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <div class="section-header"><h3>Terminarten</h3><span>{{ types().length }}</span></div>
+        @for (type of types(); track type.id) {
+          <article class="item"><div><strong>{{ type.title }}</strong><small>{{ type.durationMinutes }} Min. · {{ type.bufferMinutes }} Min. Puffer</small></div><span>{{ type.isVisible ? 'Sichtbar' : 'Ausgeblendet' }}</span><button type="button" class="secondary" (click)="editType(type)">Bearbeiten</button></article>
+        } @empty {
+          <p class="empty">Noch keine Terminart angelegt.</p>
+        }
+      </section>
+
+      <section class="card">
+        <div class="section-header"><h3>Personen</h3><span>{{ resources().length }}</span></div>
+        @for (resource of resources(); track resource.id) {
+          <article class="item"><strong>{{ resource.name }}</strong><button type="button" class="secondary" (click)="editResource(resource)">Bearbeiten</button></article>
+        } @empty {
+          <p class="empty">Noch keine Person angelegt.</p>
+        }
+      </section>
+    </div>
+
+    <section class="card availability-list">
+      <div class="section-header"><h3>Verfügbarkeiten</h3><span>{{ availability().length }}</span></div>
+      @for (rule of availability(); track rule.id) {
+        <article class="item"><div><strong>{{ resourceNameFor(rule.resourceId) }} · {{ typeNameFor(rule.typeId) }}</strong><small>{{ weekdayLabels(rule.weekdays) }} · {{ rule.startsAt }}–{{ rule.endsAt }} Uhr</small></div><button type="button" class="secondary" (click)="editAvailability(rule)">Bearbeiten</button></article>
+      } @empty {
+        <p class="empty">Noch keine Verfügbarkeit angelegt.</p>
+      }
+    </section>
+    <section class="card availability-list">
+      <div class="section-header"><h3>Sperrzeiten</h3><span>{{ blocks().length }}</span></div>
+      @for (block of blocks(); track block.id) {
+        <article class="item"><div><strong>{{ blockScope(block) }}</strong><small>{{ blockPeriod(block) }}@if (block.comment) { · {{ block.comment }} }</small></div><button type="button" class="secondary" (click)="editBlock(block)">Bearbeiten</button><button type="button" class="danger" (click)="deleteBlock(block)">Löschen</button></article>
+      } @empty { <p class="empty">Keine zukünftigen Sperrzeiten angelegt.</p> }
+    </section>
+  }
+</section>
+
+@if (modal(); as activeModal) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <section class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="activeModal + '-title'" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 [id]="activeModal + '-title'">
+          {{ modalTitle(activeModal) }}
+        </h3>
+        <button type="button" class="icon-button" aria-label="Dialog schließen" (click)="closeModal()">×</button>
+      </div>
+
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+
+      @if (activeModal === 'type') {
+        <form (ngSubmit)="saveType()">
+          <label>Bezeichnung *<input [(ngModel)]="typeTitle" name="typeTitle" required /></label>
+          <label>Dauer in Minuten *<input [(ngModel)]="typeDuration" name="typeDuration" type="number" min="5" required /></label>
+          <label>Puffer in Minuten<input [(ngModel)]="typeBuffer" name="typeBuffer" type="number" min="0" /></label>
+          <div class="form-actions"><button type="button" class="secondary" (click)="closeModal()">Abbrechen</button><button type="submit">Speichern</button></div>
+        </form>
+      }
+
+      @if (activeModal === 'resource') {
+        <form (ngSubmit)="saveResource()">
+          <label>Name *<input [(ngModel)]="resourceName" name="resourceName" required /></label>
+          <div class="form-actions"><button type="button" class="secondary" (click)="closeModal()">Abbrechen</button><button type="submit">Speichern</button></div>
+        </form>
+      }
+
+      @if (activeModal === 'availability') {
+        <form (ngSubmit)="saveAvailability()">
+          <label>Person *<select [(ngModel)]="availabilityResourceId" name="resource" required><option value="">Bitte wählen</option>@for (resource of resources(); track resource.id) { <option [value]="resource.id">{{ resource.name }}</option> }</select></label>
+          <label>Terminart *<select [(ngModel)]="availabilityTypeId" name="type" required><option value="">Bitte wählen</option>@for (type of types(); track type.id) { <option [value]="type.id">{{ type.title }}</option> }</select></label>
+          <fieldset><legend>Wochentage *</legend><div class="weekdays">@for (day of weekdays; track day.id) { <label><input [(ngModel)]="weekdaySelected[day.id]" [name]="'weekday-' + day.id" type="checkbox" />{{ day.label }}</label> }</div></fieldset>
+          <div class="time-grid"><label>Von *<input [(ngModel)]="availabilityStartsAt" name="startsAt" type="time" required /></label><label>Bis *<input [(ngModel)]="availabilityEndsAt" name="endsAt" type="time" required /></label></div>
+          <div class="form-actions"><button type="button" class="secondary" (click)="closeModal()">Abbrechen</button><button type="submit">Speichern</button></div>
+        </form>
+      }
+
+      @if (activeModal === 'block') {
+        <form (ngSubmit)="saveBlock()">
+          <label>Gültigkeit<select [(ngModel)]="blockTypeId" name="blockType" (change)="onBlockScopeChange()"><option value="">Gesamter Kalender</option>@for (type of types(); track type.id) { <option [value]="type.id">Nur: {{ type.title }}</option> }</select></label>
+          <fieldset><legend>Sperrtage *</legend><p class="hint">Starttag, dann Endtag wählen. Ein erneuter Klick auf den Endtag setzt ihn zurück; ein Klick auf den Starttag löscht die Auswahl.</p><div class="calendar-header"><button type="button" class="secondary" [disabled]="!canGoToPreviousBlockMonth()" aria-label="Vorheriger Monat" (click)="previousBlockMonth()">‹</button><strong>{{ blockCalendarLabel() }}</strong><button type="button" class="secondary" aria-label="Nächster Monat" (click)="nextBlockMonth()">›</button></div><div class="calendar-weekdays"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="block-calendar">@for (day of blockCalendarDays(); track $index) { @if (day) { <button type="button" class="secondary" [class.selected-day]="day.value >= blockStartsOn && day.value <= blockEndsOn" [disabled]="!isBlockDayAvailable(day.value)" (click)="selectBlockDay(day.value)">{{ day.day }}</button> } @else { <span aria-hidden="true"></span> } }</div></fieldset>
+          <label class="checkbox-label"><input [(ngModel)]="blockHasTime" name="blockHasTime" type="checkbox" />Zeit hinzufügen</label>
+          @if (blockHasTime) { <div class="time-grid"><label>Von *<input [(ngModel)]="blockStartsAt" name="blockStartsAt" type="time" required (change)="onBlockStartTimeChange()" /></label><label>Bis *<input [(ngModel)]="blockEndsAt" name="blockEndsAt" type="time" required /></label></div> }
+          <label>Kommentar <textarea [(ngModel)]="blockComment" name="blockComment" maxlength="500" placeholder="z. B. Fortbildung"></textarea></label>
+          <div class="form-actions"><button type="button" class="secondary" (click)="closeModal()">Abbrechen</button><button type="submit">Speichern</button></div>
+        </form>
+      }
+    </section>
+  </div>
+}

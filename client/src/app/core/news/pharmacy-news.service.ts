@@ -12,6 +12,8 @@ export interface PharmacyNewsPost {
   readonly publishedAt: string;
 }
 
+export interface PharmacyNewsPage { readonly posts: PharmacyNewsPost[]; readonly page: number; readonly totalPages: number; }
+
 @Injectable({ providedIn: 'root' })
 export class PharmacyNewsService {
   private readonly http = inject(HttpClient);
@@ -20,6 +22,10 @@ export class PharmacyNewsService {
   async getLatest(): Promise<readonly PharmacyNewsPost[]> {
     const response = await firstValueFrom(this.http.get<{ posts: PharmacyNewsPost[] }>(this.apiBaseUrl + '/news'));
     return response.posts;
+  }
+
+  async getPage(page: number): Promise<PharmacyNewsPage> {
+    return await firstValueFrom(this.http.get<PharmacyNewsPage>(this.apiBaseUrl + '/news?page=' + page));
   }
 
   async getOne(id: number): Promise<PharmacyNewsPost> {

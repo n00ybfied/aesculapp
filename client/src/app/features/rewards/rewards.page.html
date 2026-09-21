@@ -51,8 +51,12 @@
         <ng-icon name="lucideGift" size="1.25rem" class="text-primary" aria-hidden="true" />
       </div>
       <p class="mt-1 text-sm leading-5 text-muted">Sie können mehrere Prämien auswählen – auch dieselbe Prämie mehrmals.</p>
+      <label class="mt-4 block" for="reward-filter">
+        <span class="sr-only">Prämien nach Titel filtern</span>
+        <input id="reward-filter" type="search" class="min-h-12 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground placeholder:text-muted focus:border-primary focus:outline-3 focus:outline-primary" placeholder="Prämien suchen" [value]="filterText()" (input)="filterByTitle($event)" />
+      </label>
       <div class="mt-4 space-y-3">
-        @for (reward of rewardsOverview.rewards; track reward.id) {
+        @for (reward of displayedRewards(); track reward.id) {
           <article class="rounded-2xl border border-border bg-surface p-4 shadow-card">
             <div class="flex items-start gap-4">
               @if (reward.imageUrl) {
@@ -94,8 +98,13 @@
               </div>
             </div>
           </article>
+        } @empty {
+          <p class="rounded-2xl border border-border bg-surface p-5 text-muted">{{ rewardsOverview.rewards.length === 0 ? 'Derzeit sind keine Prämien verfügbar.' : 'Keine Prämie passt zu Ihrer Suche.' }}</p>
         }
       </div>
+      @if (hasMoreRewards()) {
+        <button type="button" class="mx-auto mt-5 flex min-h-11 items-center rounded-xl border border-border px-4 text-sm font-bold text-primary" (click)="loadMoreRewards()">Weitere Prämien laden</button>
+      }
     </section>
 
     @if (cartItemCount() > 0) {

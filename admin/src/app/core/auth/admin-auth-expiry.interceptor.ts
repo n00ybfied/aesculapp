@@ -6,7 +6,7 @@ import { AdminAuthService } from './admin-auth.service';
 export const adminAuthExpiryInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AdminAuthService);
   return next(request).pipe(catchError((error: unknown) => {
-    if (error instanceof HttpErrorResponse && error.status === 401 && auth.isAuthenticated()) auth.expireSession();
+    if (error instanceof HttpErrorResponse && error.status === 401 && auth.isAuthenticated() && !request.url.endsWith('/admin/auth/refresh')) auth.expireSession();
     return throwError(() => error);
   }));
 };

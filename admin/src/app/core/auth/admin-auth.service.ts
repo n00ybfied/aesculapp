@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { tap } from 'rxjs';
+import { firstValueFrom, tap } from 'rxjs';
 import { Router } from '@angular/router';
 
 interface AdminLoginResponse {
@@ -20,17 +20,48 @@ export class AdminAuthService {
   private expiryTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly session = signal<AdminLoginResponse | null>(this.readSession());
 
+  constructor() {
+    if (!this.isAuthenticated()) {
+      void this.restoreSession();
+    }
+  }
+
   readonly isAuthenticated = this.session.asReadonly();
   readonly accessToken = () => this.session()?.accessToken ?? '';
   readonly displayName = () => this.session()?.user.displayName ?? '';
 
   login(username: string, password: string) {
     return this.http
-      .post<AdminLoginResponse>(`${this.apiBaseUrl()}/admin/auth/login`, { username, password })
+      .post<AdminLoginResponse>(`${this.apiBaseUrl()}/admin/auth/login`, { username, password }, { withCredentials: true })
       .pipe(tap((session) => this.storeSession(session)));
   }
 
   logout(): void {
+    void firstValueFrom(this.http.post<void>(`${this.apiBaseUrl()}/admin/auth/logout`, {}, { withCredentials: true })).catch(() => undefined);
+    this.clearSession();
+  }
+
+  async restoreSession(force = false): Promise<boolean> {
+    if (!force && this.isAuthenticated()) {
+      return true;
+    }
+    try {
+      const session = await firstValueFrom(this.http.post<AdminLoginResponse>(`${this.apiBaseUrl()}/admin/auth/refresh`, {}, { withCredentials: true }));
+      this.storeSession(session);
+      return true;
+    } catch {
+      this.clearSession();
+      return false;
+    }
+  }
+
+  expireSession(): void {
+    void this.restoreSession(true).then((restored) => {
+      if (!restored) void this.router.navigateByUrl('/login');
+    });
+  }
+
+  private clearSession(): void {
     if (this.expiryTimer !== undefined) {
       clearTimeout(this.expiryTimer);
       this.expiryTimer = undefined;
@@ -74,6 +105,5 @@ export class AdminAuthService {
     this.scheduleExpiry(session.expiresIn * 1_000);
   }
 
-  expireSession(): void { this.logout(); void this.router.navigateByUrl('/login'); }
   private scheduleExpiry(delayMs: number): void { this.expiryTimer = setTimeout(() => this.expireSession(), delayMs); }
 }

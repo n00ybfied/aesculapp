@@ -35,9 +35,11 @@
       <nav class="mt-8 space-y-2" aria-label="Seitennavigation">
         <a routerLink="/chat" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center justify-between gap-2 rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Chat @if(unreadReplies(); as count){<span class="rounded-full bg-danger px-2 py-0.5 text-xs font-bold text-white" [attr.aria-label]="count + ' ungelesene Antworten'">{{count}}</span>}</a>
         <a routerLink="/dashboard" routerLinkActive="bg-accent text-primary" [routerLinkActiveOptions]="{ exact: true }" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Übersicht</a>
+        <a routerLink="/news" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Apothekennews</a>
         <a routerLink="/punkte" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Punkte &amp; Prämien</a>
         <a routerLink="/gutscheine" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Gutscheinheft</a>
         <a routerLink="/termine" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Termine</a>
+        <a routerLink="/termine/meine" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Meine Termine</a>
         <a routerLink="/medikamente" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Medikamentenplan</a>
         <a href="/familie" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="navigateAndClose('/familie', $event)">Familienzugang</a>
         <a routerLink="/scanner" routerLinkActive="bg-accent text-primary" class="flex min-h-12 items-center rounded-xl px-4 font-semibold hover:bg-accent" (click)="closeNavigation()">Rechnung scannen</a>

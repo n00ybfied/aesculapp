@@ -1,7 +1,199 @@
-import { Component,inject,signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { API_BASE_URL } from '../../core/api/api.config';
-interface Type{id:number;title:string;durationMinutes:number} interface Slot{resourceId:number;startsAt:string;endsAt:string}
-@Component({standalone:true,template:`<section class="p-6"><p class="text-sm font-bold uppercase text-primary">Terminreservierung</p><h1 class="mt-1 text-3xl font-bold">Termin buchen</h1><label class="mt-6 block font-semibold">Terminart<select class="mt-2 min-h-12 w-full rounded-xl border border-border bg-surface px-3" (change)="chooseType($event)"><option value="">Bitte wählen</option>@for(t of types();track t.id){<option [value]="t.id">{{t.title}} · {{t.durationMinutes}} Min.</option>}</select></label>@if(selectedType()){<label class="mt-4 block font-semibold">Tag<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-surface px-3" type="date" [min]="today" [max]="maxDate" (change)="loadSlots($event)"/></label>}@if(slots().length){<h2 class="mt-6 text-xl font-bold">Freie Termine</h2><div class="mt-3 grid gap-2">@for(slot of slots();track slot.startsAt){<button class="min-h-12 rounded-xl border border-primary bg-surface px-4 text-left font-semibold text-primary" (click)="book(slot)">{{time(slot.startsAt)}}</button>}</div>}@if(message()){<p class="mt-5 rounded-xl bg-accent p-4" role="status">{{message()}}</p>}</section>`})
-export class AppointmentsPage{private readonly http=inject(HttpClient);private readonly api=inject(API_BASE_URL);protected readonly types=signal<readonly Type[]>([]);protected readonly slots=signal<readonly Slot[]>([]);protected readonly selectedType=signal<number|null>(null);protected readonly message=signal('');protected readonly today=new Date().toISOString().slice(0,10);protected readonly maxDate=new Date(Date.now()+14*86400000).toISOString().slice(0,10);constructor(){void this.loadTypes();}protected time(value:string):string{return new Date(value).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'});}private async loadTypes(){this.types.set((await firstValueFrom(this.http.get<{types:Type[]}>(this.api+'/appointments/types'))).types);}protected chooseType(e:Event){this.selectedType.set(Number((e.target as HTMLSelectElement).value)||null);this.slots.set([]);}protected async loadSlots(e:Event){const date=(e.target as HTMLInputElement).value;const type=this.selectedType();if(!date||!type)return;this.slots.set((await firstValueFrom(this.http.get<{slots:Slot[]}>(this.api+'/appointments/slots',{params:{date,typeId:String(type)}}))).slots);}protected async book(slot:Slot){try{await firstValueFrom(this.http.post(this.api+'/appointments',{typeId:this.selectedType(),startsAt:slot.startsAt}));this.message.set('Ihr Termin wurde reserviert. Die zugeteilte Person sehen Sie in Ihrer Terminübersicht.');this.slots.set([]);}catch{this.message.set('Dieser Termin ist leider nicht mehr verfügbar.');}}}
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+
+import {
+  AppointmentService,
+  AppointmentBlock,
+  AppointmentSlot,
+  AppointmentType,
+} from '../../core/appointments/appointment.service';
+
+interface CalendarDay {
+  readonly value: string;
+  readonly weekday: string;
+  readonly day: string;
+}
+
+@Component({
+  selector: 'app-appointments-page',
+  imports: [FormsModule, RouterLink],
+  templateUrl: './appointments.page.html',
+})
+export class AppointmentsPage {
+  private readonly appointmentsService = inject(AppointmentService);
+
+  protected readonly types = signal<readonly AppointmentType[]>([]);
+  protected readonly slots = signal<readonly AppointmentSlot[]>([]);
+  protected readonly availableDates = signal<ReadonlySet<string>>(new Set());
+  protected readonly blocks = signal<readonly AppointmentBlock[]>([]);
+  protected readonly selectedTypeId = signal<number | null>(null);
+  protected readonly bookingWindowDays = signal(28);
+  protected readonly selectedDate = signal(this.today());
+  protected readonly isLoading = signal(true);
+  protected readonly isLoadingSlots = signal(false);
+  protected readonly isLoadingCalendar = signal(false);
+  protected readonly isBooking = signal(false);
+  protected readonly selectedSlot = signal<AppointmentSlot | null>(null);
+  protected readonly isConfirmationOpen = signal(false);
+  protected readonly error = signal('');
+  protected readonly message = signal('');
+  protected readonly selectedType = computed(() => this.types().find((type) => type.id === this.selectedTypeId()) ?? null);
+  protected readonly calendarDays = computed<readonly CalendarDay[]>(() => Array.from({ length: this.bookingWindowDays() + 1 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index);
+    return {
+      value: this.dateValue(date),
+      weekday: new Intl.DateTimeFormat('de-AT', { weekday: 'short' }).format(date),
+      day: new Intl.DateTimeFormat('de-AT', { day: 'numeric', month: 'short' }).format(date),
+    };
+  }));
+  protected note = '';
+
+  constructor() {
+    void this.load();
+  }
+
+  protected selectType(event: Event): void {
+    const id = Number((event.target as HTMLSelectElement).value);
+    this.selectedTypeId.set(Number.isInteger(id) && id > 0 ? id : null);
+    this.slots.set([]);
+    this.selectedSlot.set(null);
+    this.isConfirmationOpen.set(false);
+    this.availableDates.set(new Set());
+    this.error.set('');
+    void this.loadCalendar();
+  }
+
+  protected selectDate(date: string): void {
+    if (!this.availableDates().has(date)) {
+      return;
+    }
+
+    this.selectedDate.set(date);
+    this.selectedSlot.set(null);
+    this.isConfirmationOpen.set(false);
+    void this.loadSlots();
+  }
+
+  protected selectSlot(slot: AppointmentSlot): void {
+    if (!this.isBooking()) this.selectedSlot.set(slot);
+  }
+
+  protected openConfirmation(): void {
+    if (this.selectedSlot() !== null && !this.isBooking()) this.isConfirmationOpen.set(true);
+  }
+
+  protected closeConfirmation(): void {
+    if (!this.isBooking()) this.isConfirmationOpen.set(false);
+  }
+
+  protected async confirmBooking(): Promise<void> {
+    const typeId = this.selectedTypeId();
+    const slot = this.selectedSlot();
+    if (typeId === null || slot === null || this.isBooking()) {
+      return;
+    }
+
+    this.isBooking.set(true);
+    this.error.set('');
+    try {
+      await this.appointmentsService.book(typeId, slot.startsAt, this.note.trim());
+      this.note = '';
+      this.selectedSlot.set(null);
+      this.isConfirmationOpen.set(false);
+      this.message.set('Ihr Termin wurde erfolgreich reserviert.');
+      await this.loadCalendar();
+    } catch {
+      this.error.set('Dieser Termin ist leider nicht mehr verfügbar. Bitte wählen Sie eine andere Uhrzeit.');
+      await this.loadSlots();
+    } finally {
+      this.isBooking.set(false);
+    }
+  }
+
+  protected formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat('de-AT', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  }
+
+  protected formatTime(value: string): string {
+    return new Intl.DateTimeFormat('de-AT', { timeStyle: 'short' }).format(new Date(value));
+  }
+
+  protected isDateAvailable(date: string): boolean {
+    return this.availableDates().has(date);
+  }
+
+  private async load(): Promise<void> {
+    try {
+      const typesResponse = await this.appointmentsService.getTypes();
+      this.types.set(typesResponse.types);
+      this.bookingWindowDays.set(typesResponse.bookingWindowDays);
+    } catch {
+      this.error.set('Termine konnten nicht geladen werden. Bitte versuchen Sie es später erneut.');
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  private async loadSlots(): Promise<void> {
+    const typeId = this.selectedTypeId();
+    const date = this.selectedDate();
+    if (typeId === null || date === '') {
+      return;
+    }
+
+    this.isLoadingSlots.set(true);
+    try {
+      this.slots.set(await this.appointmentsService.getSlots(typeId, date));
+    } catch {
+      this.error.set('Freie Termine konnten nicht geladen werden.');
+    } finally {
+      this.isLoadingSlots.set(false);
+    }
+  }
+
+  private async loadCalendar(): Promise<void> {
+    const typeId = this.selectedTypeId();
+    if (typeId === null) {
+      return;
+    }
+
+    this.isLoadingCalendar.set(true);
+    try {
+      const dates = this.calendarDays().map((day) => day.value);
+      const [slotLists, blocks] = await Promise.all([
+        Promise.all(dates.map((date) => this.appointmentsService.getSlots(typeId, date))),
+        this.appointmentsService.getBlocks(typeId),
+      ]);
+      this.blocks.set(blocks);
+      const availableDates = new Set(dates.filter((_, index) => slotLists[index].length > 0));
+      this.availableDates.set(availableDates);
+
+      const selectedDateIndex = dates.indexOf(this.selectedDate());
+      const dateIndex = availableDates.has(this.selectedDate()) ? selectedDateIndex : dates.findIndex((date) => availableDates.has(date));
+      this.selectedDate.set(dateIndex >= 0 ? dates[dateIndex] : this.today());
+      this.slots.set(dateIndex >= 0 ? slotLists[dateIndex] : []);
+    } catch {
+      this.error.set('Verfügbare Tage konnten nicht geladen werden.');
+    } finally {
+      this.isLoadingCalendar.set(false);
+    }
+  }
+
+  protected blockComment(date: string): string | null {
+    return this.blocks().find((block) => block.startsOn <= date && block.endsOn >= date && block.comment !== null)?.comment ?? null;
+  }
+
+  private today(): string {
+    return this.dateValue(new Date());
+  }
+
+  private dateValue(date: Date): string {
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+  }
+}

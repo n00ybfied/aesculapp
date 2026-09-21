@@ -45,6 +45,10 @@ class Tenant
 
     #[ORM\Column(options: ['default' => 10])]
     private int $pointsPerEuro = 10;
+    #[ORM\Column(options: ['default' => 28])]
+    private int $appointmentBookingFutureDays = 28;
+    #[ORM\Column(options: ['default' => 24])]
+    private int $appointmentCancellationHours = 24;
     #[ORM\Column(options: ['default' => false])]
     private bool $allowDuplicateReceiptImports = false;
     #[ORM\Column(options: ['default' => false])]
@@ -112,6 +116,10 @@ class Tenant
     public function setBirthdayBonusPoints(int $points): void { $this->birthdayBonusPoints = $points; }
     public function getPointsPerEuro(): int { return $this->pointsPerEuro; }
     public function setPointsPerEuro(int $points): void { $this->pointsPerEuro = $points; }
+    public function getAppointmentBookingFutureDays(): int { return $this->appointmentBookingFutureDays; }
+    public function setAppointmentBookingFutureDays(int $days): void { $this->appointmentBookingFutureDays = $days; }
+    public function getAppointmentCancellationHours(): int { return $this->appointmentCancellationHours; }
+    public function setAppointmentCancellationHours(int $hours): void { $this->appointmentCancellationHours = $hours; }
     public function allowsDuplicateReceiptImports(): bool { return $this->allowDuplicateReceiptImports; }
     public function setAllowDuplicateReceiptImports(bool $value): void { $this->allowDuplicateReceiptImports = $value; }
     public function showsCustomerDebugOutput(): bool { return $this->showCustomerDebugOutput; }
