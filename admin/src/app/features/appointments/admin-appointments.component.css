@@ -1,0 +1,49 @@
+:host { display: block; }
+.page { max-width: 72rem; }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; }
+.eyebrow { margin: 0; color: var(--admin-primary); font-size: .8rem; font-weight: 700; letter-spacing: .08em; }
+h2, h3, p { margin-top: 0; }
+.intro, small, .empty, .loading { color: var(--admin-muted); }
+.actions, .form-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+button { min-height: 2.7rem; padding: .55rem .9rem; border: 0; border-radius: .5rem; background: var(--admin-primary); color: #fff; font-weight: 700; }
+.secondary { border: 1px solid var(--admin-border); background: #fff; color: var(--admin-text); }
+.danger { background: var(--admin-danger); }
+.message { margin: 1rem 0; color: var(--admin-primary-strong); }
+.error { color: var(--admin-danger); }
+.card { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid var(--admin-border); border-radius: 1rem; background: var(--admin-surface); }
+.section-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
+.section-header h3 { margin: 0; }
+.section-header span, .status { padding: .25rem .55rem; border-radius: 99rem; background: color-mix(in srgb, var(--admin-primary) 14%, #fff); color: var(--admin-primary-strong); font-size: .82rem; font-weight: 700; }
+.appointment, .item { display: flex; align-items: center; gap: 1rem; padding: .9rem 0; border-top: 1px solid var(--admin-border); }
+.appointment > div, .item > div { flex: 1; }
+.appointment p, .appointment small, .item small { display: block; margin: .25rem 0 0; }
+.status.cancelled { background: color-mix(in srgb, var(--admin-danger) 12%, #fff); color: var(--admin-danger); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.grid .card { margin-top: 1rem; }
+.availability-list { margin-top: 1rem; }
+.modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgb(20 37 49 / 55%); }
+.modal { width: min(100%, 35rem); max-height: calc(100vh - 2rem); overflow: auto; padding: 1.5rem; border-radius: 1rem; background: var(--admin-surface); box-shadow: 0 1.5rem 4rem rgb(20 37 49 / 30%); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.modal-header h3 { margin: 0; }
+.icon-button { display: grid; width: 2.5rem; height: 2.5rem; min-height: 0; place-items: center; padding: 0; background: transparent; color: var(--admin-muted); font-size: 1.5rem; }
+form { display: grid; gap: 1rem; margin-top: 1.25rem; }
+label { display: grid; gap: .4rem; font-weight: 700; }
+input, select, textarea { min-height: 2.7rem; padding: .5rem; border: 1px solid var(--admin-border); border-radius: .5rem; background: #fff; color: var(--admin-text); font: inherit; }
+textarea { min-height: 5rem; resize: vertical; }
+.checkbox-label { display: flex; align-items: center; gap: .5rem; }
+.checkbox-label input { min-height: auto; }
+fieldset { margin: 0; border: 0; padding: 0; }
+legend { margin-bottom: .4rem; font-weight: 700; }
+.weekdays { display: flex; flex-wrap: wrap; gap: .5rem; }
+.hint { margin: 0 0 .5rem; color: var(--admin-muted); font-size: .85rem; }
+.calendar-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+.calendar-header button { display: grid; min-width: 2.4rem; min-height: 2.4rem; place-items: center; padding: 0; }
+.calendar-weekdays, .block-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: .3rem; }
+.calendar-weekdays { margin-bottom: .3rem; color: var(--admin-muted); font-size: .72rem; text-align: center; }
+.block-calendar button { min-height: 2.4rem; padding: .25rem; font-size: .8rem; }
+.block-calendar .selected-day { border-color: var(--admin-primary); background: color-mix(in srgb, var(--admin-primary) 14%, #fff); color: var(--admin-primary-strong); }
+.weekdays label { display: flex; align-items: center; gap: .35rem; padding: .35rem .5rem; border: 1px solid var(--admin-border); border-radius: .45rem; font-weight: 400; }
+.weekdays input { min-height: auto; margin: 0; }
+.time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-actions { justify-content: flex-end; margin-top: .5rem; }
+@media (max-width: 760px) { .page-header, .appointment { align-items: stretch; flex-direction: column; }.grid, .time-grid { grid-template-columns: 1fr; }.actions button, .appointment button { width: 100%; } }

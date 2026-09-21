@@ -37,6 +37,10 @@ export class CouponService {
     return (await firstValueFrom(this.http.get<{ coupons: Coupon[] }>(`${this.api}/coupons`, this.options()))).coupons;
   }
 
+  async getOne(id: number): Promise<Coupon | null> {
+    return (await this.list()).find((coupon) => coupon.id === id) ?? null;
+  }
+
   async redeem(couponIds: readonly number[]): Promise<CouponRedemption> {
     return (await firstValueFrom(this.http.post<{ redemption: CouponRedemption }>(`${this.api}/coupons/redeem`, { couponIds }, this.options()))).redemption;
   }

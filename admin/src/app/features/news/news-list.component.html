@@ -1,5 +1,10 @@
 <section>
   <div class="heading"><div><p class="eyebrow">Inhalte</p><h2>Apotheken-News</h2><p class="intro">Beiträge für die Kunden-App verwalten.</p></div><a routerLink="/inhalte/neu" class="primary">Neuer Beitrag</a></div>
+  <form class="list-controls" (ngSubmit)="applyFilters()">
+    <label>Suche nach Titel<input name="query" [(ngModel)]="query" placeholder="Titel eingeben" /></label>
+    <label>Einträge pro Seite<select name="pageSize" [value]="pageSize" (change)="updatePageSize($event)"><option [value]="10">10</option><option [value]="25">25</option><option [value]="50">50</option><option value="all">Alle</option></select></label>
+    <button type="submit">Filtern</button>
+  </form>
   @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
   @if (isLoading()) { <p class="empty">Beiträge werden geladen …</p> } @else if (newsPage(); as page) {
     <div class="post-list">

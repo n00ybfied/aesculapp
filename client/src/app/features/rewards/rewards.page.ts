@@ -6,6 +6,7 @@ import { statusMessages } from '../../core/i18n/status-messages';
 import { RewardRepository, type ActiveRedemption, type Reward, type RewardsOverview } from '../../core/rewards/reward.repository';
 import { ThemeService } from '../../core/theme/theme.service';
 import { FamilyService } from '../../core/family/family.service';
+import { AnalyticsService } from '../../core/analytics/analytics.service';
 
 interface RewardCartItem {
   readonly reward: Reward;
@@ -16,19 +17,26 @@ interface RewardCartItem {
   selector: 'app-rewards-page',
   imports: [NgIcon, RouterLink],
   templateUrl: './rewards.page.html',
+  host: {
+    '(window:scroll)': 'loadMoreWhenNearBottom()',
+  },
 })
 export class RewardsPage implements OnInit {
+  private static readonly pageSize = 8;
   private readonly rewardRepository = inject(RewardRepository);
   private readonly statusMessages = inject(StatusMessageService);
   private readonly router = inject(Router);
   protected readonly theme = inject(ThemeService);
   private readonly family = inject(FamilyService);
+  private readonly analytics = inject(AnalyticsService);
 
   protected readonly overview = signal<RewardsOverview | null>(null);
   protected readonly cart = signal<readonly RewardCartItem[]>([]);
   protected readonly isConfirmationOpen = signal(false);
   protected readonly isRedeeming = signal(false);
   protected readonly isLoading = signal(true);
+  protected readonly filterText = signal('');
+  protected readonly visibleRewardCount = signal(RewardsPage.pageSize);
   protected readonly cartTotal = computed(() => this.cart().reduce(
     (total, item) => total + item.reward.requiredPoints * item.quantity,
     0,
@@ -50,9 +58,38 @@ export class RewardsPage implements OnInit {
     .filter((connection) => connection.status === 'accepted' && connection.pointSharingStatus === 'accepted')
     .map((connection) => connection.other.displayName)
     .join(', '));
+  protected readonly filteredRewards = computed(() => {
+    const rewards = this.overview()?.rewards ?? [];
+    const query = this.filterText().trim().toLocaleLowerCase('de');
+    return query === ''
+      ? rewards
+      : rewards.filter((reward) => reward.title.toLocaleLowerCase('de').includes(query));
+  });
+  protected readonly displayedRewards = computed(() => this.filteredRewards().slice(0, this.visibleRewardCount()));
+  protected readonly hasMoreRewards = computed(() => this.displayedRewards().length < this.filteredRewards().length);
 
   async ngOnInit(): Promise<void> {
     await Promise.all([this.loadOverview(), this.family.load().catch(() => [])]);
+  }
+
+  protected filterByTitle(event: Event): void {
+    this.filterText.set((event.target as HTMLInputElement).value);
+    this.visibleRewardCount.set(RewardsPage.pageSize);
+    queueMicrotask(() => this.loadMoreWhenNearBottom());
+  }
+
+  protected loadMoreRewards(): void {
+    if (this.hasMoreRewards()) {
+      this.visibleRewardCount.update((count) => count + RewardsPage.pageSize);
+    }
+  }
+
+  protected loadMoreWhenNearBottom(): void {
+    if (!this.hasMoreRewards() || window.innerHeight + window.scrollY < document.documentElement.scrollHeight - 320) {
+      return;
+    }
+
+    this.loadMoreRewards();
   }
 
   protected addReward(reward: Reward): void {
@@ -72,6 +109,7 @@ export class RewardsPage implements OnInit {
         ? items.map((item) => item.reward.id === reward.id ? { ...item, quantity: item.quantity + 1 } : item)
         : [...items, { reward, quantity: 1 }];
     });
+    this.analytics.trackItemSelection({ itemId: Number(reward.id), itemName: reward.title, itemCategory: 'reward' });
   }
 
   protected removeReward(rewardId: string): void {
@@ -110,10 +148,14 @@ export class RewardsPage implements OnInit {
     this.isConfirmationOpen.set(false);
 
     try {
-      await this.rewardRepository.redeem(this.cart().map((item) => ({
-        rewardId: item.reward.id,
-        quantity: item.quantity,
-      })));
+      const selections = this.cart().map((item) => ({ rewardId: item.reward.id, quantity: item.quantity }));
+      const items = this.cart().flatMap((item) => {
+        const itemId = Number(item.reward.id);
+        return Number.isInteger(itemId) ? [{ itemId, itemName: item.reward.title, itemCategory: 'reward' as const, quantity: item.quantity }] : [];
+      });
+      this.analytics.trackCheckoutStart(items);
+      await this.rewardRepository.redeem(selections);
+      this.analytics.trackRedemption(items);
       await this.refreshOverview();
       this.cart.set([]);
       void this.router.navigate(['/punkte/einloesung']);
@@ -166,5 +208,6 @@ export class RewardsPage implements OnInit {
 
   private async refreshOverview(): Promise<void> {
     this.overview.set(await this.rewardRepository.getOverview());
+    this.visibleRewardCount.set(RewardsPage.pageSize);
   }
 }

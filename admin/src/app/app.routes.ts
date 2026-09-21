@@ -20,6 +20,7 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/admin-dashboard.component').then((module) => module.AdminDashboardComponent),
       },
+      { path: 'statistik', loadComponent: () => import('./features/statistics/admin-statistics.component').then((module) => module.AdminStatisticsComponent) },
       { path: 'praemien/neu', loadComponent: () => import('./features/rewards/reward-editor.component').then(m => m.RewardEditorComponent) },
       { path: 'praemien/:id', loadComponent: () => import('./features/rewards/reward-editor.component').then(m => m.RewardEditorComponent) },
       { path: 'praemien', loadComponent: () => import('./features/rewards/admin-rewards.component').then((module) => module.AdminRewardsComponent) },

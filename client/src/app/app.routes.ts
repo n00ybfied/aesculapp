@@ -56,6 +56,11 @@ export const routes: Routes = [
         title: 'Übersicht | Aesculapp',
       },
       {
+        path: 'news',
+        loadComponent: () => import('./features/news/news-list.page').then((module) => module.NewsListPage),
+        title: 'Alle Nachrichten | Aesculapp',
+      },
+      {
         path: 'news/:id',
         loadComponent: () => import('./features/news/news-detail.page').then((module) => module.NewsDetailPage),
         title: 'Apotheken-News | Aesculapp',
@@ -79,7 +84,9 @@ export const routes: Routes = [
         title: 'Punkte & Prämien | Aesculapp',
       },
       { path: 'gutscheine/einloesung', loadComponent: () => import('./features/coupons/active-coupon-redemption.page').then(m => m.ActiveCouponRedemptionPage), title: 'Gutscheine vorzeigen | Aesculapp' },
+      { path: 'gutscheine/:id', loadComponent: () => import('./features/coupons/coupon-detail.page').then(m => m.CouponDetailPage), title: 'Gutschein | Aesculapp' },
       { path: 'gutscheine', loadComponent: () => import('./features/coupons/coupons.page').then(m => m.CouponsPage), title: 'Gutscheinheft | Aesculapp' },
+      { path: 'termine/meine', loadComponent: () => import('./features/appointments/my-appointments.page').then(m => m.MyAppointmentsPage), title: 'Meine Termine | Aesculapp' },
       { path: 'termine', loadComponent: () => import('./features/appointments/appointments.page').then(m => m.AppointmentsPage), title: 'Termine | Aesculapp' },
       {
         path: 'punkte/praemien/:id',

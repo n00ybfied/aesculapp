@@ -1,0 +1,47 @@
+@if (isLoading()) {
+  <section class="loading" aria-label="Statistik wird geladen"><span aria-hidden="true"></span></section>
+} @else if (error()) {
+  <section class="error" role="alert"><p>{{ error() }}</p><button type="button" (click)="retry()">Erneut versuchen</button></section>
+} @else if (statistics(); as data) {
+  <section class="intro">
+    <div><p class="eyebrow">AUSWERTUNG</p><h2>Statistik</h2><p>Entwicklung, Nutzung und Einlösungen Ihrer Kunden-App auf einen Blick.</p></div>
+    <p class="period">Letzte {{ data.periodDays }} Tage</p>
+  </section>
+
+  <section class="metrics" aria-label="Kennzahlen">
+    <article><span>Kundenkonten</span><strong>{{ data.users.total }}</strong><small>registrierte Kunden</small></article>
+    <article><span>Aktive Nutzer</span><strong>{{ data.engagement.activeUsers }}</strong><small>mit Nutzung im Zeitraum</small></article>
+    <article><span>App-Nutzung</span><strong>{{ data.engagement.totalMinutes }} Min.</strong><small>Ø {{ data.engagement.averageMinutesPerActiveUser }} Min. pro aktivem Nutzer</small></article>
+    <article><span>Einlösungen</span><strong>{{ data.redemptions.totalRewards + data.redemptions.totalCoupons }}</strong><small>{{ data.redemptions.totalRewards }} Prämien · {{ data.redemptions.totalCoupons }} Gutscheine</small></article>
+  </section>
+
+  <section class="chart-card" aria-labelledby="users-chart-title">
+    <div class="section-heading"><div><p class="eyebrow">KUNDENWACHSTUM</p><h3 id="users-chart-title">Gesamtzahl der Kunden</h3></div><strong>{{ data.users.total }}</strong></div>
+    <svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Verlauf der Kundenanzahl über die letzten 30 Tage">
+      <line x1="4" x2="96" y1="92" y2="92" class="axis" />
+      <line x1="4" x2="96" y1="54" y2="54" class="grid" />
+      <polyline [attr.points]="chartPoints()" class="line" />
+    </svg>
+    <div class="chart-labels">@for (label of chartLabels(); track label.date) { <span>{{ shortDate(label.date) }}</span> }</div>
+  </section>
+
+  <section class="content-grid">
+    <article class="panel"><div class="section-heading"><div><p class="eyebrow">BELIEBTE INHALTE</p><h3>Am häufigsten angesehen</h3></div></div>
+      @for (item of data.engagement.mostViewed; track item.type + item.title) { <div class="ranking"><span class="type">{{ item.type === 'news' ? 'News' : item.type === 'reward' ? 'Prämie' : 'Gutschein' }}</span><p>{{ item.title }}</p><strong>{{ item.views }}</strong></div> } @empty { <p class="empty">Aufrufe werden ab jetzt erfasst. Sobald Kunden Inhalte öffnen, erscheinen sie hier.</p> }
+    </article>
+    <article class="panel"><div class="section-heading"><div><p class="eyebrow">PRÄMIEN</p><h3>Am häufigsten eingelöst</h3></div></div>
+      @for (item of data.redemptions.rewards; track item.title) { <div class="ranking"><p>{{ item.title }}</p><strong>{{ item.redemptions }}×</strong></div> } @empty { <p class="empty">Noch keine Prämieneinlösungen vorhanden.</p> }
+    </article>
+    <article class="panel"><div class="section-heading"><div><p class="eyebrow">GUTSCHEINE</p><h3>Am häufigsten eingelöst</h3></div></div>
+      @for (item of data.redemptions.coupons; track item.title) { <div class="ranking"><p>{{ item.title }}</p><strong>{{ item.redemptions }}×</strong></div> } @empty { <p class="empty">Noch keine Gutscheineinlösungen vorhanden.</p> }
+    </article>
+    <article class="panel"><div class="section-heading"><div><p class="eyebrow">KUNDEN</p><h3>Meiste Einlösungen</h3></div></div>
+      @for (item of data.redemptions.topCustomers; track item.title) { <div class="ranking"><p>{{ item.title }}</p><strong>{{ item.redemptions }}×</strong></div> } @empty { <p class="empty">Noch keine Einlösungen vorhanden.</p> }
+    </article>
+    <article class="panel"><div class="section-heading"><div><p class="eyebrow">APP-NUTZUNG</p><h3>Längste Verweildauer</h3></div></div>
+      @for (item of data.engagement.longestSessions; track item.title) { <div class="ranking"><p>{{ item.title }}</p><strong>{{ item.minutes }} Min.</strong></div> } @empty { <p class="empty">Verweildauer wird ab jetzt erfasst.</p> }
+    </article>
+  </section>
+
+  <section class="catalog" aria-label="Inhaltsbestand"><span>{{ data.catalog.news }} News-Beiträge</span><span>{{ data.catalog.rewards }} Prämien</span><span>{{ data.catalog.coupons }} Gutscheine</span></section>
+}

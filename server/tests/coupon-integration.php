@@ -51,9 +51,11 @@ try {
     }
     $coupon = new App\Entity\Coupon($tenant, 'Test coupon', 'One use', '<p>Test</p>', '', true, null, null);
     $secondCoupon = new App\Entity\Coupon($tenant, 'Second coupon', 'One use', '<p>Test</p>', '', true, null, null);
+    $deletableCoupon = new App\Entity\Coupon($tenant, 'Deletable coupon', 'Admin test', '<p>Test</p>', '', true, null, null);
     $foreignCoupon = new App\Entity\Coupon($foreign, 'Foreign coupon', 'Hidden', '<p>Test</p>', '', true, null, null);
     $em->persist($coupon);
     $em->persist($secondCoupon);
+    $em->persist($deletableCoupon);
     $em->persist($foreignCoupon);
     $em->flush();
 
@@ -86,6 +88,9 @@ try {
     couponLogin($storage, $users['staff'], ['ROLE_TENANT_STAFF']);
     couponCheck($controller->cancel($firstId)->getStatusCode() === 204, 'Staff must be able to cancel an active redemption.');
     couponCheck($controller->cancel($firstId)->getStatusCode() === 404, 'Cancellation must be single-use.');
+    $deletableCouponId = $deletableCoupon->getId();
+    couponCheck($catalog->delete($deletableCouponId)->getStatusCode() === 204, 'Staff must be able to delete a coupon.');
+    couponCheck($em->getRepository(App\Entity\Coupon::class)->find($deletableCouponId) === null, 'Deleted coupon must no longer exist.');
 
     couponLogin($storage, $users['customer'], ['ROLE_CUSTOMER']);
     couponCheck($controller->redeem(couponBasketRequest([$coupon->getId()]))->getStatusCode() === 201, 'Cancelled coupon must become available again.');

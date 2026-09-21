@@ -91,6 +91,11 @@ class TenantMembership
         return $this->user;
     }
 
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
     /**
      * @return list<string>
      */

@@ -7,12 +7,24 @@
   <a routerLink="/inhalte" class="primary-action">Beitrag erstellen <span aria-hidden="true">→</span></a>
 </section>
 
+@if (statistics(); as data) {
+  <a routerLink="/statistik" class="growth-card" aria-label="Alle Statistiken anzeigen">
+    <div class="growth-copy"><p class="eyebrow">KUNDENWACHSTUM</p><strong>{{ data.users.total }} Kunden</strong><span>Entwicklung der letzten {{ data.periodDays }} Tage</span></div>
+    <div class="growth-visual"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Verlauf der Kundenanzahl"><polyline [attr.points]="chartPoints()" /></svg><div class="growth-dates"><span>{{ shortDate(data.users.timeline[0]?.date ?? '') }}</span><span>{{ shortDate(data.users.timeline[data.users.timeline.length - 1]?.date ?? '') }}</span></div></div>
+    <span class="growth-link">Alle Statistiken →</span>
+  </a>
+}
+
 <section class="cards" aria-label="Verwaltungsbereiche">
   <a routerLink="/chat" class="card"><span class="card-content"><span class="card-label">KUNDENSERVICE</span><strong>Anfragen <app-open-chat-badge /></strong><span>Kundennachrichten beantworten und Gespräche abschließen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
   <a routerLink="/inhalte" class="card card-featured"><span class="card-icon" aria-hidden="true">▤</span><span class="card-content"><span class="card-label">INHALTE</span><strong>News &amp; Hinweise</strong><span>Beiträge für die Kunden-App erstellen und planen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/medien" class="card"><span class="card-icon" aria-hidden="true">▧</span><span class="card-content"><span class="card-label">MEDIEN</span><strong>Medienbibliothek</strong><span>Bilder hochladen, organisieren und wiederverwenden.</span></span><span class="arrow" aria-hidden="true">→</span></a>
   <a routerLink="/praemien" class="card"><span class="card-icon" aria-hidden="true">✦</span><span class="card-content"><span class="card-label">PRÄMIEN</span><strong>Prämien verwalten</strong><span>Angebote, Punktewerte und Sichtbarkeit festlegen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/gutscheine" class="card"><span class="card-icon" aria-hidden="true">▱</span><span class="card-content"><span class="card-label">GUTSCHEINE</span><strong>Gutscheine verwalten</strong><span>Gutscheine erstellen, planen und bearbeiten.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/termine" class="card"><span class="card-icon" aria-hidden="true">◷</span><span class="card-content"><span class="card-label">TERMINE</span><strong>Termine verwalten</strong><span>Arten, Verfügbarkeiten und Sperrzeiten pflegen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
   <a routerLink="/einloesungen" class="card"><span class="card-icon" aria-hidden="true">✓</span><span class="card-content"><span class="card-label">LIVE-ÜBERSICHT</span><strong>Aktive Einlösungen</strong><span>Aktuelle Einlösungen prüfen oder bei Bedarf abbrechen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
   <a routerLink="/kunden" class="card"><span class="card-icon" aria-hidden="true">◉</span><span class="card-content"><span class="card-label">KUNDEN</span><strong>Kunden &amp; Punkte</strong><span>Punktestände, Buchungen und Kontaktdaten einsehen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
+  <a routerLink="/statistik" class="card"><span class="card-icon" aria-hidden="true">⌁</span><span class="card-content"><span class="card-label">AUSWERTUNG</span><strong>Statistik</strong><span>Nutzung, Wachstum und Einlösungen auswerten.</span></span><span class="arrow" aria-hidden="true">→</span></a>
   <a routerLink="/benutzer" class="card"><span class="card-icon" aria-hidden="true">♙</span><span class="card-content"><span class="card-label">TEAM</span><strong>Benutzerverwaltung</strong><span>Mitarbeiterinnen und Mitarbeiter sicher einladen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
   <a routerLink="/einstellungen" class="card"><span class="card-icon" aria-hidden="true">⚙</span><span class="card-content"><span class="card-label">KONFIGURATION</span><strong>Einstellungen</strong><span>Branding, Punkte-Regeln und E-Mail-Versand anpassen.</span></span><span class="arrow" aria-hidden="true">→</span></a>
 </section>

@@ -104,7 +104,7 @@
   <section class="mt-8" aria-labelledby="news-title">
     <div class="flex items-center justify-between">
       <h2 id="news-title" class="text-lg font-bold">Neu in Ihrer Apotheke</h2>
-      <span class="text-sm text-muted">Aktuelles</span>
+      <a routerLink="/news" class="text-sm font-bold text-primary">Alle Nachrichten</a>
     </div>
     <div class="mt-3 space-y-3">
       @for (item of news(); track item.id) {

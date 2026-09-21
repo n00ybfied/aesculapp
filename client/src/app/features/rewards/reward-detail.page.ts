@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { RewardCatalogService } from '../../core/rewards/reward-catalog.service';
 import type { Reward } from '../../core/rewards/reward.repository';
+import { AnalyticsService } from '../../core/analytics/analytics.service';
 
 @Component({
   selector: 'app-reward-detail-page',
@@ -35,6 +36,7 @@ import type { Reward } from '../../core/rewards/reward.repository';
 })
 export class RewardDetailPage {
   private readonly catalog = inject(RewardCatalogService);
+  private readonly analytics = inject(AnalyticsService);
   private readonly id = inject(ActivatedRoute).snapshot.paramMap.get('id');
   protected readonly reward = signal<Reward | null>(null);
   protected readonly loading = signal(true);
@@ -46,6 +48,7 @@ export class RewardDetailPage {
     try {
       const reward = this.id ? await this.catalog.getVisibleReward(this.id) : null;
       this.reward.set(reward);
+      if (reward !== null) this.analytics.trackItemView({ itemId: Number(reward.id), itemName: reward.title, itemCategory: 'reward' });
       if (!reward) this.error.set($localize`:@@reward.detail.not-found:Dieser Prämie ist nicht mehr verfügbar.`);
     } catch {
       this.error.set($localize`:@@reward.detail.load-error:Der Prämie konnte nicht geladen werden. Bitte versuchen Sie es später erneut.`);

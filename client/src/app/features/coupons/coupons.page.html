@@ -23,28 +23,34 @@
     <section class="mt-8" aria-labelledby="available-coupons-title">
       <h2 id="available-coupons-title" class="text-lg font-bold">Gutscheine auswählen</h2>
       <p class="mt-1 text-sm leading-5 text-muted">Jeder Gutschein ist einmal pro Kunde einlösbar.</p>
+      <label class="mt-4 block" for="coupon-filter">
+        <span class="sr-only">Gutscheine nach Titel filtern</span>
+        <input id="coupon-filter" type="search" class="min-h-12 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground placeholder:text-muted focus:border-primary focus:outline-3 focus:outline-primary" placeholder="Gutscheine suchen" [value]="filterText()" (input)="filterByTitle($event)" />
+      </label>
       <div class="mt-4 space-y-3">
-        @for (coupon of coupons(); track coupon.id) {
+        @for (coupon of displayedCoupons(); track coupon.id) {
           <article class="rounded-2xl border border-border bg-surface p-4 shadow-card" [class.opacity-55]="coupon.isRedeemed" [class.grayscale]="coupon.isRedeemed">
             @if (coupon.imageUrl) { <img class="mb-3 h-36 w-full rounded-2xl object-cover" [src]="coupon.imageUrl" alt="" /> }
             <h3 class="text-xl font-bold">{{ coupon.title }}</h3>
             <p class="mt-1 text-sm text-muted">{{ coupon.subtitle }}</p>
-            <div class="prose mt-4" [innerHTML]="coupon.description"></div>
             @if (coupon.isRedeemed) {
-              <p class="mt-4 font-semibold text-muted">Bereits eingelöst</p>
+              <div class="mt-4 flex items-center justify-between gap-3"><p class="font-semibold text-muted">Bereits eingelöst</p><a [routerLink]="['/gutscheine', coupon.id]" class="min-h-11 rounded-xl border border-border px-3 py-2 text-sm font-bold text-primary">Details</a></div>
             } @else if (selected(coupon.id)) {
               <div class="mt-4 flex items-center justify-between gap-3">
                 <span class="text-sm font-bold text-primary">Ausgewählt</span>
-                <button type="button" class="min-h-11 rounded-xl border border-danger px-3 text-sm font-bold text-danger" (click)="removeCoupon(coupon.id)">Entfernen</button>
+                <div class="flex gap-2"><a [routerLink]="['/gutscheine', coupon.id]" class="min-h-11 rounded-xl border border-border px-3 py-2 text-sm font-bold text-primary">Details</a><button type="button" class="min-h-11 rounded-xl border border-danger px-3 text-sm font-bold text-danger" (click)="removeCoupon(coupon.id)">Entfernen</button></div>
               </div>
             } @else {
-              <button type="button" class="mt-5 min-h-11 w-full rounded-xl bg-primary px-4 font-bold text-on-primary" (click)="addCoupon(coupon)">Hinzufügen</button>
+              <div class="mt-5 grid grid-cols-2 gap-3"><a [routerLink]="['/gutscheine', coupon.id]" class="flex min-h-11 items-center justify-center rounded-xl border border-primary px-4 text-sm font-bold text-primary">Details</a><button type="button" class="min-h-11 rounded-xl bg-primary px-4 font-bold text-on-primary" (click)="addCoupon(coupon)">Hinzufügen</button></div>
             }
           </article>
         } @empty {
-          <p class="rounded-2xl border border-border bg-surface p-5 text-muted">Derzeit sind keine Gutscheine verfügbar.</p>
+          <p class="rounded-2xl border border-border bg-surface p-5 text-muted">{{ coupons().length === 0 ? 'Derzeit sind keine Gutscheine verfügbar.' : 'Kein Gutschein passt zu Ihrer Suche.' }}</p>
         }
       </div>
+      @if (hasMoreCoupons()) {
+        <button type="button" class="mx-auto mt-5 flex min-h-11 items-center rounded-xl border border-border px-4 text-sm font-bold text-primary" (click)="loadMoreCoupons()">Weitere Gutscheine laden</button>
+      }
     </section>
 
     @if (cartCount() > 0) {

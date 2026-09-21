@@ -58,6 +58,15 @@
     </details>
 
     <details class="settings-group">
+      <summary>Termine</summary>
+      <div class="loyalty">
+        <label>Maximal buchbar im Voraus<input name="appointmentBookingFutureDays" type="number" min="0" max="365" [(ngModel)]="appointmentBookingFutureDays" /><span>Tage</span></label>
+        <label>Online-Stornierung bis vor Termin<input name="appointmentCancellationHours" type="number" min="0" max="365" [(ngModel)]="appointmentCancellationHours" /><span>Stunden</span></label>
+        <small>Standard: 4 Wochen im Voraus und Stornierung bis 24 Stunden vor dem Termin.</small>
+      </div>
+    </details>
+
+    <details class="settings-group">
       <summary>Familien-Punktepool</summary>
       <div class="loyalty">
         <p>Familienmitglieder können nach beidseitiger Zustimmung ein gemeinsames Punktebudget für Einlösungen nutzen. Die Konten und Buchungen bleiben dabei weiterhin nachvollziehbar getrennt.</p>

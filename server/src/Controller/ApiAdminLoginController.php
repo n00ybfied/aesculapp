@@ -53,7 +53,7 @@ final class ApiAdminLoginController
             return $this->invalidCredentialsResponse();
         }
 
-        return $responses->create($user, $request);
+        return $responses->createAdmin($user, $request);
     }
 
     private function invalidCredentialsResponse(): JsonResponse

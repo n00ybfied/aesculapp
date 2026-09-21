@@ -1,0 +1,13 @@
+@if (isLoading()) {
+  <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center bg-background" aria-label="Gutschein wird geladen"><span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary" aria-hidden="true"></span></main>
+} @else {
+  <main class="px-5 py-6">
+    <a routerLink="/gutscheine" class="mb-5 inline-flex min-h-11 items-center rounded-lg px-2 font-semibold text-primary">← Zurück zum Gutscheinheft</a>
+    @if (coupon(); as item) {
+      <article class="overflow-hidden rounded-2xl border border-border bg-surface shadow-card" [class.opacity-55]="item.isRedeemed" [class.grayscale]="item.isRedeemed">
+        @if (item.imageUrl) { <img [src]="item.imageUrl" alt="" class="max-h-72 w-full object-cover" /> }
+        <div class="p-5"><p class="text-sm font-semibold text-primary">GUTSCHEIN</p><h1 class="mt-2 text-3xl">{{ item.title }}</h1><p class="mt-3 text-lg text-muted">{{ item.subtitle }}</p><div class="prose mt-6 break-words leading-7 [&_img]:max-w-full [&_img]:h-auto [&_p]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_a]:text-primary [&_a]:underline" [innerHTML]="item.description"></div>@if (item.isRedeemed) { <p class="mt-6 font-bold text-muted">Dieser Gutschein wurde bereits eingelöst.</p> } @else { <a routerLink="/gutscheine" class="mt-6 inline-flex min-h-12 items-center rounded-xl bg-primary px-5 font-bold text-on-primary">Zum Gutscheinheft</a> }</div>
+      </article>
+    } @else { <p role="alert" class="rounded-2xl bg-surface p-5 text-muted">{{ error() }}</p> }
+  </main>
+}

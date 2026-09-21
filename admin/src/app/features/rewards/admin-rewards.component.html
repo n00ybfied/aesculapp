@@ -1,10 +1,15 @@
 <section class="list">
  <p class="eyebrow">Prämien</p><h2>Prämien</h2>
  <p><a class="create" routerLink="/praemien/neu">Neue Prämie anlegen</a></p>
+ <form class="list-controls" (ngSubmit)="applyFilters()">
+  <label>Suche nach Titel<input name="query" [(ngModel)]="query" placeholder="Titel eingeben" /></label>
+  <label>Einträge pro Seite<select name="pageSize" [value]="pageSize" (change)="updatePageSize($event)"><option [value]="10">10</option><option [value]="25">25</option><option [value]="50">50</option><option value="all">Alle</option></select></label>
+  <button type="submit">Filtern</button>
+ </form>
  @if(error()){<p class="error" role="alert">{{error()}}</p>}
  @if(loading()){<p role="status">Prämien werden geladen …</p>}
- @else {
- @for(reward of rewards();track reward.id){
+ @else if(rewardPage();as page) {
+ @for(reward of page.rewards;track reward.id){
  <article>
  @if(reward.imageUrl){<img [src]="reward.imageUrl" alt="" />}
  <div><h3>{{reward.title}}</h3><p>{{reward.subtitle}} · {{reward.requiredPoints}} Punkte</p><small>{{reward.isVisible?'Sichtbar':'Ausgeblendet'}}</small></div>
@@ -12,6 +17,7 @@
  <button type="button" [disabled]="busy()" (click)="toggle(reward)">{{reward.isVisible?'Ausblenden':'Einblenden'}}</button>
  <button type="button" class="delete" [disabled]="busy()" (click)="remove(reward)">Löschen</button>
  </article>
- } @empty {<p>Noch keine Prämien angelegt.</p>}
+ } @empty {<p>{{ query.trim() ? 'Keine Prämie passt zu Ihrer Suche.' : 'Noch keine Prämien angelegt.' }}</p>}
+ @if(page.totalPages>1){<nav class="pagination" aria-label="Seitennavigation"><button type="button" [disabled]="page.page===1" (click)="load(page.page-1)">Zurück</button><span>Seite {{page.page}} von {{page.totalPages}} · {{page.total}} Einträge</span><button type="button" [disabled]="page.page===page.totalPages" (click)="load(page.page+1)">Weiter</button></nav>}
  }
 </section>

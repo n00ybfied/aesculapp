@@ -6,5 +6,9 @@ export const adminAuthGuard: CanActivateFn = () => {
   const auth = inject(AdminAuthService);
   const router = inject(Router);
 
-  return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
+  if (auth.isAuthenticated()) {
+    return true;
+  }
+
+  return auth.restoreSession().then((restored) => restored || router.createUrlTree(['/login']));
 };
