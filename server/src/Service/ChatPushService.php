@@ -47,7 +47,7 @@ final class ChatPushService
             }
 
             return [
-                'subject' => $_ENV['APP_CLIENT_URL'] ?? 'https://aesculapp.floatbox.at',
+                'subject' => $_ENV['WEB_PUSH_VAPID_SUBJECT'] ?? 'https://aesculapp.floatbox.at',
                 'publicKey' => $publicKey,
                 'privateKey' => $privateKey,
             ];
@@ -215,7 +215,7 @@ final class ChatPushService
                 elseif (!$report->isSuccess()) {
                     $retry = true;
                     ++$failed;
-                    $this->logger->warning('push.delivery_failed', ['kind' => $messageId === null ? $kind : 'chat']);
+                    $this->logger->warning('push.delivery_failed', ['kind' => $messageId === null ? $kind : 'chat', 'statusCode' => $report->getResponse()?->getStatusCode()]);
                 }
             } catch (\Throwable $e) {
                 $retry = true;
