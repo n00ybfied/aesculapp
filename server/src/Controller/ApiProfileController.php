@@ -20,6 +20,9 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class ApiProfileController
 {
+    /** @var list<string> */
+    private const FOOTER_NAVIGATION_ITEMS = ['home', 'chat', 'rewards', 'coupons', 'news', 'appointments', 'my-appointments', 'medications', 'family', 'contact', 'website'];
+
     public function __construct(
         private readonly Security $security,
         private readonly ActiveTenantProvider $activeTenant,
@@ -71,12 +74,9 @@ final class ApiProfileController
         $noonReminderTime = $this->time($data['noonReminderTime'] ?? null);
         $eveningReminderTime = $this->time($data['eveningReminderTime'] ?? null);
         $nightReminderTime = $this->time($data['nightReminderTime'] ?? null);
-        $footerHomeEnabled = $this->boolean($data['footerHomeEnabled'] ?? null);
-        $footerChatEnabled = $this->boolean($data['footerChatEnabled'] ?? null);
-        $footerRewardsEnabled = $this->boolean($data['footerRewardsEnabled'] ?? null);
-        $footerWebsiteEnabled = $this->boolean($data['footerWebsiteEnabled'] ?? null);
+        $footerNavigationItems = $this->footerNavigationItems($data['footerNavigationItems'] ?? null);
 
-        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerHomeEnabled === null || $footerChatEnabled === null || $footerRewardsEnabled === null || $footerWebsiteEnabled === null) {
+        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerNavigationItems === false) {
             return $this->invalidProfile();
         }
 
@@ -97,10 +97,7 @@ final class ApiProfileController
         $membership->setNoonReminderTime($noonReminderTime);
         $membership->setEveningReminderTime($eveningReminderTime);
         $membership->setNightReminderTime($nightReminderTime);
-        $membership->setFooterHomeEnabled($footerHomeEnabled);
-        $membership->setFooterChatEnabled($footerChatEnabled);
-        $membership->setFooterRewardsEnabled($footerRewardsEnabled);
-        $membership->setFooterWebsiteEnabled($footerWebsiteEnabled);
+        $membership->setFooterNavigationItems($footerNavigationItems);
         $this->entityManager->flush();
 
         return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
@@ -195,6 +192,18 @@ final class ApiProfileController
     private function boolean(mixed $value): ?bool { return is_bool($value) ? $value : null; }
     private function time(mixed $value): string|false { return is_string($value) && preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D', $value) === 1 ? $value : false; }
 
+    /** @return list<string>|false */
+    private function footerNavigationItems(mixed $value): array|false
+    {
+        if (!is_array($value) || count($value) > 4) return false;
+        $items = [];
+        foreach ($value as $item) {
+            if (!is_string($item) || !in_array($item, self::FOOTER_NAVIGATION_ITEMS, true) || in_array($item, $items, true)) return false;
+            $items[] = $item;
+        }
+        return $items;
+    }
+
     /** @return array{id:int,username:string,email:string,displayName:string,phone:?string,streetAddress:?string,postalCode:?string,city:?string,profileImageUrl:?string} */
     private function serialize(User $user, TenantMembership $membership, Request $request): array
     {
@@ -220,10 +229,7 @@ final class ApiProfileController
             'noonReminderTime' => $membership->getNoonReminderTime(),
             'eveningReminderTime' => $membership->getEveningReminderTime(),
             'nightReminderTime' => $membership->getNightReminderTime(),
-            'footerHomeEnabled' => $membership->isFooterHomeEnabled(),
-            'footerChatEnabled' => $membership->isFooterChatEnabled(),
-            'footerRewardsEnabled' => $membership->isFooterRewardsEnabled(),
-            'footerWebsiteEnabled' => $membership->isFooterWebsiteEnabled(),
+            'footerNavigationItems' => $membership->getFooterNavigationItems(),
         ];
     }
 

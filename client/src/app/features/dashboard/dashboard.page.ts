@@ -8,10 +8,12 @@ import { ProfileService } from '../../core/profile/profile.service';
 import { FamilyService } from '../../core/family/family.service';
 import { CouponService, type CouponRedemption } from '../../core/coupons/coupon.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { DashboardSlidesService, type DashboardSlide, type DashboardSliderSettings } from '../../core/dashboard/dashboard-slides.service';
+import { DashboardSliderComponent } from './dashboard-slider.component';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [NgIcon, RouterLink],
+  imports: [NgIcon, RouterLink, DashboardSliderComponent],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage implements OnInit {
@@ -21,6 +23,7 @@ export class DashboardPage implements OnInit {
   private readonly profiles = inject(ProfileService);
   private readonly family = inject(FamilyService);
   private readonly coupons = inject(CouponService);
+  private readonly slidesService = inject(DashboardSlidesService);
   protected readonly theme = inject(ThemeService).activeTheme;
 
   protected readonly activeRedemption = signal<ActiveRedemption | null>(null);
@@ -32,6 +35,8 @@ export class DashboardPage implements OnInit {
   });
   protected readonly isLoading = signal(true);
   protected readonly news = signal<readonly PharmacyNewsPost[]>([]);
+  protected readonly slides = signal<readonly DashboardSlide[]>([]);
+  protected readonly sliderSettings = signal<DashboardSliderSettings>({ transition: 'slide', animationDurationMs: 400, delayMs: 6000, autoplay: true });
   protected readonly pushHintDismissed = signal(true);
   protected readonly pushHintVisible = computed(() => {
     const profile = this.profiles.profile();
@@ -55,11 +60,13 @@ export class DashboardPage implements OnInit {
   async ngOnInit(): Promise<void> {
     this.restorePushHint();
     try {
-      const [overview, news, , , activeCouponRedemption] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null), this.family.load().catch(() => []), this.coupons.active().catch(() => null)]);
+      const [overview, news, , , activeCouponRedemption, slider] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null), this.family.load().catch(() => []), this.coupons.active().catch(() => null), this.slidesService.list().catch(() => ({ slides: [], settings: this.sliderSettings() }))]);
       this.pointsOverview.set(overview);
       this.activeRedemption.set(overview.activeRedemption);
       this.activeCouponRedemption.set(activeCouponRedemption);
       this.news.set(news);
+      this.slides.set(slider.slides);
+      this.sliderSettings.set(slider.settings);
     } finally {
       this.isLoading.set(false);
     }

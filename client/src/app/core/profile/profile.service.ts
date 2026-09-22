@@ -26,11 +26,10 @@ export interface CustomerProfile {
   readonly noonReminderTime: string;
   readonly eveningReminderTime: string;
   readonly nightReminderTime: string;
-  readonly footerHomeEnabled: boolean;
-  readonly footerChatEnabled: boolean;
-  readonly footerRewardsEnabled: boolean;
-  readonly footerWebsiteEnabled: boolean;
+  readonly footerNavigationItems: readonly FooterNavigationItem[];
 }
+
+export type FooterNavigationItem = 'home' | 'chat' | 'rewards' | 'coupons' | 'news' | 'appointments' | 'my-appointments' | 'medications' | 'family' | 'contact' | 'website';
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
@@ -45,7 +44,7 @@ export class ProfileService {
     return response.profile;
   }
 
-  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerHomeEnabled' | 'footerChatEnabled' | 'footerRewardsEnabled' | 'footerWebsiteEnabled'>): Promise<CustomerProfile> {
+  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerNavigationItems'>): Promise<CustomerProfile> {
     const response = await firstValueFrom(this.http.patch<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile', profile, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;

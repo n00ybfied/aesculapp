@@ -1,13 +1,34 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { ChatService } from '../../core/chat/chat.service';
 import { ChatPushService } from '../../core/chat/chat-push.service';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
 import { AuthService } from '../../core/auth/auth.service';
-import { ProfileService } from '../../core/profile/profile.service';
+import { FooterNavigationItem, ProfileService } from '../../core/profile/profile.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { SnackbarComponent } from '../feedback/snackbar.component';
 import { AnalyticsService } from '../../core/analytics/analytics.service';
+
+interface FooterNavigationLink {
+  readonly id: FooterNavigationItem;
+  readonly label: string;
+  readonly route: string;
+  readonly icon: string;
+}
+
+const FOOTER_NAVIGATION_LINKS: readonly FooterNavigationLink[] = [
+  { id: 'home', label: 'Home', route: '/dashboard', icon: 'lucideHouse' },
+  { id: 'chat', label: 'Chat', route: '/chat', icon: 'lucideMessageCircle' },
+  { id: 'rewards', label: 'Prämien', route: '/punkte', icon: 'lucideGem' },
+  { id: 'coupons', label: 'Gutscheine', route: '/gutscheine', icon: 'lucideTicket' },
+  { id: 'news', label: 'News', route: '/news', icon: 'lucideNewspaper' },
+  { id: 'appointments', label: 'Termine', route: '/termine', icon: 'lucideCalendarDays' },
+  { id: 'my-appointments', label: 'Meine Termine', route: '/termine/meine', icon: 'lucideCalendarCheck' },
+  { id: 'medications', label: 'Medikamente', route: '/medikamente', icon: 'lucidePill' },
+  { id: 'family', label: 'Familie', route: '/familie', icon: 'lucideUsers' },
+  { id: 'contact', label: 'Kontakt', route: '/kontakt', icon: 'lucideMapPin' },
+  { id: 'website', label: 'Webseite', route: '/webseite', icon: 'lucideGlobe' },
+];
 
 @Component({
   selector: 'app-shell',
@@ -28,6 +49,15 @@ export class AppShellComponent implements OnInit,OnDestroy {
   private readonly profiles = inject(ProfileService);
   protected readonly theme = inject(ThemeService).activeTheme;
   protected readonly profile = this.profiles.profile;
+  protected readonly footerNavigationItems = computed(() => {
+    const selected = this.profile()?.footerNavigationItems ?? ['home', 'chat', 'rewards', 'website'];
+    return selected
+      .filter((item) => item !== 'website' || this.theme.websiteUrl !== null)
+      .map((item) => FOOTER_NAVIGATION_LINKS.find((link) => link.id === item))
+      .filter((item): item is FooterNavigationLink => item !== undefined);
+  });
+  protected readonly leftFooterNavigationItems = computed(() => this.footerNavigationItems().slice(0, Math.ceil(this.footerNavigationItems().length / 2)));
+  protected readonly rightFooterNavigationItems = computed(() => this.footerNavigationItems().slice(Math.ceil(this.footerNavigationItems().length / 2)));
 
   protected readonly navigationOpen = signal(false);
   protected readonly navigationVisible = signal(false);
