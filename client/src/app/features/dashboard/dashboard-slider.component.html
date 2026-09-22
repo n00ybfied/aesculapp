@@ -1,0 +1,30 @@
+@if (slides().length > 0) {
+  <section class="relative mt-6 overflow-hidden rounded-3xl border border-border bg-surface shadow-card" aria-label="Aktuelle Hinweise der Apotheke">
+    <div class="slider-viewport">
+      <div class="slider-track" [style.--slider-duration]="animationDuration()" [style.transform]="trackTransform()">
+      @for (slide of slides(); track slide.id; let index = $index) {
+        <div class="slider-slide">
+          @if (slide.linkUrl; as linkUrl) {
+            <a [href]="linkUrl" class="block focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-primary"><img class="h-44 w-full object-cover sm:h-56" [src]="slide.imageUrl" alt="Aktueller Hinweis der Apotheke" /></a>
+          } @else {
+            <button type="button" class="block w-full cursor-zoom-in text-left focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-primary" (click)="open(slide)" aria-label="Bild groß anzeigen"><img class="h-44 w-full object-cover sm:h-56" [src]="slide.imageUrl" alt="Aktueller Hinweis der Apotheke" /></button>
+          }
+        </div>
+      }
+      </div>
+    </div>
+    @if (slides().length > 1) {
+      <button type="button" class="absolute left-2 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-surface/85 text-foreground shadow-card focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="previous()" aria-label="Vorheriges Bild"><ng-icon name="lucideChevronLeft" size="1.5rem" aria-hidden="true" /></button>
+      <button type="button" class="absolute right-2 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-surface/85 text-foreground shadow-card focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="next()" aria-label="Nächstes Bild"><ng-icon name="lucideChevronRight" size="1.5rem" aria-hidden="true" /></button>
+      <div class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2 rounded-full bg-foreground/35 px-2 py-1">
+        @for (slide of slides(); track slide.id; let index = $index) { <button type="button" class="size-2 rounded-full bg-surface" [class.opacity-100]="index === activeIndex()" [class.opacity-50]="index !== activeIndex()" (click)="show(index)" [attr.aria-label]="'Bild ' + (index + 1) + ' anzeigen'"></button> }
+      </div>
+    }
+  </section>
+}
+@if (preview(); as slide) {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-foreground/80 p-4" role="dialog" aria-modal="true" aria-label="Bild groß anzeigen" (click)="closePreview()">
+    <button type="button" class="absolute right-4 top-4 grid size-11 place-items-center rounded-full bg-surface text-2xl text-foreground" (click)="closePreview()" aria-label="Großansicht schließen">×</button>
+    <img class="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" [src]="slide.imageUrl" alt="Hinweis der Apotheke" (click)="$event.stopPropagation()" />
+  </div>
+}

@@ -71,6 +71,10 @@ class Tenant
     #[ORM\Column(length: 160, nullable: true)] private ?string $birthdayGreetingTitle = null;
     #[ORM\Column(type: 'text', nullable: true)] private ?string $birthdayGreetingText = null;
     #[ORM\Column(length: 255, nullable: true)] private ?string $birthdayGreetingImagePath = null;
+    #[ORM\Column(length: 10, options: ['default' => 'slide'])] private string $dashboardSliderTransition = 'slide';
+    #[ORM\Column(options: ['default' => 400])] private int $dashboardSliderAnimationDurationMs = 400;
+    #[ORM\Column(options: ['default' => 6000])] private int $dashboardSliderDelayMs = 6000;
+    #[ORM\Column(options: ['default' => true])] private bool $dashboardSliderAutoplay = true;
     #[ORM\Column(length: 255, nullable: true)] private ?string $contactAddress = null;
     #[ORM\Column(length: 80, nullable: true)] private ?string $contactPhone = null;
     #[ORM\Column(length: 255, nullable: true)] private ?string $contactEmail = null;
@@ -148,6 +152,14 @@ class Tenant
     public function getBirthdayGreetingTitle(): ?string { return $this->birthdayGreetingTitle; } public function setBirthdayGreetingTitle(?string $value): void { $this->birthdayGreetingTitle = $value; }
     public function getBirthdayGreetingText(): ?string { return $this->birthdayGreetingText; } public function setBirthdayGreetingText(?string $value): void { $this->birthdayGreetingText = $value; }
     public function getBirthdayGreetingImagePath(): ?string { return $this->birthdayGreetingImagePath; } public function setBirthdayGreetingImagePath(?string $value): void { $this->birthdayGreetingImagePath = $value; }
+    public function getDashboardSliderTransition(): string { return $this->dashboardSliderTransition; }
+    public function setDashboardSliderTransition(string $value): void { $this->dashboardSliderTransition = $value; }
+    public function getDashboardSliderAnimationDurationMs(): int { return $this->dashboardSliderAnimationDurationMs; }
+    public function setDashboardSliderAnimationDurationMs(int $value): void { $this->dashboardSliderAnimationDurationMs = $value; }
+    public function getDashboardSliderDelayMs(): int { return $this->dashboardSliderDelayMs; }
+    public function setDashboardSliderDelayMs(int $value): void { $this->dashboardSliderDelayMs = $value; }
+    public function isDashboardSliderAutoplay(): bool { return $this->dashboardSliderAutoplay; }
+    public function setDashboardSliderAutoplay(bool $value): void { $this->dashboardSliderAutoplay = $value; }
     public function getContactAddress(): ?string { return $this->contactAddress; } public function setContactAddress(?string $value): void { $this->contactAddress = $value; }
     public function getContactPhone(): ?string { return $this->contactPhone; } public function setContactPhone(?string $value): void { $this->contactPhone = $value; }
     public function getContactEmail(): ?string { return $this->contactEmail; } public function setContactEmail(?string $value): void { $this->contactEmail = $value; }

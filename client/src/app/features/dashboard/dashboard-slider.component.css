@@ -1,0 +1,15 @@
+.slider-viewport {
+  overflow: hidden;
+}
+
+.slider-track {
+  display: flex;
+  width: 100%;
+  transition: transform var(--slider-duration, 400ms) ease-in-out;
+  will-change: transform;
+}
+
+.slider-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}

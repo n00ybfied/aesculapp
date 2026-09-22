@@ -68,6 +68,10 @@ class TenantMembership
     #[ORM\Column(options: ['default' => true])] private bool $footerRewardsEnabled = true;
     #[ORM\Column(options: ['default' => true])] private bool $footerWebsiteEnabled = true;
 
+    /** @var list<string> */
+    #[ORM\Column]
+    private array $footerNavigationItems = ['home', 'chat', 'rewards', 'website'];
+
     /**
      * @param list<string> $roles
      */
@@ -143,4 +147,8 @@ class TenantMembership
     public function setFooterRewardsEnabled(bool $value): void { $this->footerRewardsEnabled = $value; }
     public function isFooterWebsiteEnabled(): bool { return $this->footerWebsiteEnabled; }
     public function setFooterWebsiteEnabled(bool $value): void { $this->footerWebsiteEnabled = $value; }
+    /** @return list<string> */
+    public function getFooterNavigationItems(): array { return $this->footerNavigationItems; }
+    /** @param list<string> $items */
+    public function setFooterNavigationItems(array $items): void { $this->footerNavigationItems = array_values($items); }
 }
