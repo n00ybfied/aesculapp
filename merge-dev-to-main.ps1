@@ -47,13 +47,15 @@ try {
     Invoke-Git merge --no-ff dev -m $CommitMessage
     Invoke-Git push origin main
     Invoke-Git switch dev
+    Invoke-Git merge --ff-only main
+    Invoke-Git push origin dev
     if ($hasStagedChanges) {
-        Write-Host 'Erfolgreich: Änderungen wurden nach dev gepusht, dev nach main gemergt, main gepusht und wieder zu dev gewechselt.'
+        Write-Host 'Erfolgreich: Änderungen wurden nach dev gepusht, dev nach main gemergt und beide Branches auf denselben Stand gepusht.'
     } else {
-        Write-Host 'Erfolgreich: dev war bereits aktuell, wurde nach main gemergt, main gepusht und wieder zu dev gewechselt.'
+        Write-Host 'Erfolgreich: dev wurde nach main gemergt und beide Branches wurden auf denselben Stand gepusht.'
     }
 }
 catch {
-    Write-Warning 'Der Vorgang wurde angehalten. Bei einem Merge-Konflikt bitte diesen auf main auflösen, committen und danach main pushen. Ein automatischer Rückwechsel nach dev erfolgt absichtlich nicht.'
+    Write-Warning 'Der Vorgang wurde angehalten. Bitte den aktuellen Branch und den Stand von origin/dev und origin/main prüfen. Es erfolgt kein automatischer Force-Push oder Rückwechsel nach dev.'
     throw
 }
