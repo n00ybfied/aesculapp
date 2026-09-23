@@ -25,6 +25,18 @@ if ($changes) {
     throw 'Der Arbeitsbaum ist nicht sauber. Bitte Aenderungen zuerst committen oder sichern.'
 }
 
+Write-Warning "Dieses Skript pusht 'apotheke-test' und kann damit den Deploy auf dem Apothekenserver ausloesen."
+try {
+    $confirmation = Read-Host "Zum Fortfahren exakt 'yes' eingeben"
+}
+catch {
+    throw 'Keine interaktive Bestaetigung moeglich. Es wurde nichts gemergt oder gepusht.'
+}
+if ($confirmation -cne 'yes') {
+    Write-Host 'Abgebrochen. Es wurde nichts gemergt oder gepusht.'
+    return
+}
+
 Invoke-Git fetch origin
 Invoke-Git show-ref --verify --quiet refs/heads/main
 Invoke-Git show-ref --verify --quiet refs/heads/apotheke-test
@@ -37,7 +49,7 @@ try {
     Invoke-Git merge --no-ff main -m $MergeMessage
     Invoke-Git push origin apotheke-test
     Invoke-Git switch $startingBranch
-    Write-Host 'Erfolgreich: main wurde nach apotheke-test uebernommen und der Branch gepusht. Der Apotheken-Deploy startet nur bei aktivierter GitHub-Umgebung.'
+    Write-Host 'Erfolgreich: main wurde nach apotheke-test uebernommen und der Branch gepusht. Bei aktivierter GitHub-Variable startet damit der Apotheken-Deploy.'
 }
 catch {
     Write-Warning 'Vorgang angehalten. Bitte Branch und Merge-Status pruefen. Kein Force-Push und kein automatischer Merge-Abbruch.'
