@@ -1,0 +1,113 @@
+name: Deploy Apotheke test
+
+on:
+  push:
+    branches: [apotheke-test]
+  workflow_dispatch:
+
+concurrency:
+  group: aesculapp-apotheke-test
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.APOTHEKE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: apotheke-test
+    permissions:
+      contents: read
+    env:
+      DEPLOY_HOST: www21.world4you.com
+      DEPLOY_USER: ftp1646665
+      DEPLOY_HOME: /home/.sites/95/site1646665
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            admin/package-lock.json
+
+      - name: Select pharmacy API for both frontends
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(grep -rlZ --include='*.ts' 'https://api.aesculapp.floatbox.at/api/v1' client/src admin/src)
+          test "${#files[@]}" -gt 0
+          sed -i 's#https://api.aesculapp.floatbox.at/api/v1#https://api.stadtapotheke-trofaiach.at/api/v1#g' "${files[@]}"
+          if grep -r --include='*.ts' -q 'https://api.aesculapp.floatbox.at/api/v1' client/src admin/src; then
+            echo 'Demo API address remains in frontend sources' >&2
+            exit 1
+          fi
+
+      - name: Build customer app
+        working-directory: client
+        run: |
+          npm ci
+          npm run build:demo
+
+      - name: Build admin portal
+        working-directory: admin
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ctype, iconv, pdo_mysql
+          tools: composer:v2
+
+      - name: Install production PHP dependencies
+        working-directory: server
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --no-interaction
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.APOTHEKE_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.APOTHEKE_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_rsa
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_rsa ~/.ssh/known_hosts
+          printf '%s\n' 'Host www21.world4you.com' '  HostName www21.world4you.com' '  User ftp1646665' '  IdentityFile ~/.ssh/id_rsa' '  IdentitiesOnly yes' '  StrictHostKeyChecking yes' '  MACs hmac-sha2-256' > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Check target configuration
+        run: |
+          set -euo pipefail
+          ssh "$DEPLOY_HOST" "test -f '$DEPLOY_HOME/aesculapp-server/.env.local' && test -d '$DEPLOY_HOME/aesculapp-server/config/jwt' && test -d '$DEPLOY_HOME/web/aesculapp-client' && test -d '$DEPLOY_HOME/web/aesculapp-admin' && test -d '$DEPLOY_HOME/web/aesculapp-api'"
+
+      - name: Deploy build artifacts
+        run: |
+          set -euo pipefail
+          rsync -az --delete client/dist/aesculapp/browser/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-client/"
+          rsync -az --delete admin/dist/admin/browser/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-admin/"
+          rsync -az --delete \
+            --exclude='.env.local' \
+            --exclude='config/jwt/' \
+            --exclude='var/' \
+            --exclude='public/uploads/' \
+            server/ "$DEPLOY_HOST:$DEPLOY_HOME/aesculapp-server/"
+          rsync -az --delete --exclude='uploads/' --exclude='index.php' --exclude='.htaccess' \
+            server/public/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/"
+          rsync -az ops/world4you/api/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/"
+          rsync -az ops/world4you/spa/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-client/.htaccess"
+          rsync -az ops/world4you/spa/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-admin/.htaccess"
+          ssh "$DEPLOY_HOST" "mkdir -p '$DEPLOY_HOME/web/aesculapp-api/uploads' '$DEPLOY_HOME/aesculapp-server/var/cache' && if test ! -e '$DEPLOY_HOME/aesculapp-server/public/uploads'; then ln -s '$DEPLOY_HOME/web/aesculapp-api/uploads' '$DEPLOY_HOME/aesculapp-server/public/uploads'; fi && test -L '$DEPLOY_HOME/aesculapp-server/public/uploads'"
+          rsync -az ops/world4you/upload-protection/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/uploads/.htaccess"
+          rsync -az server/public/uploads/demo/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/uploads/demo/"
+
+      - name: Run database migrations and clear cache
+        run: |
+          ssh "$DEPLOY_HOST" "cd '$DEPLOY_HOME/aesculapp-server' && APP_ENV=prod APP_DEBUG=0 php84 bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php84 bin/console cache:clear --no-warmup"
