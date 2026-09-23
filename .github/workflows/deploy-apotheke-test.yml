@@ -94,7 +94,8 @@ jobs:
       - name: Check target configuration
         run: |
           set -euo pipefail
-          ssh "$DEPLOY_HOST" "test -f '$DEPLOY_HOME/aesculapp-server/.env.local' && test -d '$DEPLOY_HOME/aesculapp-server/config/jwt' && test -d '$DEPLOY_HOME/web/aesculapp-client' && test -d '$DEPLOY_HOME/web/aesculapp-admin' && test -d '$DEPLOY_HOME/web/aesculapp-api'"
+          ssh "$DEPLOY_HOST" "test -f '$DEPLOY_HOME/web/aesculapp-api/.env.local' && test -d '$DEPLOY_HOME/web/aesculapp-api/config/jwt' && test -f '$DEPLOY_HOME/web/aesculapp-api/.htaccess' && test -d '$DEPLOY_HOME/web/aesculapp-api/public/uploads' && test -d '$DEPLOY_HOME/web/aesculapp-client' && test -d '$DEPLOY_HOME/web/aesculapp-admin'"
+          test "$(curl -fsS --max-time 15 https://api.stadtapotheke-trofaiach.at/aesculapp-docroot.txt)" = 'aesculapp-api-public-v1'
 
       - name: Deploy build artifacts
         run: |
@@ -102,20 +103,28 @@ jobs:
           rsync -az --delete client/dist/aesculapp/browser/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-client/"
           rsync -az --delete admin/dist/admin/browser/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-admin/"
           rsync -az --delete \
-            --exclude='.env.local' \
-            --exclude='config/jwt/' \
-            --exclude='var/' \
-            --exclude='public/uploads/' \
-            server/ "$DEPLOY_HOST:$DEPLOY_HOME/aesculapp-server/"
-          rsync -az --delete --exclude='uploads/' --exclude='index.php' --exclude='.htaccess' \
-            server/public/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/"
-          rsync -az ops/world4you/api/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/"
+            --exclude='/.env.local' \
+            --exclude='/config/jwt/' \
+            --exclude='/var/' \
+            --exclude='/public/uploads/' \
+            --exclude='/public/.htaccess' \
+            --exclude='/public/aesculapp-docroot.txt' \
+            --exclude='/.htaccess' \
+            --exclude='/uploads/' \
+            server/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/"
+          rsync -az ops/world4you/api-root/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/.htaccess"
+          rsync -az ops/world4you/api/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/public/"
           rsync -az ops/world4you/spa/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-client/.htaccess"
           rsync -az ops/world4you/spa/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-admin/.htaccess"
-          ssh "$DEPLOY_HOST" "mkdir -p '$DEPLOY_HOME/web/aesculapp-api/uploads' '$DEPLOY_HOME/aesculapp-server/var/cache' && if test ! -e '$DEPLOY_HOME/aesculapp-server/public/uploads'; then ln -s '$DEPLOY_HOME/web/aesculapp-api/uploads' '$DEPLOY_HOME/aesculapp-server/public/uploads'; fi && test -L '$DEPLOY_HOME/aesculapp-server/public/uploads'"
-          rsync -az ops/world4you/upload-protection/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/uploads/.htaccess"
-          rsync -az server/public/uploads/demo/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/uploads/demo/"
+          ssh "$DEPLOY_HOST" "mkdir -p '$DEPLOY_HOME/web/aesculapp-api/public/uploads' '$DEPLOY_HOME/web/aesculapp-api/var/cache' && test -d '$DEPLOY_HOME/web/aesculapp-api/public/uploads' && test ! -L '$DEPLOY_HOME/web/aesculapp-api/public/uploads'"
+          rsync -az ops/world4you/upload-protection/.htaccess "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/public/uploads/.htaccess"
+          rsync -az server/public/uploads/demo/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-api/public/uploads/demo/"
 
       - name: Run database migrations and clear cache
         run: |
-          ssh "$DEPLOY_HOST" "cd '$DEPLOY_HOME/aesculapp-server' && APP_ENV=prod APP_DEBUG=0 php84 bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php84 bin/console cache:clear --no-warmup"
+          ssh "$DEPLOY_HOST" "cd '$DEPLOY_HOME/web/aesculapp-api' && APP_ENV=prod APP_DEBUG=0 php84 bin/console doctrine:migrations:migrate --no-interaction && APP_ENV=prod APP_DEBUG=0 php84 bin/console cache:clear --no-warmup"
+
+      - name: Verify public API
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 20 https://api.stadtapotheke-trofaiach.at/api/health | jq -e '.status == "ok" and .service == "aesculapp-api"'
