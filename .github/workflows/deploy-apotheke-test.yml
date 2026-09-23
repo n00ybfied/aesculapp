@@ -11,7 +11,6 @@ concurrency:
 
 jobs:
   deploy:
-    if: vars.APOTHEKE_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: apotheke-test
     permissions:
@@ -22,6 +21,15 @@ jobs:
       DEPLOY_HOME: /home/.sites/95/site1646665
 
     steps:
+      - name: Verify deployment is enabled
+        env:
+          DEPLOY_ENABLED: ${{ vars.APOTHEKE_DEPLOY_ENABLED }}
+        run: |
+          if [ "$DEPLOY_ENABLED" != 'true' ]; then
+            echo '::error::Set APOTHEKE_DEPLOY_ENABLED=true as a repository or apotheke-test environment variable before deploying.'
+            exit 1
+          fi
+
       - name: Check out source
         uses: actions/checkout@v4
 
