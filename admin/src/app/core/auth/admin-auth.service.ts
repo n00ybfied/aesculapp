@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom, tap } from 'rxjs';
 import { Router } from '@angular/router';
@@ -18,6 +18,8 @@ export class AdminAuthService {
   private readonly storageKey = 'aesculapp.admin.session';
   private readonly router = inject(Router);
   private expiryTimer: ReturnType<typeof setTimeout> | undefined;
+  private refreshInFlight: Promise<boolean> | null = null;
+  private sessionRevision = 0;
   private readonly session = signal<AdminLoginResponse | null>(this.readSession());
 
   constructor() {
@@ -37,28 +39,46 @@ export class AdminAuthService {
   }
 
   logout(): void {
-    void firstValueFrom(this.http.post<void>(`${this.apiBaseUrl()}/admin/auth/logout`, {}, { withCredentials: true })).catch(() => undefined);
+    const pendingRefresh = this.refreshInFlight;
     this.clearSession();
+    void (async () => {
+      if (pendingRefresh) await pendingRefresh;
+      await firstValueFrom(this.http.post<void>(`${this.apiBaseUrl()}/admin/auth/logout`, {}, { withCredentials: true })).catch(() => undefined);
+    })();
   }
 
   async restoreSession(force = false): Promise<boolean> {
     if (!force && this.isAuthenticated()) {
       return true;
     }
-    try {
-      const session = await firstValueFrom(this.http.post<AdminLoginResponse>(`${this.apiBaseUrl()}/admin/auth/refresh`, {}, { withCredentials: true }));
-      this.storeSession(session);
-      return true;
-    } catch {
-      this.clearSession();
-      return false;
+    if (this.refreshInFlight !== null) {
+      return this.refreshInFlight;
     }
+
+    const revision = this.sessionRevision;
+    const refresh = firstValueFrom(this.http.post<AdminLoginResponse>(`${this.apiBaseUrl()}/admin/auth/refresh`, {}, { withCredentials: true }))
+      .then((session) => {
+        if (revision !== this.sessionRevision) return false;
+        this.storeSession(session);
+        return true;
+      })
+      .catch((error: unknown) => {
+        if (revision === this.sessionRevision && error instanceof HttpErrorResponse && error.status === 401) {
+          this.clearSession();
+        }
+        return false;
+      })
+      .finally(() => {
+        if (this.refreshInFlight === refresh) this.refreshInFlight = null;
+      });
+    this.refreshInFlight = refresh;
+    return refresh;
   }
 
-  expireSession(): void {
-    void this.restoreSession(true).then((restored) => {
-      if (!restored) void this.router.navigateByUrl('/login');
-    });
+  async expireSession(): Promise<boolean> {
+    const restored = await this.restoreSession(true);
+    if (!restored && !this.isAuthenticated()) void this.router.navigateByUrl('/login');
+    return restored;
   }
 
   private clearSession(): void {
@@ -66,6 +86,7 @@ export class AdminAuthService {
       clearTimeout(this.expiryTimer);
       this.expiryTimer = undefined;
     }
+    this.sessionRevision += 1;
     sessionStorage.removeItem(this.storageKey);
     this.session.set(null);
   }
@@ -98,6 +119,7 @@ export class AdminAuthService {
   }
 
   private storeSession(session: AdminLoginResponse): void {
+    this.sessionRevision += 1;
     const expiresAt = Date.now() + session.expiresIn * 1_000;
     const storedSession = { ...session, expiresAt };
     sessionStorage.setItem(this.storageKey, JSON.stringify(storedSession));
@@ -105,5 +127,8 @@ export class AdminAuthService {
     this.scheduleExpiry(session.expiresIn * 1_000);
   }
 
-  private scheduleExpiry(delayMs: number): void { this.expiryTimer = setTimeout(() => this.expireSession(), delayMs); }
+  private scheduleExpiry(delayMs: number): void {
+    if (this.expiryTimer !== undefined) clearTimeout(this.expiryTimer);
+    this.expiryTimer = setTimeout(() => void this.expireSession(), Math.max(0, delayMs - 30_000));
+  }
 }
