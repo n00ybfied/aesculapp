@@ -16,6 +16,15 @@
         }
       </section>
     }
+    <aside class="mt-6 rounded-2xl border border-border bg-surface px-4 py-3" aria-labelledby="medication-reminder-notice-title">
+      <div class="flex items-start gap-3">
+        <ng-icon name="lucideCircleAlert" class="mt-0.5 shrink-0 text-primary" size="1.1rem" aria-hidden="true" />
+        <div>
+          <h2 id="medication-reminder-notice-title" class="text-sm font-semibold text-foreground">Hinweis zu Einnahmeerinnerungen</h2>
+          <p class="mt-1 text-xs leading-5 text-muted">Der Medikamentenplan und optionale Erinnerungen sind eine Unterstützung im Alltag. Benachrichtigungen können verspätet oder gar nicht erscheinen. Maßgeblich bleibt Ihr ärztlich oder pharmazeutisch abgestimmter Einnahmeplan. Verlassen Sie sich bei der Einnahme nicht ausschließlich auf die App.</p>
+        </div>
+      </div>
+    </aside>
   </main>
 }
 @if (editorOpen()) {
