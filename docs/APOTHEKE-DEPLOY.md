@@ -30,6 +30,8 @@ Beim Wechsel vom zunächst außerhalb von `web` liegenden `aesculapp-server` wur
 
 Der Shared Host hat `php84` für die CLI; `php` allein ist dort PHP 7.2. Der Workflow baut Composer-Abhängigkeiten auf GitHub und führt Migrationen mit `php84` aus. SSH muss den MAC `hmac-sha2-256` verwenden, da der standardmäßig ausgehandelte MAC bei diesem Host Verbindungsfehler verursacht hat.
 
+Die API-`.htaccess` übernimmt den `Authorization`-Header in `HTTP_AUTHORIZATION`, damit Apache ihn für Symfonys JWT-Prüfung an PHP weitergibt. Andernfalls funktioniert der Login, aber geschützte API-Aufrufe antworten mit `401` und `JWT Token not found`. Die Datei wird beim Apotheken-Deploy aus `ops/world4you/api/.htaccess` aktualisiert.
+
 ## Promotion und Deployment
 
 Zuerst den gewünschten Stand wie gewohnt mit `./merge-dev-to-main.ps1` nach `main` bringen. Wenn die Apotheke diesen Stand übernehmen soll, im sauberen Arbeitsbaum `./merge-main-to-apotheke-test.ps1` ausführen. Vor jeglichem Fetch, Merge oder Push warnt das Skript vor dem möglichen Apotheken-Deploy und verlangt die exakte Terminaleingabe `yes`; jede andere Eingabe oder fehlende interaktive Eingabe bricht ab. Danach holt es beide Remote-Branches per Fast-Forward, merged `main` nach `apotheke-test` und pusht ausschließlich diesen Branch. Ein Push auf `main` aktualisiert **nicht** automatisch die Apothekeninstallation. Kein Force-Push und kein automatischer Merge-Abbruch.
