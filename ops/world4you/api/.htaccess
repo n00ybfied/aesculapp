@@ -2,6 +2,9 @@ Options -Indexes
 DirectoryIndex index.php
 Require all granted
 
+# Preserve Bearer tokens for Symfony's JWT authenticator on shared hosting.
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteCond %{REQUEST_FILENAME} !-f
