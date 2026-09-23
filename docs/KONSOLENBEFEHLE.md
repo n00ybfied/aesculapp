@@ -132,6 +132,40 @@ Ausstehende Chat-Push-Benachrichtigungen erneut zustellen:
 php bin/console app:push:send
 ```
 
+Für die Demo auf dem VPS und die Apotheken-Testinstallation gemeinsam liegt das Linux-Skript
+[`ops/scheduler/run-maintenance.sh`](../ops/scheduler/run-maintenance.sh) vor.
+Es führt je Aufruf genau einen dieser drei Jobs zuerst lokal auf dem VPS und danach per SSH
+auf World4You aus. Ein Fehler auf einem Server verhindert den Versuch auf dem anderen nicht;
+der Gesamtaufruf liefert dann einen Fehlercode. Der `check`-Modus prüft Verbindung, PHP
+und Symfony-Konsole ohne fachliche Daten zu verändern.
+
+Das Skript unter dem VPS-Benutzer `aneger` zum Beispiel als
+`/home/aneger/bin/aesculapp-maintenance` mit ausführbaren Rechten (`chmod 700`)
+installieren. Der private Schlüssel muss unter
+`/home/aneger/.ssh/aesculapp_scheduler` liegen und nur für diesen Benutzer lesbar sein.
+Den SSH-Hostkey vorab unabhängig verifizieren und in `known_hosts` hinterlegen;
+das Skript akzeptiert unbekannte Hostkeys absichtlich nicht. Vor dem Einrichten von Cron:
+
+```bash
+/home/aneger/bin/aesculapp-maintenance check
+```
+
+Beispiel für `crontab -e` auf dem VPS (Server-Zeitzone zuvor mit `date` prüfen;
+für die folgenden Zeiten wird Europe/Vienna bzw. Europe/Berlin vorausgesetzt):
+
+```cron
+*/5 * * * * /home/aneger/bin/aesculapp-maintenance push >> /home/aneger/.local/state/aesculapp-scheduler/cron.log 2>&1
+5 6 * * * /home/aneger/bin/aesculapp-maintenance birthday >> /home/aneger/.local/state/aesculapp-scheduler/cron.log 2>&1
+0 9 * * * /home/aneger/bin/aesculapp-maintenance reminders >> /home/aneger/.local/state/aesculapp-scheduler/cron.log 2>&1
+```
+
+Das Logverzeichnis vorher mit `mkdir -p /home/aneger/.local/state/aesculapp-scheduler`
+anlegen und auf Benutzerzugriff begrenzen (`chmod 700`). Das Log regelmäßig rotieren.
+Ein eigener `flock` pro Job verhindert überlappende Läufe auf dem VPS. Das Skript
+erfordert `bash`, `flock`, `ssh` und lokales PHP 8.4; auf World4You wird `php84`
+verwendet. Es enthält keine Passwörter oder Datenbank-Zugangsdaten. Bei späteren
+Pfad- oder Benutzeränderungen die Konstanten am Anfang des Skripts anpassen.
+
 ## Einmalige Schlüssel-Ersteinrichtung
 
 Diese Befehle nur bei einer neuen, leeren Installation ausführen. Bestehende Schlüssel niemals neu erzeugen oder überschreiben: Verschlüsselte Daten beziehungsweise bestehende Push-Abonnements wären sonst nicht mehr nutzbar.
