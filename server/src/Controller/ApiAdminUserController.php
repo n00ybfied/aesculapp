@@ -156,6 +156,56 @@ final class ApiAdminUserController
         return new JsonResponse(['invitation' => $this->serializeInvitation($invitation)], Response::HTTP_CREATED);
     }
 
+    #[Route('/api/v1/admin/users/invitations/{id}/resend', name: 'api_v1_admin_users_invitation_resend', methods: ['POST'], requirements: ['id' => '\\d+'])]
+    public function resendInvitation(int $id): JsonResponse
+    {
+        $actor = $this->currentMembership();
+        if ($actor === null) {
+            return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $tenant = $this->activeTenant->get();
+        $invitation = $this->invitations->find($id);
+        if ($invitation === null || $invitation->getTenant()->getId() !== $tenant->getId()) {
+            return new JsonResponse(['message' => 'Einladung nicht gefunden.'], Response::HTTP_NOT_FOUND);
+        }
+        if ($invitation->isAccepted()) {
+            return new JsonResponse(['message' => 'Diese Einladung wurde bereits angenommen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if (in_array(self::ADMIN_ROLE, $invitation->getRoles(), true)
+            && !in_array(self::ADMIN_ROLE, $actor->getRoles(), true)) {
+            return new JsonResponse(['message' => 'Nur Administratoren dürfen Administratoren einladen.'], Response::HTTP_FORBIDDEN);
+        }
+        foreach ($invitation->getPermissions() ?? (in_array(self::STAFF_ROLE, $invitation->getRoles(), true) ? AdminAreaPermissions::AREAS : []) as $area) {
+            if (!$this->areaPermissions->can($actor, $area)) {
+                return new JsonResponse(['message' => 'Sie dürfen diese Berechtigungen nicht weitergeben.'], Response::HTTP_FORBIDDEN);
+            }
+        }
+
+        $rawToken = bin2hex(random_bytes(32));
+        $acceptanceUrl = rtrim($this->adminUrl, '/').'/einladung-annehmen?token='.rawurlencode($rawToken);
+        $existingUser = $this->users->findOneByEmail($invitation->getEmail());
+        try {
+            $this->mailer->send(
+                $tenant,
+                (new Email())
+                    ->from($this->mailFrom)
+                    ->to($invitation->getEmail())
+                    ->subject('Erneute Einladung zum Aesculapp Apothekenportal')
+                    ->text($existingUser === null
+                        ? "Sie wurden zum Apothekenportal eingeladen. Legen Sie innerhalb von sieben Tagen Ihr Passwort fest:\n{$acceptanceUrl}"
+                        : "Sie wurden zum Apothekenportal eingeladen. Bestätigen Sie innerhalb von sieben Tagen Ihren zusätzlichen Mitarbeiterzugang. Ihr bestehendes Passwort bleibt unverändert:\n{$acceptanceUrl}"),
+                'admin_invitation',
+            );
+            $invitation->renew(hash('sha256', $rawToken));
+            $this->entityManager->flush();
+        } catch (\Throwable) {
+            return new JsonResponse(['message' => 'Die Einladung konnte derzeit nicht erneut versendet werden.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        return new JsonResponse(['invitation' => $this->serializeInvitation($invitation)]);
+    }
+
     #[Route('/api/v1/admin/users', name: 'api_v1_admin_users_create', methods: ['POST'])]
     public function create(
         Request $request,
@@ -297,10 +347,10 @@ final class ApiAdminUserController
         return ['id' => $user->getId(), 'displayName' => $user->getDisplayName(), 'email' => $user->getEmail(), 'roles' => $membership->getRoles(), 'permissions' => $membership->getPermissions()];
     }
 
-    /** @return array{id:int,displayName:string,email:string,roles:list<string>,permissions:list<string>|null,createdAt:string} */
+    /** @return array{id:int,displayName:string,email:string,roles:list<string>,permissions:list<string>|null,createdAt:string,expiresAt:string} */
     private function serializeInvitation(StaffInvitation $invitation): array
     {
-        return ['id' => $invitation->getId(), 'displayName' => $invitation->getDisplayName(), 'email' => $invitation->getEmail(), 'roles' => $invitation->getRoles(), 'permissions' => $invitation->getPermissions(), 'createdAt' => $invitation->getCreatedAt()->format(DATE_ATOM)];
+        return ['id' => $invitation->getId(), 'displayName' => $invitation->getDisplayName(), 'email' => $invitation->getEmail(), 'roles' => $invitation->getRoles(), 'permissions' => $invitation->getPermissions(), 'createdAt' => $invitation->getCreatedAt()->format(DATE_ATOM), 'expiresAt' => $invitation->getExpiresAt()->format(DATE_ATOM)];
     }
 
     private function validationError(): JsonResponse

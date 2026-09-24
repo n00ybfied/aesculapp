@@ -31,6 +31,8 @@
 .list strong, .list small { display: block; }
 .list small { margin-top: .2rem; color: var(--admin-muted); }
 .role { padding: .3rem .55rem; border-radius: 999px; background: color-mix(in srgb, var(--admin-primary) 12%, white); color: var(--admin-primary-strong); font-size: .8rem; font-weight: 700; }
+.expired { color: var(--admin-danger); font-size: .8rem; font-weight: 700; }
+.list article button:disabled { opacity: .6; cursor: wait; }
 .permission-editor { padding: .9rem; border: 1px solid var(--admin-border); border-radius: .7rem; }
 .password-editor { display: grid; gap: .7rem; padding: .9rem; border: 1px solid var(--admin-border); border-radius: .7rem; }
 .password-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }

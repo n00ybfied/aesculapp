@@ -55,6 +55,8 @@
     <p class="mt-2 text-base text-muted">Ihre Stadtapotheke Trofaiach ist für Sie da.</p>
   </section>
 
+  <app-pwa-install-banner />
+
   @if (pushHintVisible()) {
     <section class="relative mt-5 rounded-2xl border border-primary/30 bg-accent p-4 pr-12" aria-labelledby="push-hint-title">
       <button type="button" class="absolute right-2 top-2 grid size-10 place-items-center rounded-xl text-muted transition hover:bg-surface hover:text-foreground focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="dismissPushHint()" aria-label="Hinweis 30 Tage ausblenden">
