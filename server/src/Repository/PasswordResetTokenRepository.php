@@ -43,4 +43,15 @@ final class PasswordResetTokenRepository extends ServiceEntityRepository
             ->getQuery()
             ->execute();
     }
+
+    public function findMostRecentFor(User $user): ?PasswordResetToken
+    {
+        return $this->createQueryBuilder('resetToken')
+            ->andWhere('resetToken.user = :user')
+            ->setParameter('user', $user)
+            ->orderBy('resetToken.requestedAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

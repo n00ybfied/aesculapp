@@ -15,6 +15,7 @@
 
       <label for="password">Passwort</label>
       <input id="password" name="password" [(ngModel)]="password" autocomplete="current-password" type="password" required />
+      <a class="reset-link" routerLink="/passwort-vergessen">Passwort vergessen?</a>
 
       @if (errorMessage()) {
         <p class="error" role="alert">{{ errorMessage() }}</p>

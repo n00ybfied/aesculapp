@@ -14,3 +14,10 @@ button:hover:not(:disabled) { background: var(--admin-primary-strong); }
 button:disabled { cursor: wait; opacity: .65; }
 .error { margin: .8rem 0 0; color: var(--admin-danger); line-height: 1.4; }
 .hint { margin: 1.75rem 0 0; color: var(--admin-muted); font-size: .85rem; line-height: 1.5; }
+.reset-link { justify-self: end; color: var(--admin-primary-strong); font-size: .9rem; font-weight: 600; }
+.reset-link:hover { text-decoration: underline; }
+.reset-link:focus-visible, .back-link:focus-visible { border-radius: .25rem; outline: 3px solid var(--admin-primary); outline-offset: 3px; }
+.back-link { display: inline-block; margin-top: 1.5rem; color: var(--admin-primary-strong); font-weight: 600; }
+.success { margin: 1.5rem 0 0; color: var(--admin-primary-strong); line-height: 1.5; }
+.field-error { margin: .25rem 0 0; color: var(--admin-danger); font-size: .85rem; }
+.password-hint { margin: 0; color: var(--admin-muted); font-size: .85rem; }
