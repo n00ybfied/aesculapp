@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AdminStatisticsService, type AdminStatistics } from '../../core/statistics/admin-statistics.service';
 import { OpenChatBadgeComponent } from '../../shared/open-chat-badge.component';
+import { AdminAuthService } from '../../core/auth/admin-auth.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -11,6 +12,7 @@ import { OpenChatBadgeComponent } from '../../shared/open-chat-badge.component';
 })
 export class AdminDashboardComponent {
   private readonly statisticsService = inject(AdminStatisticsService);
+  protected readonly canAccess = inject(AdminAuthService).canAccess;
   protected readonly statistics = signal<AdminStatistics | null>(null);
   protected readonly chartPoints = computed(() => {
     const timeline = this.statistics()?.users.timeline ?? [];
@@ -25,7 +27,7 @@ export class AdminDashboardComponent {
     }).join(' ');
   });
 
-  constructor() { void this.loadStatistics(); }
+  constructor() { if (this.canAccess('statistics')) void this.loadStatistics(); }
 
   protected shortDate(value: string): string {
     return new Intl.DateTimeFormat('de-AT', { day: '2-digit', month: '2-digit' }).format(new Date(`${value}T12:00:00`));

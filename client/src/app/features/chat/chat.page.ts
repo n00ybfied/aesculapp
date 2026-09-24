@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, Injector, afterNextRender, inject, input, signal, viewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, Injector, afterNextRender, computed, inject, input, signal, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ChatService, ChatList, ChatDetail, Conversation } from '../../core/chat/chat.service';
@@ -59,12 +59,13 @@ export class ChatImageComponent implements OnInit,OnDestroy {
       <label><input type="checkbox" [(ngModel)]="consent" [disabled]="busy()" /> <span>{{data.consentText}}</span></label>
      </section>
     }
+    @if(messageLimitReached()){<p class="test-notice" role="status">Sie haben 10 Nachrichten hintereinander gesendet. Bitte warten Sie auf eine Antwort der Apotheke, bevor Sie erneut schreiben.</p>}
     <form class="composer" (ngSubmit)="send()">
      @if(!detail()){<label for="chat-subject">Betreff (optional)</label><input class="subject-input" id="chat-subject" name="subject" maxlength="160" [(ngModel)]="subject" [disabled]="busy()" placeholder="Worum geht es?" />}
      <label for="chat-text">Ihre Nachricht</label>
-     <textarea id="chat-text" name="text" rows="3" maxlength="5000" [(ngModel)]="draft" [disabled]="busy()" placeholder="Nachricht schreiben …"></textarea>
+     <textarea id="chat-text" name="text" rows="3" maxlength="5000" [(ngModel)]="draft" [disabled]="busy() || messageLimitReached()" placeholder="Nachricht schreiben …"></textarea>
      @if(preview()){<div class="preview"><img [src]="preview()" alt="Ausgewählter Bildanhang" /><button type="button" [disabled]="busy()" (click)="removeImage()">Bild entfernen</button></div>}
-     <div class="composer-actions"><label class="upload"><span>Bild hinzufügen</span><input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="busy()" (change)="pick($event)" /></label><button class="primary" type="submit" [disabled]="busy()">{{busy()?'Wird gesendet …':'Senden'}}</button></div>
+     <div class="composer-actions"><label class="upload"><span>Bild hinzufügen</span><input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="busy() || messageLimitReached()" (change)="pick($event)" /></label><button class="primary" type="submit" [disabled]="busy() || messageLimitReached()">{{busy()?'Wird gesendet …':'Senden'}}</button></div>
      <small>JPEG, PNG oder WebP · maximal 5 MB · 16 Megapixel</small>
     </form>
    }
@@ -102,23 +103,28 @@ export class ChatPage implements OnInit,OnDestroy {
   afterNextRender(()=>{if(!this.destroyed)this.messageEnd()?.nativeElement.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'end'});},{injector:this.injector});
  }
  readonly list=signal<ChatList|null>(null); readonly detail=signal<ChatDetail|null>(null);
+ readonly messageLimitReached=computed(()=>{
+  const messages=this.detail()?.messages??[];
+  return messages.length>=10&&messages.slice(-10).every(message=>message.role==='customer');
+ });
  readonly loading=signal(true); readonly busy=signal(false); readonly error=signal(''); readonly composing=signal(false); readonly hasOlder=signal(false); readonly preview=signal('');
  subject=''; draft=''; consent=false; file:File|null=null; private requestId=''; private retryBody:FormData|null=null;
  private timer:ReturnType<typeof setInterval>|undefined; private destroyed=false; private generation=0; private polling=false;
  async ngOnInit(){await this.loadList();if(this.destroyed)return;document.addEventListener('visibilitychange',this.visibilityChanged);this.timer=setInterval(()=>void this.poll(),5000);}
  ngOnDestroy(){document.removeEventListener('visibilitychange',this.visibilityChanged);this.destroyed=true;this.generation++;if(this.timer)clearInterval(this.timer);this.removeImage();}
  formatDate(value:string){return new Intl.DateTimeFormat('de-AT',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));}
- private failure(error:unknown){this.error.set(error instanceof HttpErrorResponse && error.status===409?'Dieses Gespräch wurde inzwischen abgeschlossen.':error instanceof HttpErrorResponse && error.status===422?'Bitte prüfen Sie Ihre Nachricht, Zustimmung und das Bildformat (maximal 5 MB / 16 Megapixel).':'Der Chat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.');}
+ private failure(error:unknown){this.error.set(error instanceof HttpErrorResponse && error.status===409?'Dieses Gespräch wurde inzwischen abgeschlossen.':error instanceof HttpErrorResponse && error.status===429?'Bitte warten Sie auf eine Antwort der Apotheke, bevor Sie eine weitere Nachricht senden.':error instanceof HttpErrorResponse && error.status===422?'Bitte prüfen Sie Ihre Nachricht, Zustimmung und das Bildformat (maximal 5 MB / 16 Megapixel).':'Der Chat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.');}
  async loadList(page=1){this.loading.set(true);try{const result=await this.service.list(page);if(!this.destroyed)this.list.set(result);}catch(e){this.failure(e);}finally{this.loading.set(false);}}
  async overview(){if(this.busy())return;this.generation++;this.detail.set(null);this.composing.set(false);await this.loadList();}
  async newChat(){if(this.busy()||this.list()?.activeConversationId)return;await this.loadList();if(this.error()||this.list()?.activeConversationId)return;this.subject='';this.detail.set(null);this.composing.set(true);this.draft='';this.removeImage();this.retryBody=null;}
  async open(id:number){if(this.busy())return;const version=++this.generation;this.loading.set(true);this.error.set('');try{const result=await this.service.read(id);if(version===this.generation&&!this.destroyed){this.lastRead=0;this.detail.set(result);this.acknowledge();this.hasOlder.set(result.hasOlder);this.composing.set(false);this.draft='';this.removeImage();this.retryBody=null;}}catch(e){this.failure(e);}finally{if(version===this.generation)this.loading.set(false);}}
- private async poll(){const current=this.detail();if(!current||current.conversation.status!=='open'||document.hidden||this.busy()||this.loading()||this.polling||this.destroyed)return;const version=this.generation;this.polling=true;try{const next=await this.service.read(current.conversation.id);if(version===this.generation&&!this.destroyed){const merged=new Map(current.messages.map(m=>[m.id,m]));next.messages.forEach(m=>merged.set(m.id,m));this.detail.set({...next,messages:[...merged.values()].sort((a,b)=>a.id-b.id)});this.acknowledge();this.list.update(list=>list?{...list,activeConversationId:next.conversation.status==='open'?next.conversation.id:null}:list);}}catch(e){if(!this.destroyed)this.failure(e);}finally{this.polling=false;}}
+ private async poll(){const current=this.detail();if(!current||current.conversation.status!=='open'||document.hidden||this.busy()||this.loading()||this.polling||this.destroyed)return;const version=this.generation;this.polling=true;try{const next=await this.service.read(current.conversation.id);if(version===this.generation&&!this.destroyed){const wasLimited=this.messageLimitReached();const merged=new Map(current.messages.map(m=>[m.id,m]));next.messages.forEach(m=>merged.set(m.id,m));this.detail.set({...next,messages:[...merged.values()].sort((a,b)=>a.id-b.id)});if(wasLimited&&!this.messageLimitReached())this.error.set('');this.acknowledge();this.list.update(list=>list?{...list,activeConversationId:next.conversation.status==='open'?next.conversation.id:null}:list);}}catch(e){if(!this.destroyed)this.failure(e);}finally{this.polling=false;}}
  async older(){const current=this.detail();if(!current||this.busy())return;this.busy.set(true);try{const old=await this.service.read(current.conversation.id,current.messages[0]?.id);this.detail.set({...current,messages:[...old.messages,...current.messages]});this.hasOlder.set(old.hasOlder);}catch(e){this.failure(e);}finally{this.busy.set(false);}}
  pick(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file)return;if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){this.error.set('Bitte ein JPEG-, PNG- oder WebP-Bild bis 5 MB wählen.');return;}this.removeImage();this.file=file;this.preview.set(URL.createObjectURL(file));this.retryBody=null;}
  removeImage(){if(this.preview())URL.revokeObjectURL(this.preview());this.preview.set('');this.file=null;}
  async send(){
   if(this.busy())return;
+  if(this.messageLimitReached()){this.error.set('Bitte warten Sie auf eine Antwort der Apotheke, bevor Sie eine weitere Nachricht senden.');return;}
   if(!this.draft.trim()&&!this.file){this.error.set('Bitte schreiben Sie eine Nachricht oder fügen Sie ein Bild hinzu.');return;}
   if(!this.list()?.consented&&!this.consent){this.error.set('Bitte stimmen Sie zuerst den Datenschutzhinweisen für den Chat zu.');return;}
   this.busy.set(true);this.error.set('');this.generation++;
@@ -138,7 +144,7 @@ export class ChatPage implements OnInit,OnDestroy {
    this.composing.set(false);this.draft='';this.removeImage();this.retryBody=null;
    this.scrollToLatest();
   }
-  catch(e){this.failure(e);if(e instanceof HttpErrorResponse&&e.status===409){this.busy.set(false);await this.poll();}}finally{this.busy.set(false);}
+  catch(e){this.failure(e);if(e instanceof HttpErrorResponse&&[409,429].includes(e.status)){this.busy.set(false);await this.poll();}}finally{this.busy.set(false);}
  }
  async close(){const id=this.detail()?.conversation.id;if(!id||this.busy()||!await this.dialogs.confirm('Dieses Gespräch wirklich abschließen?', { title: 'Gespräch abschließen', confirmLabel: 'Abschließen' }))return;this.busy.set(true);this.generation++;try{await this.service.close(id);this.busy.set(false);await this.open(id);}catch(e){this.failure(e);}finally{this.busy.set(false);}}
 }

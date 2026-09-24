@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { adminAuthGuard } from './core/auth/admin-auth.guard';
+import { adminAreaGuard } from './core/auth/admin-area.guard';
 
 export const routes: Routes = [
   {
@@ -21,6 +22,7 @@ export const routes: Routes = [
   {
     path: '',
     canActivate: [adminAuthGuard],
+    canActivateChild: [adminAreaGuard],
     loadComponent: () => import('./layout/admin-shell.component').then((module) => module.AdminShellComponent),
     children: [
       { path: 'chat', loadComponent: () => import('./features/chat/chat.page').then(m => m.ChatPage) },
@@ -37,6 +39,7 @@ export const routes: Routes = [
       { path: 'gutscheine/:id', loadComponent: () => import('./features/coupons/coupon-editor.component').then(m => m.CouponEditorComponent) },
       { path: 'gutscheine', loadComponent: () => import('./features/coupons/admin-coupons.component').then(m => m.AdminCouponsComponent) },
       { path: 'termine', loadComponent: () => import('./features/appointments/admin-appointments.component').then(m => m.AdminAppointmentsComponent) },
+      { path: 'meine-termine', loadComponent: () => import('./features/appointments/staff-appointments.component').then(m => m.StaffAppointmentsComponent) },
       { path: 'inhalte', loadComponent: () => import('./features/news/news-list.component').then((module) => module.NewsListComponent) },
       { path: 'inhalte/neu', loadComponent: () => import('./features/news/news-editor.component').then((module) => module.NewsEditorComponent) },
       { path: 'inhalte/:id', loadComponent: () => import('./features/news/news-editor.component').then((module) => module.NewsEditorComponent) },

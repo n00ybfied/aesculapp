@@ -86,7 +86,7 @@
         <div><p class="eyebrow">TERMINDETAILS</p><h3 id="appointment-detail-title">{{ appointment.customer }}</h3></div>
         <button #detailCloseButton type="button" class="icon-button" aria-label="Termindetails schließen" (click)="closeAppointmentDetails()">×</button>
       </div>
-      <span class="status" [class.cancelled]="appointment.status === 'cancelled'">{{ appointment.status === 'cancelled' ? 'Abgesagt' : 'Gebucht' }}</span>
+      <span class="status" [class.cancelled]="appointment.status === 'cancelled'">{{ appointment.status === 'cancelled' ? 'Abgesagt' : appointment.status === 'pending_staff_confirmation' ? 'Wartet auf Bestätigung' : 'Gebucht' }}</span>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       <dl class="detail-list">
         <div><dt>Zuordnung</dt><dd>{{ appointment.customerId === null ? 'Ohne App-Konto' : 'App-Benutzer' }}</dd></div>
@@ -96,7 +96,7 @@
         <div><dt>Person</dt><dd>{{ appointment.resource }}</dd></div>
         <div><dt>Anmerkungen</dt><dd class="detail-note">{{ appointment.note || 'Keine Anmerkungen' }}</dd></div>
       </dl>
-      @if (appointment.customerId !== null && appointment.chatConversationId === null) {
+      @if (appointment.customerId !== null && appointment.chatConversationId === null && canAccessChat()) {
         <div class="appointment-chat-link">
           <label>Bestehendes Gespräch verknüpfen
             <select [(ngModel)]="selectedChatId" [disabled]="loadingChats() || linkingChat()">
@@ -111,10 +111,13 @@
       }
       <div class="form-actions">
         <button type="button" class="secondary" (click)="closeAppointmentDetails()">Schließen</button>
-        @if (appointment.customerId !== null) {
+        @if (canConfirmAppointment(appointment)) {
+          <button type="button" [disabled]="confirmingAppointment() !== null" (click)="confirmAppointment(appointment)">{{ confirmingAppointment() === appointment.id ? 'Wird bestätigt …' : 'Termin bestätigen' }}</button>
+        }
+        @if (appointment.customerId !== null && canAccessChat()) {
           <button type="button" class="secondary" [disabled]="linkingChat()" (click)="openAppointmentChat(appointment)">{{ appointment.chatConversationId === null ? 'Chat eröffnen' : 'Zum Chat' }}</button>
         }
-        @if (appointment.status === 'reserved') { <button type="button" class="danger" (click)="cancel(appointment)">Termin absagen</button> }
+        @if (appointment.status !== 'cancelled') { <button type="button" class="danger" (click)="cancel(appointment)">Termin absagen</button> }
       </div>
     </section>
   </div>

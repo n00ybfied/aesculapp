@@ -2,7 +2,7 @@ import { Component, ElementRef, OnDestroy, OnInit, computed, inject, signal, vie
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AdminUserService, AdminUserSummary } from '../../core/users/admin-user.service';
+import { AdminAuthService } from '../../core/auth/admin-auth.service';
 
 import {
   AdminAppointment,
@@ -12,6 +12,7 @@ import {
   AppointmentResource,
   AppointmentType,
   CustomerCancellationNotice,
+  AppointmentStaffUser,
 } from '../../core/appointments/admin-appointment.service';
 import { AppointmentCalendarComponent } from './appointment-calendar.component';
 import { AppointmentCreateComponent } from './appointment-create.component';
@@ -33,7 +34,12 @@ interface BlockCalendarDay {
 export class AdminAppointmentsComponent implements OnInit, OnDestroy {
   private readonly service = inject(AdminAppointmentService);
   private readonly dialogs = inject(ConfirmDialogService);
-  private readonly usersService = inject(AdminUserService);
+  private readonly auth = inject(AdminAuthService);
+  protected readonly canAccessChat = () => this.auth.canAccess('chat');
+  protected readonly isTenantAdmin = this.auth.isTenantAdmin;
+  protected canConfirmAppointment(appointment: AdminAppointment): boolean {
+    return this.isTenantAdmin() && appointment.status === 'pending_staff_confirmation' && new Date(appointment.startsAt).getTime() > Date.now();
+  }
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly detailCloseButton = viewChild<ElementRef<HTMLButtonElement>>('detailCloseButton');
@@ -59,10 +65,11 @@ export class AdminAppointmentsComponent implements OnInit, OnDestroy {
   protected readonly selectedAppointment = computed(() => this.appointments().find((appointment) => appointment.id === this.selectedAppointmentId()) ?? null);
   protected readonly types = signal<readonly AppointmentType[]>([]);
   protected readonly resources = signal<readonly AppointmentResource[]>([]);
-  protected readonly staffUsers = signal<readonly AdminUserSummary[]>([]);
+  protected readonly staffUsers = signal<readonly AppointmentStaffUser[]>([]);
   protected readonly availableChats = signal<readonly { id: number; status: string; updatedAt: string }[]>([]);
   protected readonly loadingChats = signal(false);
   protected readonly linkingChat = signal(false);
+  protected readonly confirmingAppointment = signal<number | null>(null);
   protected selectedChatId = '';
   protected readonly availability = signal<readonly AppointmentAvailability[]>([]);
   protected readonly blocks = signal<readonly AppointmentBlock[]>([]);
@@ -242,7 +249,7 @@ export class AdminAppointmentsComponent implements OnInit, OnDestroy {
     this.selectedAppointmentId.set(appointment.id);
     this.selectedChatId = '';
     this.availableChats.set([]);
-    if (appointment.customerId !== null && appointment.chatConversationId === null) {
+    if (appointment.customerId !== null && appointment.chatConversationId === null && this.canAccessChat()) {
       void this.loadAvailableChats(appointment.id);
     }
     setTimeout(() => this.detailCloseButton()?.nativeElement.focus());
@@ -412,6 +419,22 @@ export class AdminAppointmentsComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected async confirmAppointment(appointment: AdminAppointment): Promise<void> {
+    if (!this.canConfirmAppointment(appointment) || this.confirmingAppointment() !== null) return;
+    this.confirmingAppointment.set(appointment.id);
+    this.error.set('');
+    try {
+      await this.service.confirm(appointment.id);
+      this.appointments.update((items) => items.map((item) => item.id === appointment.id ? { ...item, status: 'reserved' } : item));
+      this.message.set('Termin wurde bestätigt.');
+    } catch (failure: unknown) {
+      this.error.set(failure instanceof HttpErrorResponse && typeof failure.error?.message === 'string'
+        ? failure.error.message : 'Der Termin konnte nicht bestätigt werden.');
+    } finally {
+      this.confirmingAppointment.set(null);
+    }
+  }
+
   protected async saveBlock(): Promise<void> {
     if (this.blockStartsOn === '' || this.blockEndsOn === '' || this.blockStartsOn > this.blockEndsOn || (this.blockHasTime && this.blockStartsAt >= this.blockEndsAt)) {
       this.error.set('Bitte einen gültigen Zeitraum auswählen.');
@@ -543,7 +566,7 @@ export class AdminAppointmentsComponent implements OnInit, OnDestroy {
       const [data, cancellations, users] = await Promise.all([
         this.service.load(),
         this.service.listCustomerCancellations().catch(() => [...this.cancellationNotices()]),
-        this.usersService.getOverview().then((result) => result.users).catch(() => [...this.staffUsers()]),
+        this.service.listStaffUsers().catch(() => [...this.staffUsers()]),
       ]);
       if (this.destroyed) return;
       if (request === this.appointmentsRequest) {

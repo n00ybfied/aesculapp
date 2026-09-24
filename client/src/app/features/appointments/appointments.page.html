@@ -30,6 +30,7 @@
         </label>
 
         @if (selectedType()) {
+          <p class="mt-3 text-sm text-muted">Zwischen zwei Terminen derselben Art müssen mindestens sieben Tage liegen.</p>
           <section class="mt-4" aria-labelledby="appointment-day-title">
             <h3 id="appointment-day-title" class="text-sm font-semibold">Wunschtag</h3>
             @if (isLoadingCalendar()) {
@@ -53,7 +54,7 @@
           } @else {
             <div class="mt-3 grid grid-cols-2 gap-3">
               @for (slot of slots(); track slot.resourceId + '-' + slot.startsAt) {
-                <button type="button" class="min-h-12 rounded-xl border px-4 font-semibold transition disabled:opacity-60" [class.border-primary]="selectedSlot()?.startsAt === slot.startsAt && selectedSlot()?.resourceId === slot.resourceId" [class.bg-accent]="selectedSlot()?.startsAt === slot.startsAt && selectedSlot()?.resourceId === slot.resourceId" [class.text-primary]="selectedSlot()?.startsAt === slot.startsAt && selectedSlot()?.resourceId === slot.resourceId" [class.border-border]="selectedSlot()?.startsAt !== slot.startsAt || selectedSlot()?.resourceId !== slot.resourceId" [class.bg-surface]="selectedSlot()?.startsAt !== slot.startsAt || selectedSlot()?.resourceId !== slot.resourceId" [disabled]="isBooking()" (click)="selectSlot(slot)">{{ formatTime(slot.startsAt) }}</button>
+                <button type="button" class="min-h-12 rounded-xl border px-4 font-semibold transition disabled:opacity-60" [class.border-primary]="selectedSlot()?.startsAt === slot.startsAt && selectedSlot()?.resourceId === slot.resourceId" [class.bg-accent]="selectedSlot()?.startsAt === slot.startsAt && selectedSlot()?.resourceId === slot.resourceId" [class.text-primary]="selectedSlot()?.startsAt === slot.startsAt && selectedSlot()?.resourceId === slot.resourceId" [class.border-border]="selectedSlot()?.startsAt !== slot.startsAt || selectedSlot()?.resourceId !== slot.resourceId" [class.bg-surface]="selectedSlot()?.startsAt !== slot.startsAt || selectedSlot()?.resourceId !== slot.resourceId" [disabled]="isBooking()" (click)="selectSlot(slot)">{{ formatTime(slot.startsAt) }}@if (slot.resourceName) { <small class="block font-normal">{{ slot.resourceName }}</small> }</button>
               } @empty {
                 <p class="col-span-2 text-sm leading-6 text-muted">Für diesen Tag sind leider keine freien Termine verfügbar.</p>
               }
@@ -74,9 +75,10 @@
     <section class="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="appointment-confirmation-title">
       <p class="text-sm font-semibold tracking-wide text-primary">TERMINZUSAMMENFASSUNG</p>
       <h2 id="appointment-confirmation-title" class="mt-1 text-2xl font-bold">Passt alles?</h2>
-      <dl class="mt-5 space-y-4 text-sm"><div><dt class="font-semibold text-muted">Terminart</dt><dd class="mt-1 font-bold">{{ selectedType()?.title }}</dd></div><div><dt class="font-semibold text-muted">Datum und Uhrzeit</dt><dd class="mt-1 font-bold">{{ formatDateTime(selectedSlot()!.startsAt) }}</dd></div><div><dt class="font-semibold text-muted">Dauer</dt><dd class="mt-1">{{ selectedType()?.durationMinutes }} Minuten</dd></div><div><dt class="font-semibold text-muted">Anmerkungen</dt><dd class="mt-1 whitespace-pre-line">{{ note.trim() || 'Keine Anmerkungen' }}</dd></div></dl>
+      <dl class="mt-5 space-y-4 text-sm"><div><dt class="font-semibold text-muted">Terminart</dt><dd class="mt-1 font-bold">{{ selectedType()?.title }}</dd></div><div><dt class="font-semibold text-muted">Datum und Uhrzeit</dt><dd class="mt-1 font-bold">{{ formatDateTime(selectedSlot()!.startsAt) }}</dd></div>@if (selectedSlot()?.resourceName) { <div><dt class="font-semibold text-muted">Bei</dt><dd class="mt-1">{{ selectedSlot()?.resourceName }}</dd></div> }<div><dt class="font-semibold text-muted">Dauer</dt><dd class="mt-1">{{ selectedType()?.durationMinutes }} Minuten</dd></div><div><dt class="font-semibold text-muted">Anmerkungen</dt><dd class="mt-1 whitespace-pre-line">{{ note.trim() || 'Keine Anmerkungen' }}</dd></div></dl>
+      @if (selectedSlot()?.requiresConfirmation) { <p class="mt-4 rounded-xl bg-accent p-3 text-sm text-primary">Dieser Termin wird erst nach Bestätigung durch die durchführende Person verbindlich reserviert. Sie werden per E-Mail benachrichtigt.</p> }
       @if (error()) { <p class="mt-4 rounded-xl bg-danger/10 p-3 text-sm text-danger" role="alert">{{ error() }}</p> }
-      <button type="button" class="mt-6 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary disabled:opacity-60" [disabled]="isBooking()" (click)="confirmBooking()">{{ isBooking() ? 'Reserviert …' : 'Jetzt Termin reservieren' }}</button>
+      <button type="button" class="mt-6 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary disabled:opacity-60" [disabled]="isBooking()" (click)="confirmBooking()">{{ isBooking() ? 'Wird übermittelt …' : selectedSlot()?.requiresConfirmation ? 'Termin anfragen' : 'Jetzt Termin reservieren' }}</button>
       <button type="button" class="mt-3 min-h-11 w-full rounded-xl px-5 font-bold text-muted" [disabled]="isBooking()" (click)="closeConfirmation()">Zurück</button>
     </section>
   </div>

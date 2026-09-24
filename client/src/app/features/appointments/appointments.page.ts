@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 
 import {
@@ -104,8 +105,11 @@ export class AppointmentsPage {
       this.selectedSlot.set(null);
       this.isConfirmationOpen.set(false);
       await this.router.navigateByUrl('/termine/meine');
-    } catch {
-      this.error.set('Dieser Termin ist leider nicht mehr verfügbar. Bitte wählen Sie eine andere Uhrzeit.');
+    } catch (error) {
+      this.error.set(error instanceof HttpErrorResponse && error.status === 409
+        && error.error?.code === 'appointment_type_week_limit'
+        ? 'Zwischen zwei Terminen derselben Art müssen mindestens sieben Tage liegen.'
+        : 'Dieser Termin ist leider nicht mehr verfügbar. Bitte wählen Sie eine andere Uhrzeit.');
       await this.loadSlots();
     } finally {
       this.isBooking.set(false);

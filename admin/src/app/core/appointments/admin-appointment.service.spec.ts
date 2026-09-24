@@ -14,7 +14,9 @@ describe('AdminAppointmentService', () => {
       accessToken: 'test-token',
       expiresIn: 900,
       expiresAt: Date.now() + 900_000,
-      user: { displayName: 'Admin', username: 'admin' },
+      user: { id: 1, displayName: 'Admin', username: 'admin' },
+      roles: ['ROLE_TENANT_ADMIN'],
+      permissions: ['appointments'],
     }));
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
@@ -78,5 +80,14 @@ describe('AdminAppointmentService', () => {
     expect(request.request.body).toEqual({ throughId: 8 });
     request.flush({ acknowledgedThroughId: 8 });
     await acknowledge;
+  });
+
+  it('sends administrator confirmations through the dedicated endpoint', async () => {
+    const pending = service.confirm(42);
+    const request = requests.expectOne(`${api}/42/confirm`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer test-token');
+    request.flush({ appointment: { id: 42, status: 'reserved' } });
+    await pending;
   });
 });

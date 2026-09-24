@@ -23,6 +23,10 @@ class Appointment
     private AppointmentResource $resource;
 
     #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $assignedUser = null;
+
+    #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private AppointmentType $type;
 
@@ -39,7 +43,7 @@ class Appointment
     #[ORM\Column]
     private \DateTimeImmutable $endsAt;
 
-    #[ORM\Column(length: 20)]
+    #[ORM\Column(length: 32)]
     private string $status = 'reserved';
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -71,6 +75,7 @@ class Appointment
 
         $this->tenant = $tenant;
         $this->resource = $resource;
+        $this->assignedUser = $resource->getAssignedUser();
         $this->type = $type;
         $this->customer = $customer;
         $this->guestName = $guestName === null ? null : trim($guestName);
@@ -82,6 +87,7 @@ class Appointment
     public function getId(): ?int { return $this->id; }
     public function getTenant(): Tenant { return $this->tenant; }
     public function getResource(): AppointmentResource { return $this->resource; }
+    public function getAssignedUser(): ?User { return $this->assignedUser; }
     public function getType(): AppointmentType { return $this->type; }
     public function getCustomer(): ?User { return $this->customer; }
     public function getDisplayName(): string { return $this->customer?->getDisplayName() ?? $this->guestName ?? ''; }
@@ -97,4 +103,13 @@ class Appointment
     public function markReminderEmailSent(): void { $this->reminderEmailSentAt = new \DateTimeImmutable(); }
     public function markReminderPushSent(): void { $this->reminderPushSentAt = new \DateTimeImmutable(); }
     public function cancel(): void { $this->status = 'cancelled'; }
+    public function awaitStaffConfirmation(): void { $this->status = 'pending_staff_confirmation'; }
+    public function confirmByStaff(): void
+    {
+        if ($this->status !== 'pending_staff_confirmation') {
+            throw new \LogicException('Nur ausstehende Termine können bestätigt werden.');
+        }
+        $this->status = 'reserved';
+    }
+    public function occupiesSlot(): bool { return in_array($this->status, ['reserved', 'pending_staff_confirmation'], true); }
 }

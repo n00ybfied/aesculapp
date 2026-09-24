@@ -28,6 +28,10 @@ class TenantMembership
     #[ORM\Column]
     private array $roles;
 
+    /** @var list<string>|null Null keeps existing staff accounts unrestricted. */
+    #[ORM\Column(nullable: true)]
+    private ?array $permissions = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -122,6 +126,11 @@ class TenantMembership
     {
         $this->roles = array_values(array_unique($roles));
     }
+
+    /** @return list<string>|null */
+    public function getPermissions(): ?array { return $this->permissions; }
+    /** @param list<string>|null $permissions */
+    public function setPermissions(?array $permissions): void { $this->permissions = $permissions === null ? null : array_values(array_unique($permissions)); }
 
     public function isNewsletterEnabled(): bool { return $this->newsletterEnabled; }
     public function setNewsletterEnabled(bool $value): void { $this->newsletterEnabled = $value; }

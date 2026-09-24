@@ -31,6 +31,10 @@ class StaffInvitation
     #[ORM\Column]
     private array $roles;
 
+    /** @var list<string>|null */
+    #[ORM\Column(nullable: true)]
+    private ?array $permissions = null;
+
     #[ORM\Column(length: 64)]
     private string $tokenHash;
 
@@ -61,6 +65,10 @@ class StaffInvitation
     public function getDisplayName(): string { return $this->displayName; }
     /** @return list<string> */
     public function getRoles(): array { return $this->roles; }
+    /** @return list<string>|null */
+    public function getPermissions(): ?array { return $this->permissions; }
+    /** @param list<string>|null $permissions */
+    public function setPermissions(?array $permissions): void { $this->permissions = $permissions === null ? null : array_values(array_unique($permissions)); }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function markAccepted(): void { $this->acceptedAt = new \DateTimeImmutable(); }
 }

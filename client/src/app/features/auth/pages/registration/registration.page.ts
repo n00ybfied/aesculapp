@@ -4,10 +4,11 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { authMessages } from '../../../../core/i18n/auth-messages';
 import { ThemeService } from '../../../../core/theme/theme.service';
+import { PasswordVisibilityToggleComponent } from '../../../../shared/password-visibility-toggle.component';
 
 @Component({
   selector: 'app-registration-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordVisibilityToggleComponent],
   templateUrl: './registration.page.html',
 })
 export class RegistrationPage {

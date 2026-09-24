@@ -4,10 +4,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { TenantBrandingService } from '../../core/settings/tenant-branding.service';
+import { PasswordVisibilityToggleComponent } from '../../shared/password-visibility-toggle.component';
 
 @Component({
   selector: 'app-admin-password-reset-confirm',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordVisibilityToggleComponent],
   templateUrl: './admin-password-reset-confirm.component.html',
   styleUrl: './admin-login.component.css',
 })

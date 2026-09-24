@@ -48,9 +48,14 @@ final class ApiAdminInvitationAcceptanceController
         if ($user !== null) {
             $membership = $memberships->findForUserAndTenant($user, $invitation->getTenant());
             if ($membership === null) {
-                $entityManager->persist(new TenantMembership($invitation->getTenant(), $user, $invitation->getRoles()));
+                $membership = new TenantMembership($invitation->getTenant(), $user, $invitation->getRoles());
+                $membership->setPermissions($invitation->getPermissions());
+                $entityManager->persist($membership);
             } else {
                 $membership->setRoles([...$membership->getRoles(), ...$invitation->getRoles()]);
+                if ($invitation->getPermissions() !== null) {
+                    $membership->setPermissions(array_values(array_unique([...( $membership->getPermissions() ?? []), ...$invitation->getPermissions()])));
+                }
             }
 
             $user->setActive(true);
@@ -72,7 +77,9 @@ final class ApiAdminInvitationAcceptanceController
         $user->setActive(true);
         $invitation->markAccepted();
         $entityManager->persist($user);
-        $entityManager->persist(new TenantMembership($invitation->getTenant(), $user, $invitation->getRoles()));
+        $membership = new TenantMembership($invitation->getTenant(), $user, $invitation->getRoles());
+        $membership->setPermissions($invitation->getPermissions());
+        $entityManager->persist($membership);
         $entityManager->flush();
 
         return new JsonResponse(['existingAccount' => false]);

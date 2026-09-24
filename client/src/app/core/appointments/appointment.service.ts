@@ -19,6 +19,8 @@ export interface AppointmentTypesResponse {
 
 export interface AppointmentSlot {
   readonly resourceId: number;
+  readonly resourceName: string | null;
+  readonly requiresConfirmation: boolean;
   readonly startsAt: string;
   readonly endsAt: string;
 }
@@ -35,10 +37,10 @@ export interface AppointmentBlock {
 export interface CustomerAppointment {
   readonly id: number;
   readonly type: string;
-  readonly resource: string;
+  readonly resource: string | null;
   readonly startsAt: string;
   readonly endsAt: string;
-  readonly status: 'reserved' | 'cancelled';
+  readonly status: 'reserved' | 'pending_staff_confirmation' | 'cancelled';
 }
 
 @Injectable({ providedIn: 'root' })

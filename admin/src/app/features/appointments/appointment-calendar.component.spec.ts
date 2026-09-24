@@ -43,6 +43,7 @@ describe('AppointmentCalendarComponent', () => {
       endsAt: `${day}T10:30:00+02:00`,
       status: 'reserved',
       note: null,
+      chatConversationId: null,
     };
     const fixture = TestBed.createComponent(AppointmentCalendarComponent);
     fixture.componentRef.setInput('appointments', [appointment]);

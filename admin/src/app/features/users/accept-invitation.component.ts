@@ -2,10 +2,11 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AdminUserService } from '../../core/users/admin-user.service';
+import { PasswordVisibilityToggleComponent } from '../../shared/password-visibility-toggle.component';
 
 @Component({
   selector: 'app-accept-invitation',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordVisibilityToggleComponent],
   templateUrl: './accept-invitation.component.html',
   styleUrl: './accept-invitation.component.css',
 })

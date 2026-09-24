@@ -22,7 +22,7 @@ final class AppointmentStaffNotifier
 
     public function notify(Appointment $appointment): void
     {
-        $staff = $appointment->getResource()->getAssignedUser();
+        $staff = $appointment->getAssignedUser();
         if ($staff === null) {
             return;
         }
@@ -37,10 +37,11 @@ final class AppointmentStaffNotifier
                 (new Email())
                     ->from($this->mailFrom)
                     ->to($staff->getEmail())
-                    ->subject('Neuer Termin für Sie')
+                    ->subject($appointment->getStatus() === 'pending_staff_confirmation' ? 'Termin wartet auf Ihre Bestätigung' : 'Neuer Termin für Sie')
                     ->text(sprintf(
-                        "Guten Tag %s,\n\nIhnen wurde ein neuer Termin zugewiesen.\n\n%s\n%s Uhr\nKunde: %s\n\nDetails im Adminbereich:\n%s/termine\n",
+                        "Guten Tag %s,\n\n%s\n\n%s\n%s Uhr\nKunde: %s\n\nDetails im Adminbereich:\n%s/meine-termine\n",
                         $staff->getDisplayName(),
+                        $appointment->getStatus() === 'pending_staff_confirmation' ? 'Ihnen wurde ein Termin zugewiesen. Bitte bestätigen Sie ihn, damit er verbindlich gebucht wird.' : 'Ihnen wurde ein neuer Termin zugewiesen.',
                         $appointment->getType()->getTitle(),
                         $appointment->getStartsAt()->format('d.m.Y H:i'),
                         $appointment->getDisplayName(),
