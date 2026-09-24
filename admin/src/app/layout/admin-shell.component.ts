@@ -8,10 +8,12 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AdminAuthService } from '../core/auth/admin-auth.service';
 import { TenantBrandingService } from '../core/settings/tenant-branding.service';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
+import { AdminRedemptionService } from '../core/redemptions/admin-redemption.service';
+import { ActiveRedemptionsBadgeComponent } from '../shared/active-redemptions-badge.component';
 
 @Component({
   selector: 'app-admin-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, OpenChatBadgeComponent, UnseenAppointmentsBadgeComponent, ConfirmDialogComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, OpenChatBadgeComponent, UnseenAppointmentsBadgeComponent, ActiveRedemptionsBadgeComponent, ConfirmDialogComponent],
   templateUrl: './admin-shell.component.html',
   styleUrl: './admin-shell.component.css',
 })
@@ -19,11 +21,13 @@ export class AdminShellComponent implements OnDestroy {
   private readonly chats=inject(ChatService);
   private readonly appointments = inject(AdminAppointmentService);
   private readonly staffAppointments = inject(StaffAppointmentService);
+  private readonly redemptions = inject(AdminRedemptionService);
   private readonly countTimer:ReturnType<typeof setInterval>;
   private readonly refreshCount=()=>{
     if (document.hidden) return;
     if (this.auth.canAccess('chat')) void this.chats.refreshOpenCount();
     if (this.auth.canAccess('appointments')) void this.appointments.refreshUnseenCount();
+    if (this.auth.canAccess('redemptions')) void this.redemptions.refresh();
     void this.staffAppointments.refreshAlert();
   };
   private readonly auth = inject(AdminAuthService);
@@ -44,7 +48,7 @@ export class AdminShellComponent implements OnDestroy {
     document.addEventListener('visibilitychange',this.refreshCount);
   }
 
-  ngOnDestroy():void{clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshCount);this.chats.openCount.set(null);this.appointments.unseenCount.set(null);this.staffAppointments.clearAlert();}
+  ngOnDestroy():void{clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshCount);this.chats.openCount.set(null);this.appointments.unseenCount.set(null);this.staffAppointments.clearAlert();this.redemptions.clear();}
 
   protected alertText(alert: AppointmentAlert): string {
     const appointments = alert.count === 1 ? 'Termin' : 'Termine';

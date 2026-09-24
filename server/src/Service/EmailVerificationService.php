@@ -37,7 +37,7 @@ final class EmailVerificationService
         $rawToken = bin2hex(random_bytes(32));
         $this->entityManager->persist(new EmailVerificationToken($user, $tenant, hash('sha256', $rawToken), new \DateTimeImmutable('+24 hours')));
         $verificationUrl = rtrim($this->clientUrl, '/') . '/e-mail-bestaetigen?token=' . rawurlencode($rawToken);
-        $this->mailer->send($tenant, (new Email())->from($this->mailFrom)->to($user->getEmail())->subject('E-Mail-Adresse für Aesculapp bestätigen')->text("Bitte bestätigen Sie Ihre E-Mail-Adresse innerhalb von 24 Stunden:\n{$verificationUrl}\n\nErst danach ist Ihr Konto aktiv."), 'email_verification');
+        $this->mailer->send($tenant, (new Email())->from($this->mailFrom)->to($user->getEmail())->subject('E-Mail-Adresse für Aesculapp bestätigen')->text("Bitte bestätigen Sie Ihre E-Mail-Adresse innerhalb von 24 Stunden:\n{$verificationUrl}\n\nErst danach ist Ihr Konto aktiv."), 'email_verification', ['action_url' => $verificationUrl]);
         if ($invalidatePreviousTokens) {
             $this->tokens->invalidatePendingFor($user, $tenant);
         }

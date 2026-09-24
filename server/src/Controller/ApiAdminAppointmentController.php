@@ -136,7 +136,8 @@ final class ApiAdminAppointmentController
                             $tenant->showsAppointmentStaffNames() ? "\nAnsprechperson: ".$resource->getName() : '',
                             rtrim($this->clientUrl, '/'),
                         )),
-                    'appointment_created_by_staff',
+                    $createdAppointment->getStatus() === 'pending_staff_confirmation' ? 'appointment_created_by_staff_pending' : 'appointment_created_by_staff',
+                    \App\Service\AppointmentTemplateValues::customer($createdAppointment, $this->clientUrl),
                 );
             } catch (\Throwable $exception) {
                 $this->logger->warning('appointment.booking_email.failed', [
@@ -319,6 +320,10 @@ final class ApiAdminAppointmentController
                             $appointment->getStartsAt()->format('d.m.Y H:i'),
                         )),
                     'appointment_cancelled',
+                    [
+                        'appointment_type' => $appointment->getType()->getTitle(),
+                        'appointment_datetime' => $appointment->getStartsAt()->format('d.m.Y H:i'),
+                    ],
                 );
             } catch (\Throwable) {
                 // A mail delivery issue must not prevent the appointment cancellation.

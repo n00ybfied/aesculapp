@@ -19,11 +19,32 @@ final class TenantMailer
         #[Autowire(service: 'monolog.logger.email')]
         private readonly LoggerInterface $emailLogger,
         private readonly string $smtpOverrideDsn = '',
+        private readonly ?NotificationTemplates $notificationTemplates = null,
     ) {
     }
 
-    public function send(Tenant $tenant, Email $email, string $messageType = 'transactional'): void
+    /** @param array<string, string> $templateValues */
+    public function send(Tenant $tenant, Email $email, string $messageType = 'transactional', array $templateValues = []): void
     {
+        if ($this->notificationTemplates !== null) {
+            $originalSubject = $email->getSubject() ?? '';
+            $originalBody = $email->getTextBody() ?? '';
+            if ($originalBody !== '') {
+                try {
+                    $rendered = $this->notificationTemplates->render($tenant, $messageType, $originalSubject, $originalBody, $templateValues);
+                    if (preg_match('/{{[^{}]+}}/', $rendered['title'].$rendered['body'])) {
+                        throw new \RuntimeException('Unresolved notification insert tag.');
+                    }
+                    $email->subject($rendered['title'])->text($rendered['body']);
+                    // Send customized content as plain text; clients will render links without interpreting HTML.
+                    if ($rendered['body'] !== $originalBody && $email->getHtmlBody() !== null) {
+                        $email->html(null);
+                    }
+                } catch (\Throwable $exception) {
+                    $this->emailLogger->warning('email.template.failed', ['messageType' => $messageType, 'errorClass' => $exception::class]);
+                }
+            }
+        }
         $delivery = $this->smtpOverrideDsn !== '' ? 'environment_override' : 'fallback';
         if ($this->smtpOverrideDsn === '' && $tenant->getSmtpHost() !== null && $tenant->getSmtpPort() !== null && $tenant->getSmtpPasswordEncrypted() !== null) {
             $delivery = 'tenant_smtp';

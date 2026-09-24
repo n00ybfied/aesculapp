@@ -147,6 +147,13 @@ final class ApiAdminUserController
                         ? "Sie wurden zum Apothekenportal eingeladen. Legen Sie innerhalb von sieben Tagen Ihr Passwort fest:\n{$acceptanceUrl}"
                         : "Sie wurden zum Apothekenportal eingeladen. Bestätigen Sie innerhalb von sieben Tagen Ihren zusätzlichen Mitarbeiterzugang. Ihr bestehendes Passwort bleibt unverändert:\n{$acceptanceUrl}"),
                 'admin_invitation',
+                [
+                    'invitation_prefix' => '',
+                    'invitation_instruction' => $existingUser === null
+                        ? 'Legen Sie innerhalb von sieben Tagen Ihr Passwort fest'
+                        : 'Bestätigen Sie innerhalb von sieben Tagen Ihren zusätzlichen Mitarbeiterzugang. Ihr bestehendes Passwort bleibt unverändert',
+                    'action_url' => $acceptanceUrl,
+                ],
             );
             $this->entityManager->flush();
         } catch (\Throwable) {
@@ -196,6 +203,13 @@ final class ApiAdminUserController
                         ? "Sie wurden zum Apothekenportal eingeladen. Legen Sie innerhalb von sieben Tagen Ihr Passwort fest:\n{$acceptanceUrl}"
                         : "Sie wurden zum Apothekenportal eingeladen. Bestätigen Sie innerhalb von sieben Tagen Ihren zusätzlichen Mitarbeiterzugang. Ihr bestehendes Passwort bleibt unverändert:\n{$acceptanceUrl}"),
                 'admin_invitation',
+                [
+                    'invitation_prefix' => 'Erneute ',
+                    'invitation_instruction' => $existingUser === null
+                        ? 'Legen Sie innerhalb von sieben Tagen Ihr Passwort fest'
+                        : 'Bestätigen Sie innerhalb von sieben Tagen Ihren zusätzlichen Mitarbeiterzugang. Ihr bestehendes Passwort bleibt unverändert',
+                    'action_url' => $acceptanceUrl,
+                ],
             );
             $invitation->renew(hash('sha256', $rawToken));
             $this->entityManager->flush();

@@ -31,7 +31,7 @@ function Stop-PreviousDevelopmentServers {
     $patterns = @(
         'ng serve.*--port 4200',
         'ng serve.*--port 4201',
-        'php.*-S localhost:6080.*public/index.php'
+        'php.*-S localhost:6080.*public/(?:index|router)\.php'
     )
     Get-CimInstance Win32_Process | Where-Object {
         $_.CommandLine -and ($patterns | Where-Object { $_.CommandLine -match $_ })
@@ -60,7 +60,7 @@ Stop-PreviousDevelopmentServers
 
 $clientId = Start-DevelopmentServer 'customer app' 'cd /d client && npm.cmd start -- --port 4200'
 $adminId = Start-DevelopmentServer 'admin portal' 'cd /d admin && npm.cmd start -- --port 4201'
-$serverId = Start-DevelopmentServer 'Symfony API' 'cd /d server && php -S localhost:6080 -t public public/index.php >> var\log\php-server.log 2>&1'
+$serverId = Start-DevelopmentServer 'Symfony API' 'cd /d server && php -S localhost:6080 -t public public/router.php >> var\log\php-server.log 2>&1'
 
 @{ processIds = @($clientId, $adminId, $serverId) } | ConvertTo-Json | Set-Content -LiteralPath $pidFile -Encoding utf8
 Write-Host ''

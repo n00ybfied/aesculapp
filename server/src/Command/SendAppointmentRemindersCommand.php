@@ -67,6 +67,7 @@ final class SendAppointmentRemindersCommand extends Command
                             ->subject('Erinnerung: Ihr Termin ist morgen')
                             ->text($this->emailText($appointment)),
                         'appointment_reminder',
+                        \App\Service\AppointmentTemplateValues::customer($appointment, $this->clientUrl),
                     );
                     $appointment->markReminderEmailSent();
                     ++$emailsSent;
@@ -79,6 +80,7 @@ final class SendAppointmentRemindersCommand extends Command
                 $appointment->getCustomer(),
                 $appointment->getTenant(),
                 sprintf('Sie haben morgen um %s Uhr einen Termin in Ihrer Apotheke.', $appointment->getStartsAt()->format('H:i')),
+                $appointment->getStartsAt()->format('H:i'),
             )) {
                 $appointment->markReminderPushSent();
                 ++$pushesSent;
