@@ -44,7 +44,7 @@ export class ProfileService {
     return response.profile;
   }
 
-  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerNavigationItems'>): Promise<CustomerProfile> {
+  async save(profile: Pick<CustomerProfile, 'username' | 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerNavigationItems'> & { usernamePassword?: string }): Promise<CustomerProfile> {
     const response = await firstValueFrom(this.http.patch<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile', profile, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;
@@ -56,6 +56,36 @@ export class ProfileService {
     const response = await firstValueFrom(this.http.post<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile/photo', body, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;
+  }
+
+  async requestEmailChange(email: string, password: string): Promise<string> {
+    const response = await firstValueFrom(this.http.post<{ message: string }>(
+      this.apiBaseUrl + '/profile/email-change/request',
+      { email, password },
+      { headers: this.headers() },
+    ));
+    return response.message;
+  }
+
+  async deleteAccount(password: string): Promise<void> {
+    const userId = this.profile()?.id;
+    await firstValueFrom(this.http.request<void>('DELETE', this.apiBaseUrl + '/profile', {
+      body: { password },
+      headers: this.headers(),
+    }));
+    this.profile.set(null);
+    try {
+      localStorage.removeItem('aesculapp.mock-rewards.v1');
+      if (userId !== undefined) {
+        localStorage.removeItem(`aesculapp.push-prompt.v1.${userId}`);
+        localStorage.removeItem(`aesculapp.push-categories-hint.v1.${userId}`);
+        const noticeKeys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
+          .filter((key): key is string => key !== null && key.startsWith('aesculapp.app-notice.v1.') && key.endsWith(`.${userId}`));
+        for (const key of noticeKeys) localStorage.removeItem(key);
+      }
+    } catch {
+      // Browser privacy settings can disable local storage; server deletion has succeeded.
+    }
   }
 
   private headers(): HttpHeaders {

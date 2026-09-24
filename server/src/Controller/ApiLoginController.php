@@ -42,7 +42,7 @@ final class ApiLoginController
             null === $user
             || !$user->isActive()
             || !$passwordHasher->isPasswordValid($user, $password)
-            || !$memberships->hasActiveMembershipFor($user, $activeTenant->get())
+            || !$memberships->hasCustomerMembershipFor($user, $activeTenant->get())
         ) {
             return $this->invalidCredentialsResponse();
         }

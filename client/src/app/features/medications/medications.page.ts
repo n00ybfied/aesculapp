@@ -5,6 +5,7 @@ import { NgIcon } from '@ng-icons/core';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
 import { FamilyService } from '../../core/family/family.service';
 import { Medication, MedicationDraft, MedicationService } from '../../core/medications/medication.service';
+import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 
 interface MedicationForm {
   name: string;
@@ -23,10 +24,12 @@ export class MedicationsPage implements OnDestroy {
   private readonly medicationsApi = inject(MedicationService);
   private readonly messages = inject(StatusMessageService);
   private readonly familyApi = inject(FamilyService);
+  private readonly dialogs = inject(ConfirmDialogService);
   protected readonly medications = signal<readonly Medication[]>([]);
   protected readonly imageUrls = signal<Record<number, string>>({});
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
+  protected readonly formError = signal<string | null>(null);
   protected readonly selectedOwnerId = signal<number | null>(null);
   protected readonly canManage = signal(true);
   protected readonly family = this.familyApi.connections;
@@ -55,12 +58,22 @@ export class MedicationsPage implements OnDestroy {
   protected closeEditor(): void { this.editorOpen.set(false); this.resetForm(); }
   protected selectImage(event: Event): void { const input = event.target as HTMLInputElement; const image = input.files?.[0] ?? null; input.value = ''; if (image === null) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(image.type) || image.size > 5 * 1024 * 1024) { this.messages.error('Bitte wählen Sie JPEG, PNG oder WebP bis maximal 5 MB.'); return; } this.revokePreview(); this.form.image = image; this.photoPreview.set(URL.createObjectURL(image)); }
   protected async save(): Promise<void> {
-    if (this.form.name.trim().length < 2 || this.saving()) return;
+    if (this.saving()) return;
+    this.formError.set(null);
+    if (this.form.name.trim().length < 2) {
+      this.formError.set('Bitte geben Sie einen Medikamentennamen mit mindestens 2 Zeichen ein.');
+      return;
+    }
+    const doses = [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose];
+    if (doses.some((dose) => dose.trim() === '' || !Number.isFinite(Number(dose)) || Number(dose) < 0 || Number(dose) > 99 || Number(dose) * 2 % 1 !== 0)) {
+      this.formError.set('Bitte geben Sie für jede Einnahme eine Zahl zwischen 0 und 99 in 0,5er-Schritten ein.');
+      return;
+    }
     this.saving.set(true);
     try { const saved = this.editingId() === null ? await this.medicationsApi.create(this.draft()) : await this.medicationsApi.update(this.editingId()!, this.draft()); this.closeEditor(); await this.reload(); this.messages.show(`„${saved.name}“ wurde gespeichert.`, { kind: 'success' }); }
     catch { this.messages.error('Das Medikament konnte nicht gespeichert werden.'); } finally { this.saving.set(false); }
   }
-  protected async remove(item: Medication): Promise<void> { if (!this.canManage() || !confirm(`„${item.name}“ wirklich entfernen?`)) return; try { await this.medicationsApi.remove(item.id); await this.reload(); this.messages.show('Das Medikament wurde entfernt.', { kind: 'success' }); } catch { this.messages.error('Das Medikament konnte nicht entfernt werden.'); } }
+  protected async remove(item: Medication): Promise<void> { if (!this.canManage() || !await this.dialogs.confirm(`„${item.name}“ wirklich entfernen?`, { title: 'Medikament entfernen', confirmLabel: 'Entfernen', destructive: true })) return; try { await this.medicationsApi.remove(item.id); await this.reload(); this.messages.show('Das Medikament wurde entfernt.', { kind: 'success' }); } catch { this.messages.error('Das Medikament konnte nicht entfernt werden.'); } }
   protected async selectOwner(id: number | null): Promise<void> { if (this.selectedOwnerId() === id) return; this.selectedOwnerId.set(id); await this.reload(); }
 
   private async reload(): Promise<void> {
@@ -84,6 +97,6 @@ export class MedicationsPage implements OnDestroy {
     [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose] = values?.slice(1) ?? ['0', '0', '0', '0'];
   }
 
-  private resetForm(): void { this.form.name = ''; this.form.dosage = ''; [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose] = ['0', '0', '0', '0']; this.form.notes = ''; this.form.refillDate = ''; this.form.image = null; this.editingId.set(null); this.revokePreview(); this.photoPreview.set(null); }
+  private resetForm(): void { this.form.name = ''; this.form.dosage = ''; [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose] = ['0', '0', '0', '0']; this.form.notes = ''; this.form.refillDate = ''; this.form.image = null; this.editingId.set(null); this.revokePreview(); this.photoPreview.set(null); this.formError.set(null); }
   private revokePreview(): void { const preview = this.photoPreview(); if (preview !== null && !Object.values(this.imageUrls()).includes(preview)) URL.revokeObjectURL(preview); }
 }

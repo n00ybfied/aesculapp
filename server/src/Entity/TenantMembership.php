@@ -52,6 +52,12 @@ class TenantMembership
     #[ORM\Column(options: ['default' => true])]
     private bool $familyPushEnabled = true;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $lastSeenAppointmentId = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $lastAcknowledgedAppointmentCancellationId = null;
+
     #[ORM\Column(length: 5, options: ['default' => '08:00'])]
     private string $morningReminderTime = '08:00';
 
@@ -131,6 +137,16 @@ class TenantMembership
     public function setAppointmentPushEnabled(bool $value): void { $this->appointmentPushEnabled = $value; }
     public function isFamilyPushEnabled(): bool { return $this->familyPushEnabled; }
     public function setFamilyPushEnabled(bool $value): void { $this->familyPushEnabled = $value; }
+    public function getLastSeenAppointmentId(): ?int { return $this->lastSeenAppointmentId; }
+    public function markAppointmentsSeenThrough(int $id): void
+    {
+        $this->lastSeenAppointmentId = max($this->lastSeenAppointmentId ?? 0, $id);
+    }
+    public function getLastAcknowledgedAppointmentCancellationId(): ?int { return $this->lastAcknowledgedAppointmentCancellationId; }
+    public function acknowledgeAppointmentCancellationsThrough(int $id): void
+    {
+        $this->lastAcknowledgedAppointmentCancellationId = max($this->lastAcknowledgedAppointmentCancellationId ?? 0, $id);
+    }
     public function getMorningReminderTime(): string { return $this->morningReminderTime; }
     public function setMorningReminderTime(string $value): void { $this->morningReminderTime = $value; }
     public function getNoonReminderTime(): string { return $this->noonReminderTime; }

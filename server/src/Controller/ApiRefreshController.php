@@ -35,7 +35,7 @@ final class ApiRefreshController
             return $this->invalid();
         }
         $user = $this->users->findOneByUsername((string) $refresh->getUsername());
-        if (!$user instanceof User || !$user->isActive() || !$this->memberships->hasActiveMembershipFor($user, $this->tenant->get())) {
+        if (!$user instanceof User || !$user->isActive() || !$this->memberships->hasCustomerMembershipFor($user, $this->tenant->get())) {
             return $this->invalid();
         }
         $this->tokens->delete($refresh);

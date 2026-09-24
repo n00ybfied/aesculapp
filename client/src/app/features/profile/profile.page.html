@@ -10,10 +10,16 @@
         <div><label for="profile-photo" class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-primary"><ng-icon name="lucideCamera" size="1.125rem" />Bild auswählen</label><input id="profile-photo" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" (change)="selectPhoto($event)" /><p class="mt-2 text-xs leading-5 text-muted">Bild auswählen, Ausschnitt verschieben und zoomen.</p></div>
       </div>
     </section>
-    <form class="mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card" (ngSubmit)="save()">
+    <form class="mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card" (ngSubmit)="save()" novalidate>
       <h2 class="text-lg font-bold">Kontaktdaten</h2>
       <div class="mt-5 space-y-4">
-        <label class="block text-sm font-medium">Name<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="displayName" [(ngModel)]="form.displayName" required minlength="2" maxlength="160" /></label>
+        <label class="block text-sm font-medium">Name<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="displayName" [(ngModel)]="form.displayName" required minlength="2" maxlength="160" [attr.aria-invalid]="formError() !== null" aria-describedby="profile-name-error" /></label>
+        @if (formError(); as message) { <p id="profile-name-error" class="text-sm text-danger" role="alert">{{ message }}</p> }
+        <label class="block text-sm font-medium">Benutzername<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="username" [(ngModel)]="form.username" required minlength="3" maxlength="100" autocomplete="username" /></label>
+        @if (form.username.trim().toLowerCase() !== profile()?.username) {
+          <label class="block text-sm font-medium">Aktuelles Passwort zur Bestätigung<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="usernamePassword" [(ngModel)]="form.usernamePassword" type="password" autocomplete="current-password" required /></label>
+          <p class="text-sm text-muted">Nach der Änderung des Benutzernamens melden Sie sich bitte erneut an.</p>
+        }
         <label class="block text-sm font-medium">E-Mail-Adresse<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-accent px-4 text-muted" [value]="profile()?.email ?? ''" readonly /></label>
         <label class="block text-sm font-medium">Telefonnummer<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="phone" [(ngModel)]="form.phone" type="tel" maxlength="40" autocomplete="tel" /></label>
         <label class="block text-sm font-medium">Geburtsdatum<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="birthDate" [(ngModel)]="form.birthDate" type="date" autocomplete="bday" /></label>
@@ -106,7 +112,23 @@
           }
         </div>
       </section>
-      <button type="submit" class="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 font-bold text-on-primary transition hover:bg-primary-strong disabled:cursor-wait disabled:opacity-60" [disabled]="isSaving() || form.displayName.trim().length < 2">@if (isSaving()) { Speichern … } @else { Profil &amp; Einstellungen speichern }</button>
+      <button type="submit" class="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 font-bold text-on-primary transition hover:bg-primary-strong disabled:cursor-wait disabled:opacity-60" [disabled]="isSaving()">@if (isSaving()) { Speichern … } @else { Profil &amp; Einstellungen speichern }</button>
+    </form>
+    <form class="mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card" (ngSubmit)="requestEmailChange()" novalidate>
+      <h2 class="text-lg font-bold">E-Mail-Adresse ändern</h2>
+      <p class="mt-2 text-sm leading-5 text-muted">Die neue Adresse wird erst nach Bestätigung des Links gültig. Das aktuelle Passwort bleibt unverändert.</p>
+      <label class="mt-4 block text-sm font-medium">Neue E-Mail-Adresse<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="newEmail" [(ngModel)]="emailDraft" type="email" autocomplete="email" required maxlength="180" /></label>
+      <label class="mt-4 block text-sm font-medium">Aktuelles Passwort<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="emailPassword" [(ngModel)]="emailPassword" type="password" autocomplete="current-password" required /></label>
+      @if (emailChangeError(); as error) { <p class="mt-3 text-sm text-danger" role="alert">{{ error }}</p> }
+      @if (emailChangeMessage(); as message) { <p class="mt-3 text-sm text-primary" role="status">{{ message }}</p> }
+      <button type="submit" class="mt-5 min-h-12 w-full rounded-xl bg-primary px-4 font-bold text-on-primary disabled:opacity-60" [disabled]="emailChangeBusy()">{{ emailChangeBusy() ? 'Wird gesendet …' : 'Bestätigungslink senden' }}</button>
+    </form>
+    <form class="mt-5 rounded-3xl border border-danger/40 bg-surface p-5 shadow-card" (ngSubmit)="deleteAccount()" novalidate>
+      <h2 class="text-lg font-bold">Kundenzugang löschen</h2>
+      <p class="mt-2 text-sm leading-6 text-muted">Damit werden Ihr Kundenzugang bei dieser Apotheke und seine Daten dauerhaft gelöscht – auch Termine, Chats, Medikamente, Gutscheine und Punkte. Andere Apotheken- und Mitarbeiterzugänge bleiben bestehen. Diese Aktion kann nicht rückgängig gemacht werden.</p>
+      <label class="mt-4 block text-sm font-medium">Aktuelles Passwort<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="deletePassword" [(ngModel)]="deletePassword" type="password" autocomplete="current-password" required /></label>
+      @if (deleteError(); as error) { <p class="mt-3 text-sm text-danger" role="alert">{{ error }}</p> }
+      <button type="submit" class="mt-5 min-h-12 w-full rounded-xl bg-danger px-4 font-bold text-white disabled:opacity-60" [disabled]="deleteBusy()">{{ deleteBusy() ? 'Wird gelöscht …' : 'Kundenzugang löschen' }}</button>
     </form>
   </main>
 }

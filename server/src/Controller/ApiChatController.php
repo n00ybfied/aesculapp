@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Controller;
 
-use App\Entity\{ChatConversation, ChatMessage, User};
+use App\Entity\{Appointment, ChatConversation, ChatMessage, User};
 use App\Repository\TenantMembershipRepository;
 use App\Service\{ActiveTenantProvider, ChatCipher};
 use Doctrine\ORM\EntityManagerInterface;
@@ -60,7 +60,8 @@ final class ApiChatController {
             $subject = $this->fallbackSubject($first ? $this->cipher->decrypt($first['encryptedText'],$this->context($chat).':text') : '');
         }
         $unread = $this->em->getRepository(ChatMessage::class)->count(['conversation'=>$chat,'senderRole'=>$admin ? 'customer' : 'staff',$admin ? 'staffReadAt' : 'customerReadAt'=>null]);
-        return ['id'=>$chat->id,'unreadCount'=>$unread,'subject'=>$subject,'status'=>$chat->status,'customerName'=>$chat->customer->getDisplayName(),'createdAt'=>$chat->createdAt->format(DATE_ATOM),'updatedAt'=>$chat->updatedAt->format(DATE_ATOM)];
+        $appointments = $admin ? $this->em->getRepository(Appointment::class)->findBy(['chatConversation' => $chat, 'tenant' => $chat->tenant], ['startsAt' => 'ASC']) : [];
+        return ['id'=>$chat->id,'unreadCount'=>$unread,'subject'=>$subject,'status'=>$chat->status,'customerName'=>$chat->customer->getDisplayName(),'createdAt'=>$chat->createdAt->format(DATE_ATOM),'updatedAt'=>$chat->updatedAt->format(DATE_ATOM),'appointments'=>array_map(static fn (Appointment $appointment): array => ['id' => $appointment->getId(), 'startsAt' => $appointment->getStartsAt()->format(DATE_ATOM)], $appointments)];
     }
     #[Route('/api/v1/chat/unread-count', methods:['GET'])]
     public function unreadCount(): JsonResponse {
@@ -94,6 +95,20 @@ final class ApiChatController {
         $sentence = preg_split('/(?<=[.!?])\s+/u',$text,2)[0];
         return rtrim(mb_substr($sentence,0,100)).' …';
     }
+    private function priorConsent(User $customer): ?ChatConversation {
+        $consent = $this->em->createQueryBuilder()
+            ->select('conversation')
+            ->from(ChatConversation::class, 'conversation')
+            ->where('conversation.tenant = :tenant AND conversation.customer = :customer')
+            ->andWhere('conversation.consentVersion = :version AND conversation.consentedAt IS NOT NULL')
+            ->setParameter('tenant', $this->tenant->get())
+            ->setParameter('customer', $customer)
+            ->setParameter('version', self::CONSENT_VERSION)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+        return $consent instanceof ChatConversation ? $consent : null;
+    }
     #[Route('/api/v1/admin/chat/open-count', methods:['GET'])]
     public function openCount(): JsonResponse {
         $this->user(true);
@@ -109,7 +124,7 @@ final class ApiChatController {
         if (!$admin) { $criteria['customer'] = $user; }
         $repo = $this->em->getRepository(ChatConversation::class);
         $chats = $repo->findBy($criteria, ['updatedAt'=>'DESC','id'=>'DESC'], 20, ($page-1)*20);
-        $consent = $this->em->getRepository(ChatConversation::class)->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'consentVersion'=>self::CONSENT_VERSION]);
+        $consent = $admin ? null : $this->priorConsent($user);
         $active = $admin ? null : $repo->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'status'=>'open']);
         return $this->json(['activeConversationId'=>$active?->id,'conversations'=>array_map(fn(ChatConversation $chat) => $this->summary($chat,$admin),$chats),'total'=>$repo->count($criteria),'page'=>$page,'consentVersion'=>self::CONSENT_VERSION,'consentText'=>self::CONSENT,'notice'=>self::NOTICE,'consented'=>$consent !== null]);
     }
@@ -158,10 +173,10 @@ final class ApiChatController {
                 $chat = $this->em->getRepository(ChatConversation::class)->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'status'=>'open']);
                 if ($chat) { throw new HttpException(409,'Es gibt bereits ein offenes Gespräch.'); }
                 if (!$chat) {
-                    $previous = $this->em->getRepository(ChatConversation::class)->findOneBy(['tenant'=>$this->tenant->get(),'customer'=>$user,'consentVersion'=>self::CONSENT_VERSION]);
+                    $previous = $this->priorConsent($user);
                     if (!$previous && ($request->request->getString('consentVersion') !== self::CONSENT_VERSION || $request->request->getString('consent') !== 'true')) { throw new HttpException(422,'Bitte stimmen Sie zuerst den Datenschutzhinweisen zu.'); }
-                    $chat = new ChatConversation($this->tenant->get(),$user,self::CONSENT_VERSION);
-                    if ($previous) { $chat->consentedAt = $previous->consentedAt; }
+                    $chat = new ChatConversation($this->tenant->get(),$user);
+                    $chat->recordConsent(self::CONSENT_VERSION,$previous?->consentedAt ?? new \DateTimeImmutable());
                     $this->em->persist($chat);
                     $this->em->flush();
                     $chat->encryptedSubject = $this->cipher->encrypt($subject !== '' ? $subject : $this->fallbackSubject($text),$this->context($chat).':subject');
@@ -169,6 +184,13 @@ final class ApiChatController {
                 }
             }
             $this->em->refresh($chat,LockMode::PESSIMISTIC_WRITE);
+            if (!$admin && ($chat->consentVersion !== self::CONSENT_VERSION || $chat->consentedAt === null)) {
+                $previous = $this->priorConsent($user);
+                if (!$previous && ($request->request->getString('consentVersion') !== self::CONSENT_VERSION || $request->request->getString('consent') !== 'true')) {
+                    throw new HttpException(422,'Bitte stimmen Sie zuerst den Datenschutzhinweisen zu.');
+                }
+                $chat->recordConsent(self::CONSENT_VERSION, $previous?->consentedAt ?? new \DateTimeImmutable());
+            }
             $existing = $this->em->getRepository(ChatMessage::class)->findOneBy(['conversation'=>$chat,'requestId'=>$requestId]);
             if (!$existing) {
                 if ($chat->status !== 'open') { throw new HttpException(409,'Dieses Gespräch wurde abgeschlossen.'); }

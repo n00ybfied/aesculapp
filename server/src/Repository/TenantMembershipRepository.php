@@ -25,6 +25,12 @@ final class TenantMembershipRepository extends ServiceEntityRepository
         return null !== $this->findForUserAndTenant($user, $tenant);
     }
 
+    public function hasCustomerMembershipFor(User $user, Tenant $tenant): bool
+    {
+        $membership = $this->findForUserAndTenant($user, $tenant);
+        return $membership !== null && in_array('ROLE_CUSTOMER', $membership->getRoles(), true);
+    }
+
     public function findForUserAndTenant(User $user, Tenant $tenant): ?TenantMembership
     {
         return $this->createQueryBuilder('membership')

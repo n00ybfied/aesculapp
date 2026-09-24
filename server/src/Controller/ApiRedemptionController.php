@@ -164,7 +164,7 @@ final class ApiRedemptionController
     private function customer(): ?User
     {
         $user = $this->security->getUser();
-        return $user instanceof User && $this->memberships->hasActiveMembershipFor($user, $this->tenant->get()) ? $user : null;
+        return $user instanceof User && $this->memberships->hasCustomerMembershipFor($user, $this->tenant->get()) ? $user : null;
     }
 
     private function admin(): bool

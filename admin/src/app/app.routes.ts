@@ -7,6 +7,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/admin-login.component').then((module) => module.AdminLoginComponent),
   },
   {
+    path: 'passwort-vergessen',
+    loadComponent: () => import('./features/login/admin-password-reset-request.component').then((module) => module.AdminPasswordResetRequestComponent),
+  },
+  {
+    path: 'passwort-zuruecksetzen',
+    loadComponent: () => import('./features/login/admin-password-reset-confirm.component').then((module) => module.AdminPasswordResetConfirmComponent),
+  },
+  {
     path: 'einladung-annehmen',
     loadComponent: () => import('./features/users/accept-invitation.component').then((module) => module.AcceptInvitationComponent),
   },

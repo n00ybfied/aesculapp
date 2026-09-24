@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminCustomerService } from '../core/customers/admin-customer.service';
+import { ConfirmDialogService } from './confirm-dialog.service';
 
 @Component({
   selector: 'app-customer-details-modal',
@@ -11,6 +12,7 @@ import { AdminCustomerService } from '../core/customers/admin-customer.service';
 })
 export class CustomerDetailsModalComponent {
   protected readonly customers = inject(AdminCustomerService);
+  private readonly dialogs = inject(ConfirmDialogService);
   protected readonly actionError = signal('');
   protected readonly isSaving = signal(false);
   protected pointsToCredit: number | null = null;
@@ -38,7 +40,7 @@ export class CustomerDetailsModalComponent {
   }
 
   protected async reverse(customerId: number, transactionId: number): Promise<void> {
-    if (!confirm('Diese Buchung wird durch eine Gegenbuchung storniert. Fortfahren?')) {
+    if (!await this.dialogs.confirm('Diese Buchung wird durch eine Gegenbuchung storniert. Fortfahren?', { title: 'Buchung stornieren', confirmLabel: 'Stornieren', destructive: true })) {
       return;
     }
 

@@ -1,5 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { AdminUserService, AdminUserSummary } from '../../core/users/admin-user.service';
 
 import {
   AdminAppointment,
@@ -8,7 +11,11 @@ import {
   AppointmentBlock,
   AppointmentResource,
   AppointmentType,
+  CustomerCancellationNotice,
 } from '../../core/appointments/admin-appointment.service';
+import { AppointmentCalendarComponent } from './appointment-calendar.component';
+import { AppointmentCreateComponent } from './appointment-create.component';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 
 type AppointmentModal = 'type' | 'resource' | 'availability' | 'block' | null;
 
@@ -19,16 +26,44 @@ interface BlockCalendarDay {
 
 @Component({
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, AppointmentCalendarComponent, AppointmentCreateComponent],
   templateUrl: './admin-appointments.component.html',
   styleUrl: './admin-appointments.component.css',
 })
-export class AdminAppointmentsComponent {
+export class AdminAppointmentsComponent implements OnInit, OnDestroy {
   private readonly service = inject(AdminAppointmentService);
+  private readonly dialogs = inject(ConfirmDialogService);
+  private readonly usersService = inject(AdminUserService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly detailCloseButton = viewChild<ElementRef<HTMLButtonElement>>('detailCloseButton');
+  private detailTrigger: HTMLElement | null = null;
+  private createTrigger: HTMLElement | null = null;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private polling = false;
+  private destroyed = false;
+  private appointmentsRequest = 0;
+  private lastSeenInView = -1;
+  private dismissedCancellationId = 0;
+  private readonly onVisibilityChange = () => {
+    if (!document.hidden) void this.refreshAppointments();
+  };
 
   protected readonly appointments = signal<readonly AdminAppointment[]>([]);
+  protected readonly cancellationNotices = signal<readonly CustomerCancellationNotice[]>([]);
+  protected readonly visibleCancellationNotices = computed(() => this.cancellationNotices().slice(0, 3));
+  protected readonly dismissingCancellations = signal(false);
+  protected readonly selectedAppointmentId = signal<number | null>(null);
+  protected readonly creatingAppointment = signal(false);
+  protected readonly appointmentPrefill = signal<{ date: string; time: string } | null>(null);
+  protected readonly selectedAppointment = computed(() => this.appointments().find((appointment) => appointment.id === this.selectedAppointmentId()) ?? null);
   protected readonly types = signal<readonly AppointmentType[]>([]);
   protected readonly resources = signal<readonly AppointmentResource[]>([]);
+  protected readonly staffUsers = signal<readonly AdminUserSummary[]>([]);
+  protected readonly availableChats = signal<readonly { id: number; status: string; updatedAt: string }[]>([]);
+  protected readonly loadingChats = signal(false);
+  protected readonly linkingChat = signal(false);
+  protected selectedChatId = '';
   protected readonly availability = signal<readonly AppointmentAvailability[]>([]);
   protected readonly blocks = signal<readonly AppointmentBlock[]>([]);
   protected readonly modal = signal<AppointmentModal>(null);
@@ -40,6 +75,8 @@ export class AdminAppointmentsComponent {
   protected typeDuration = 15;
   protected typeBuffer = 5;
   protected resourceName = '';
+  protected resourceUserId = '';
+  protected resourceColor = '#4b86b0';
   protected availabilityResourceId = '';
   protected availabilityTypeId = '';
   protected availabilityStartsAt = '09:00';
@@ -88,8 +125,20 @@ export class AdminAppointmentsComponent {
     7: false,
   };
 
-  constructor() {
-    void this.load();
+  async ngOnInit(): Promise<void> {
+    await this.load();
+    if (this.destroyed) return;
+    const appointmentId = Number(this.route.snapshot.queryParamMap.get('appointmentId'));
+    const linkedAppointment = this.appointments().find((item) => item.id === appointmentId);
+    if (linkedAppointment) this.openAppointmentDetails(linkedAppointment);
+    this.pollTimer = setInterval(() => void this.refreshAppointments(), 5_000);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
+    if (this.pollTimer !== null) clearInterval(this.pollTimer);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   protected openModal(modal: Exclude<AppointmentModal, null>): void {
@@ -103,6 +152,11 @@ export class AdminAppointmentsComponent {
     }
     if (modal === 'resource') {
       this.editingResourceId = null;
+      this.resourceName = '';
+      this.resourceUserId = '';
+      const palette = ['#4b86b0', '#9664b3', '#28887d', '#bb7042', '#c05283', '#5477b9', '#6f9148', '#ae5d5d'];
+      this.resourceColor = palette.find((color) => !this.resources().some((resource) => resource.color === color))
+        ?? palette[this.resources().length % palette.length];
     }
     if (modal === 'availability') {
       this.editingAvailabilityId = null;
@@ -144,6 +198,8 @@ export class AdminAppointmentsComponent {
   protected editResource(resource: AppointmentResource): void {
     this.editingResourceId = resource.id;
     this.resourceName = resource.name;
+    this.resourceUserId = resource.userId === null ? '' : String(resource.userId);
+    this.resourceColor = resource.color;
     this.openModal('resource');
   }
 
@@ -175,6 +231,97 @@ export class AdminAppointmentsComponent {
     this.modal.set(null);
   }
 
+  protected onResourceUserChange(): void {
+    const user = this.staffUsers().find((item) => item.id === Number(this.resourceUserId));
+    if (user) this.resourceName = user.displayName;
+  }
+
+  protected openAppointmentDetails(appointment: AdminAppointment): void {
+    this.error.set('');
+    this.detailTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.selectedAppointmentId.set(appointment.id);
+    this.selectedChatId = '';
+    this.availableChats.set([]);
+    if (appointment.customerId !== null && appointment.chatConversationId === null) {
+      void this.loadAvailableChats(appointment.id);
+    }
+    setTimeout(() => this.detailCloseButton()?.nativeElement.focus());
+  }
+
+  private async loadAvailableChats(id: number): Promise<void> {
+    this.loadingChats.set(true);
+    try {
+      const result = await this.service.listChats(id);
+      if (this.selectedAppointmentId() === id) this.availableChats.set(result.conversations);
+    } catch {
+      if (this.selectedAppointmentId() === id) this.error.set('Gespräche konnten nicht geladen werden.');
+    } finally {
+      this.loadingChats.set(false);
+    }
+  }
+
+  protected async openAppointmentChat(appointment: AdminAppointment): Promise<void> {
+    if (this.linkingChat()) return;
+    if (appointment.chatConversationId !== null) {
+      await this.router.navigate(['/chat'], { queryParams: { conversationId: appointment.chatConversationId } });
+      return;
+    }
+    this.linkingChat.set(true);
+    this.error.set('');
+    try {
+      const selected = this.selectedChatId === '' ? null : Number(this.selectedChatId);
+      const result = await this.service.linkChat(appointment.id, selected);
+      this.appointments.update((items) => items.map((item) => item.id === appointment.id ? { ...item, chatConversationId: result.conversationId } : item));
+      await this.router.navigate(['/chat'], { queryParams: { conversationId: result.conversationId } });
+    } catch (error) {
+      this.error.set(error instanceof HttpErrorResponse && typeof error.error?.message === 'string'
+        ? error.error.message : 'Das Gespräch konnte nicht eröffnet werden.');
+    } finally {
+      this.linkingChat.set(false);
+    }
+  }
+
+  protected closeAppointmentDetails(): void {
+    this.selectedAppointmentId.set(null);
+    this.detailTrigger?.focus();
+    this.detailTrigger = null;
+  }
+
+  protected openAppointmentCreate(prefill: { date: string; time: string } | null = null): void {
+    this.error.set('');
+    this.createTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.appointmentPrefill.set(prefill);
+    this.creatingAppointment.set(true);
+  }
+
+  protected closeAppointmentCreate(): void {
+    this.creatingAppointment.set(false);
+    this.appointmentPrefill.set(null);
+    this.createTrigger?.focus();
+    this.createTrigger = null;
+  }
+
+  protected async appointmentCreated(): Promise<void> {
+    this.closeAppointmentCreate();
+    await this.load();
+    this.message.set('Termin wurde angelegt.');
+  }
+
+  protected async dismissCustomerCancellations(): Promise<void> {
+    const throughId = this.cancellationNotices().at(-1)?.id;
+    if (throughId === undefined || this.dismissingCancellations()) return;
+    this.dismissingCancellations.set(true);
+    try {
+      await this.service.acknowledgeCustomerCancellations(throughId);
+      this.dismissedCancellationId = Math.max(this.dismissedCancellationId, throughId);
+      this.cancellationNotices.update((items) => items.filter((item) => item.id > throughId));
+    } catch {
+      this.error.set('Der Hinweis konnte nicht geschlossen werden. Bitte erneut versuchen.');
+    } finally {
+      this.dismissingCancellations.set(false);
+    }
+  }
+
   protected async saveType(): Promise<void> {
     if (this.typeTitle.trim() === '' || this.typeDuration < 5 || this.typeBuffer < 0) {
       this.error.set('Bitte Bezeichnung, Dauer und Puffer prüfen.');
@@ -199,19 +346,21 @@ export class AdminAppointmentsComponent {
   }
 
   protected async saveResource(): Promise<void> {
-    if (this.resourceName.trim() === '') {
-      this.error.set('Bitte einen Namen eingeben.');
+    if (this.resourceName.trim() === '' || !/^#[0-9a-fA-F]{6}$/.test(this.resourceColor)) {
+      this.error.set('Bitte einen Namen und eine gültige Farbe eingeben.');
       return;
     }
 
     try {
-      const data = { name: this.resourceName.trim() };
+      const data = { name: this.resourceName.trim(), color: this.resourceColor, userId: this.resourceUserId === '' ? null : Number(this.resourceUserId) };
       if (this.editingResourceId === null) {
         await this.service.createResource(data);
       } else {
         await this.service.updateResource(this.editingResourceId, { ...data, isActive: true });
       }
       this.resourceName = '';
+      this.resourceUserId = '';
+      this.resourceColor = '#4b86b0';
       this.editingResourceId = null;
       this.closeModal();
       await this.load();
@@ -249,13 +398,14 @@ export class AdminAppointmentsComponent {
   }
 
   protected async cancel(appointment: AdminAppointment): Promise<void> {
-    if (appointment.status === 'cancelled' || !confirm(`Termin von ${appointment.customer} wirklich absagen?`)) {
+    if (appointment.status === 'cancelled' || !await this.dialogs.confirm(`Termin von ${appointment.customer} wirklich absagen?`, { title: 'Termin absagen', confirmLabel: 'Termin absagen', destructive: true })) {
       return;
     }
 
     try {
       await this.service.cancel(appointment.id);
       await this.load();
+      this.closeAppointmentDetails();
       this.message.set('Termin wurde abgesagt.');
     } catch {
       this.error.set('Der Termin konnte nicht abgesagt werden.');
@@ -353,7 +503,7 @@ export class AdminAppointmentsComponent {
   }
 
   protected async deleteBlock(block: AppointmentBlock): Promise<void> {
-    if (!confirm('Sperrzeit wirklich löschen?')) return;
+    if (!await this.dialogs.confirm('Sperrzeit wirklich löschen?', { title: 'Sperrzeit löschen', confirmLabel: 'Löschen', destructive: true })) return;
     try { await this.service.deleteBlock(block.id); await this.load(); this.message.set('Sperrzeit wurde gelöscht.'); }
     catch { this.error.set('Die Sperrzeit konnte nicht gelöscht werden.'); }
   }
@@ -366,6 +516,7 @@ export class AdminAppointmentsComponent {
     return new Intl.DateTimeFormat('de-AT', {
       dateStyle: 'medium',
       timeStyle: 'short',
+      timeZone: 'Europe/Vienna',
     }).format(new Date(value));
   }
 
@@ -386,18 +537,70 @@ export class AdminAppointmentsComponent {
   }
 
   private async load(): Promise<void> {
+    const request = ++this.appointmentsRequest;
     try {
       this.error.set('');
-      const data = await this.service.load();
-      this.appointments.set(data.appointments);
+      const [data, cancellations, users] = await Promise.all([
+        this.service.load(),
+        this.service.listCustomerCancellations().catch(() => [...this.cancellationNotices()]),
+        this.usersService.getOverview().then((result) => result.users).catch(() => [...this.staffUsers()]),
+      ]);
+      if (this.destroyed) return;
+      if (request === this.appointmentsRequest) {
+        this.appointments.set(data.appointments);
+        this.applyCancellationNotices(cancellations);
+        void this.markViewed(data.appointments);
+      }
       this.types.set(data.types);
       this.resources.set(data.resources);
+      this.staffUsers.set(users);
       this.availability.set(data.availability);
       this.blocks.set(data.blocks);
     } catch {
-      this.error.set('Die Termindaten konnten nicht geladen werden.');
+      if (!this.destroyed) this.error.set('Die Termindaten konnten nicht geladen werden.');
     } finally {
-      this.loading.set(false);
+      if (!this.destroyed) this.loading.set(false);
+    }
+  }
+
+  private async refreshAppointments(): Promise<void> {
+    if (this.destroyed || document.hidden || this.polling) return;
+    this.polling = true;
+    const request = ++this.appointmentsRequest;
+    try {
+      const [appointments, cancellations] = await Promise.allSettled([
+        this.service.listAppointments(), this.service.listCustomerCancellations(),
+      ]);
+      if (!this.destroyed && request === this.appointmentsRequest) {
+        if (appointments.status === 'fulfilled') {
+          this.appointments.set(appointments.value);
+          void this.markViewed(appointments.value);
+        }
+        if (cancellations.status === 'fulfilled') this.applyCancellationNotices(cancellations.value);
+      }
+    } catch {
+      // Keep the last successful list visible and retry on the next interval.
+    } finally {
+      this.polling = false;
+    }
+  }
+
+  private applyCancellationNotices(items: readonly CustomerCancellationNotice[]): void {
+    const next = items.filter((item) => item.id > this.dismissedCancellationId);
+    if (next.map((item) => item.id).join(',') !== this.cancellationNotices().map((item) => item.id).join(',')) {
+      this.cancellationNotices.set(next);
+    }
+  }
+
+  private async markViewed(appointments: readonly AdminAppointment[]): Promise<void> {
+    if (this.destroyed || document.hidden) return;
+    const throughId = appointments.reduce((id, appointment) => Math.max(id, appointment.id), 0);
+    if (throughId <= this.lastSeenInView) return;
+    try {
+      await this.service.markSeen(throughId);
+      this.lastSeenInView = Math.max(this.lastSeenInView, throughId);
+    } catch {
+      // The next list refresh retries the read acknowledgement.
     }
   }
 

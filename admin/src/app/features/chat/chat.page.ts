@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy, ElementRef, Injector, afterNextRender, inject, input, signal, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ChatService, ChatList, ChatDetail, Conversation } from '../../core/chat/chat.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 
 @Component({
  selector:'app-chat-image',
@@ -15,7 +17,7 @@ export class ChatImageComponent implements OnInit,OnDestroy {
  ngOnDestroy(){this.destroyed=true;if(this.url())URL.revokeObjectURL(this.url());}
 }
 @Component({
- selector:'app-chat-page', imports:[FormsModule,ChatImageComponent],
+ selector:'app-chat-page', imports:[FormsModule,ChatImageComponent,RouterLink],
  template:`
  <main class="chat-page">
  <header><div><p class="eyebrow">KUNDENSERVICE</p><h1>Anfragen</h1></div></header>
@@ -32,7 +34,7 @@ export class ChatImageComponent implements OnInit,OnDestroy {
    <nav class="pagination" aria-label="Gesprächsseiten"><button type="button" [disabled]="data.page<=1" (click)="loadList(data.page-1)">Zurück</button><span>Seite {{data.page}}</span><button type="button" [disabled]="data.page*20>=data.total" (click)="loadList(data.page+1)">Weiter</button></nav>
   }@else{
    @if(detail();as current){
-    <div class="conversation-heading"><h2>{{current.conversation.customerName}} · {{current.conversation.subject}}</h2>@if(current.conversation.status==='open'){<button type="button" [disabled]="busy()" (click)="close()">Gespräch abschließen</button>}</div>
+    <div class="conversation-heading"><h2>{{current.conversation.customerName}} · {{current.conversation.subject}}</h2>@for(appointment of current.conversation.appointments;track appointment.id){<a [routerLink]="['/termine']" [queryParams]="{ appointmentId: appointment.id }">Termin {{formatDate(appointment.startsAt)}}</a>}@if(current.conversation.status==='open'){<button type="button" [disabled]="busy()" (click)="close()">Gespräch abschließen</button>}</div>
     @if(hasOlder()){<button type="button" [disabled]="busy()" (click)="older()">Ältere Nachrichten laden</button>}
    }
    <section class="messages" aria-label="Nachrichten">
@@ -55,7 +57,7 @@ export class ChatImageComponent implements OnInit,OnDestroy {
      <label for="chat-text">Ihre Nachricht</label>
      <textarea id="chat-text" name="text" rows="3" maxlength="5000" [(ngModel)]="draft" [disabled]="busy()" placeholder="Nachricht schreiben …"></textarea>
      @if(preview()){<div class="preview"><img [src]="preview()" alt="Ausgewählter Bildanhang" /><button type="button" [disabled]="busy()" (click)="removeImage()">Bild entfernen</button></div>}
-     <div class="composer-actions"><label class="upload"><span>Bild hinzufügen</span><input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="busy()" (change)="pick($event)" /></label><button class="primary" type="submit" [disabled]="busy() || (!draft.trim() && !file) ">{{busy()?'Wird gesendet …':'Senden'}}</button></div>
+     <div class="composer-actions"><label class="upload"><span>Bild hinzufügen</span><input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="busy()" (change)="pick($event)" /></label><button class="primary" type="submit" [disabled]="busy()">{{busy()?'Wird gesendet …':'Senden'}}</button></div>
      <small>JPEG, PNG oder WebP · maximal 5 MB · 16 Megapixel</small>
     </form>
    }
@@ -70,7 +72,9 @@ export class ChatImageComponent implements OnInit,OnDestroy {
 })
 export class ChatPage implements OnInit,OnDestroy {
  private readonly service=inject(ChatService);
+ private readonly route=inject(ActivatedRoute);
  private readonly injector=inject(Injector);
+ private readonly dialogs=inject(ConfirmDialogService);
  private readonly messageEnd=viewChild<ElementRef<HTMLElement>>('messageEnd');
  private lastRead=0;
  private acknowledge():void{
@@ -87,7 +91,7 @@ export class ChatPage implements OnInit,OnDestroy {
  readonly loading=signal(true); readonly busy=signal(false); readonly error=signal(''); readonly composing=signal(false); readonly hasOlder=signal(false); readonly preview=signal('');
  draft=''; consent=false; file:File|null=null; private requestId=''; private retryBody:FormData|null=null;
  private timer:ReturnType<typeof setInterval>|undefined; private destroyed=false; private generation=0; private polling=false;
- async ngOnInit(){await this.loadList();this.timer=setInterval(()=>void this.poll(),5000);}
+ async ngOnInit(){await this.loadList();const id=Number(this.route.snapshot.queryParamMap.get('conversationId'));if(Number.isInteger(id)&&id>0)await this.open(id);this.timer=setInterval(()=>void this.poll(),5000);}
  ngOnDestroy(){this.destroyed=true;this.generation++;if(this.timer)clearInterval(this.timer);this.removeImage();}
  formatDate(value:string){return new Intl.DateTimeFormat('de-AT',{dateStyle:'short',timeStyle:'short'}).format(new Date(value));}
  private failure(error:unknown){this.error.set(error instanceof HttpErrorResponse && error.status===409?'Dieses Gespräch wurde inzwischen abgeschlossen.':error instanceof HttpErrorResponse && error.status===422?'Bitte prüfen Sie Ihre Nachricht, Zustimmung und das Bildformat (maximal 5 MB / 16 Megapixel).':'Der Chat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.');}
@@ -100,7 +104,8 @@ export class ChatPage implements OnInit,OnDestroy {
  pick(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file)return;if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){this.error.set('Bitte ein JPEG-, PNG- oder WebP-Bild bis 5 MB wählen.');return;}this.removeImage();this.file=file;this.preview.set(URL.createObjectURL(file));this.retryBody=null;}
  removeImage(){if(this.preview())URL.revokeObjectURL(this.preview());this.preview.set('');this.file=null;}
  async send(){
-  if(this.busy()||(!this.draft.trim()&&!this.file))return;
+  if(this.busy())return;
+  if(!this.draft.trim()&&!this.file){this.error.set('Bitte schreiben Sie eine Nachricht oder fügen Sie ein Bild hinzu.');return;}
   
   this.busy.set(true);this.error.set('');this.generation++;
   const body=new FormData();body.set('text',this.draft.trim());body.set('conversationId',String(this.detail()?.conversation.id??0));body.set('consent',String(this.consent));body.set('consentVersion',this.list()?.consentVersion??'');if(this.file)body.set('image',this.file);
@@ -121,5 +126,5 @@ export class ChatPage implements OnInit,OnDestroy {
   }
   catch(e){this.failure(e);if(e instanceof HttpErrorResponse&&e.status===409){this.busy.set(false);await this.poll();}}finally{this.busy.set(false);}
  }
- async close(){const id=this.detail()?.conversation.id;if(!id||this.busy()||!confirm('Dieses Gespräch wirklich abschließen?'))return;this.busy.set(true);this.generation++;try{await this.service.close(id);this.busy.set(false);await this.open(id);}catch(e){this.failure(e);}finally{this.busy.set(false);}}
+ async close(){const id=this.detail()?.conversation.id;if(!id||this.busy()||!await this.dialogs.confirm('Dieses Gespräch wirklich abschließen?', { title: 'Gespräch abschließen', confirmLabel: 'Abschließen' }))return;this.busy.set(true);this.generation++;try{await this.service.close(id);this.busy.set(false);await this.open(id);}catch(e){this.failure(e);}finally{this.busy.set(false);}}
 }

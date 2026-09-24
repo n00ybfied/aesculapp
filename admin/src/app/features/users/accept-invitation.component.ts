@@ -36,7 +36,7 @@ export class AcceptInvitationComponent {
       return;
     }
     if (password !== passwordConfirmation) {
-      this.error.set('Die beiden Passwörter stimmen nicht überein.');
+      this.form.controls.passwordConfirmation.markAsTouched();
       return;
     }
 

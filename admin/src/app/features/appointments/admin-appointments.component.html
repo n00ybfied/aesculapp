@@ -6,6 +6,7 @@
       <p class="intro">Verwalten Sie Buchungen, Terminarten, Personen und verfügbare Zeiten.</p>
     </div>
     <div class="actions">
+      <button type="button" [disabled]="loading()" (click)="openAppointmentCreate()">Termin anlegen</button>
       <button type="button" (click)="createModal('type')">Terminart anlegen</button>
       <button type="button" (click)="createModal('resource')">Person anlegen</button>
       <button type="button" (click)="createModal('availability')">Verfügbarkeit anlegen</button>
@@ -23,24 +24,19 @@
   @if (loading()) {
     <p class="loading">Termindaten werden geladen …</p>
   } @else {
-    <section class="card">
-      <div class="section-header"><h3>Angelegte Termine</h3><span>{{ appointments().length }}</span></div>
-      @for (appointment of appointments(); track appointment.id) {
-        <article class="appointment">
-          <div>
-            <strong>{{ appointment.type }}</strong>
-            <p>{{ appointment.customer }} · {{ appointment.resource }}</p>
-            <small>{{ formatDate(appointment.startsAt) }} – {{ formatDate(appointment.endsAt) }}</small>
-          </div>
-          <span class="status" [class.cancelled]="appointment.status === 'cancelled'">
-            {{ appointment.status === 'cancelled' ? 'Abgesagt' : 'Gebucht' }}
-          </span>
-          <button type="button" class="danger" [disabled]="appointment.status === 'cancelled'" (click)="cancel(appointment)">Absagen</button>
-        </article>
-      } @empty {
-        <p class="empty">Noch keine Termine angelegt.</p>
-      }
-    </section>
+    @if (cancellationNotices().length > 0) {
+      <section class="cancellation-alert" role="alert" aria-label="Kundenstornierungen">
+        <div>
+          <strong>{{ cancellationNotices().length === 1 ? 'Ein Termin wurde vom Kunden storniert' : cancellationNotices().length + ' Termine wurden von Kunden storniert' }}</strong>
+          @for (notice of visibleCancellationNotices(); track notice.id) {
+            <p>{{ notice.customer }} · {{ formatDate(notice.startsAt) }}</p>
+          }
+          @if (cancellationNotices().length > 3) { <p>… und {{ cancellationNotices().length - 3 }} weitere.</p> }
+        </div>
+        <button type="button" class="secondary" [disabled]="dismissingCancellations()" (click)="dismissCustomerCancellations()" aria-label="Hinweis auf Kundenstornierungen schließen">×</button>
+      </section>
+    }
+    <app-appointment-calendar [appointments]="appointments()" [blocks]="blocks()" [types]="types()" (selected)="openAppointmentDetails($event)" (createRequested)="openAppointmentCreate($event)" />
 
     <div class="grid">
       <section class="card">
@@ -55,7 +51,7 @@
       <section class="card">
         <div class="section-header"><h3>Personen</h3><span>{{ resources().length }}</span></div>
         @for (resource of resources(); track resource.id) {
-          <article class="item"><strong>{{ resource.name }}</strong><button type="button" class="secondary" (click)="editResource(resource)">Bearbeiten</button></article>
+          <article class="item"><div class="resource-legend"><span class="resource-color" [style.background-color]="resource.color" aria-hidden="true"></span><strong>{{ resource.name }}</strong>@if (resource.userId !== null) { <small>Mit Mitarbeiterkonto</small> }</div><button type="button" class="secondary" (click)="editResource(resource)">Bearbeiten</button></article>
         } @empty {
           <p class="empty">Noch keine Person angelegt.</p>
         }
@@ -79,6 +75,51 @@
   }
 </section>
 
+@if (creatingAppointment()) {
+  <app-appointment-create [types]="types()" [blocks]="blocks()" [resources]="resources()" [initialDate]="appointmentPrefill()?.date ?? null" [initialTime]="appointmentPrefill()?.time ?? null" (created)="appointmentCreated()" (dismissed)="closeAppointmentCreate()" />
+}
+
+@if (selectedAppointment(); as appointment) {
+  <div class="modal-backdrop" (click)="closeAppointmentDetails()">
+    <section class="modal appointment-detail" role="dialog" aria-modal="true" aria-labelledby="appointment-detail-title" (click)="$event.stopPropagation()" (keydown.escape)="closeAppointmentDetails()">
+      <div class="modal-header">
+        <div><p class="eyebrow">TERMINDETAILS</p><h3 id="appointment-detail-title">{{ appointment.customer }}</h3></div>
+        <button #detailCloseButton type="button" class="icon-button" aria-label="Termindetails schließen" (click)="closeAppointmentDetails()">×</button>
+      </div>
+      <span class="status" [class.cancelled]="appointment.status === 'cancelled'">{{ appointment.status === 'cancelled' ? 'Abgesagt' : 'Gebucht' }}</span>
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      <dl class="detail-list">
+        <div><dt>Zuordnung</dt><dd>{{ appointment.customerId === null ? 'Ohne App-Konto' : 'App-Benutzer' }}</dd></div>
+        <div><dt>Beginn</dt><dd>{{ formatDate(appointment.startsAt) }}</dd></div>
+        <div><dt>Ende</dt><dd>{{ formatDate(appointment.endsAt) }}</dd></div>
+        <div><dt>Terminart</dt><dd>{{ appointment.type }}</dd></div>
+        <div><dt>Person</dt><dd>{{ appointment.resource }}</dd></div>
+        <div><dt>Anmerkungen</dt><dd class="detail-note">{{ appointment.note || 'Keine Anmerkungen' }}</dd></div>
+      </dl>
+      @if (appointment.customerId !== null && appointment.chatConversationId === null) {
+        <div class="appointment-chat-link">
+          <label>Bestehendes Gespräch verknüpfen
+            <select [(ngModel)]="selectedChatId" [disabled]="loadingChats() || linkingChat()">
+              <option value="">Neues oder offenes Gespräch verwenden</option>
+              @for (chat of availableChats(); track chat.id) {
+                <option [value]="chat.id">Gespräch #{{ chat.id }} · {{ chat.status === 'open' ? 'offen' : 'abgeschlossen' }} · {{ formatDate(chat.updatedAt) }}</option>
+              }
+            </select>
+          </label>
+          <small>Sie können den Kunden zuerst anschreiben. Vor seiner ersten Antwort bestätigt er die Chat-Datenschutzhinweise.</small>
+        </div>
+      }
+      <div class="form-actions">
+        <button type="button" class="secondary" (click)="closeAppointmentDetails()">Schließen</button>
+        @if (appointment.customerId !== null) {
+          <button type="button" class="secondary" [disabled]="linkingChat()" (click)="openAppointmentChat(appointment)">{{ appointment.chatConversationId === null ? 'Chat eröffnen' : 'Zum Chat' }}</button>
+        }
+        @if (appointment.status === 'reserved') { <button type="button" class="danger" (click)="cancel(appointment)">Termin absagen</button> }
+      </div>
+    </section>
+  </div>
+}
+
 @if (modal(); as activeModal) {
   <div class="modal-backdrop" (click)="closeModal()">
     <section class="modal" role="dialog" aria-modal="true" [attr.aria-labelledby]="activeModal + '-title'" (click)="$event.stopPropagation()">
@@ -94,7 +135,7 @@
       }
 
       @if (activeModal === 'type') {
-        <form (ngSubmit)="saveType()">
+        <form (ngSubmit)="saveType()" novalidate>
           <label>Bezeichnung *<input [(ngModel)]="typeTitle" name="typeTitle" required /></label>
           <label>Dauer in Minuten *<input [(ngModel)]="typeDuration" name="typeDuration" type="number" min="5" required /></label>
           <label>Puffer in Minuten<input [(ngModel)]="typeBuffer" name="typeBuffer" type="number" min="0" /></label>
@@ -103,14 +144,22 @@
       }
 
       @if (activeModal === 'resource') {
-        <form (ngSubmit)="saveResource()">
-          <label>Name *<input [(ngModel)]="resourceName" name="resourceName" required /></label>
+        <form (ngSubmit)="saveResource()" novalidate>
+          <label>Mitarbeiterkonto (optional)
+            <select [(ngModel)]="resourceUserId" name="resourceUserId" (ngModelChange)="onResourceUserChange()">
+              <option value="">Kein Konto – Namen manuell eingeben</option>
+              @for (user of staffUsers(); track user.id) { <option [value]="user.id">{{ user.displayName }} · {{ user.email }}</option> }
+            </select>
+          </label>
+          <label>Name *<input [(ngModel)]="resourceName" name="resourceName" maxlength="160" required /></label>
+          @if (resourceUserId !== '') { <small>Neue Termine dieser Person werden per E-Mail an das zugeordnete Konto gemeldet.</small> }
+          <label>Farbe für Termine<input [(ngModel)]="resourceColor" name="resourceColor" type="color" /></label>
           <div class="form-actions"><button type="button" class="secondary" (click)="closeModal()">Abbrechen</button><button type="submit">Speichern</button></div>
         </form>
       }
 
       @if (activeModal === 'availability') {
-        <form (ngSubmit)="saveAvailability()">
+        <form (ngSubmit)="saveAvailability()" novalidate>
           <label>Person *<select [(ngModel)]="availabilityResourceId" name="resource" required><option value="">Bitte wählen</option>@for (resource of resources(); track resource.id) { <option [value]="resource.id">{{ resource.name }}</option> }</select></label>
           <label>Terminart *<select [(ngModel)]="availabilityTypeId" name="type" required><option value="">Bitte wählen</option>@for (type of types(); track type.id) { <option [value]="type.id">{{ type.title }}</option> }</select></label>
           <fieldset><legend>Wochentage *</legend><div class="weekdays">@for (day of weekdays; track day.id) { <label><input [(ngModel)]="weekdaySelected[day.id]" [name]="'weekday-' + day.id" type="checkbox" />{{ day.label }}</label> }</div></fieldset>
@@ -120,7 +169,7 @@
       }
 
       @if (activeModal === 'block') {
-        <form (ngSubmit)="saveBlock()">
+        <form (ngSubmit)="saveBlock()" novalidate>
           <label>Gültigkeit<select [(ngModel)]="blockTypeId" name="blockType" (change)="onBlockScopeChange()"><option value="">Gesamter Kalender</option>@for (type of types(); track type.id) { <option [value]="type.id">Nur: {{ type.title }}</option> }</select></label>
           <fieldset><legend>Sperrtage *</legend><p class="hint">Starttag, dann Endtag wählen. Ein erneuter Klick auf den Endtag setzt ihn zurück; ein Klick auf den Starttag löscht die Auswahl.</p><div class="calendar-header"><button type="button" class="secondary" [disabled]="!canGoToPreviousBlockMonth()" aria-label="Vorheriger Monat" (click)="previousBlockMonth()">‹</button><strong>{{ blockCalendarLabel() }}</strong><button type="button" class="secondary" aria-label="Nächster Monat" (click)="nextBlockMonth()">›</button></div><div class="calendar-weekdays"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="block-calendar">@for (day of blockCalendarDays(); track $index) { @if (day) { <button type="button" class="secondary" [class.selected-day]="day.value >= blockStartsOn && day.value <= blockEndsOn" [disabled]="!isBlockDayAvailable(day.value)" (click)="selectBlockDay(day.value)">{{ day.day }}</button> } @else { <span aria-hidden="true"></span> } }</div></fieldset>
           <label class="checkbox-label"><input [(ngModel)]="blockHasTime" name="blockHasTime" type="checkbox" />Zeit hinzufügen</label>

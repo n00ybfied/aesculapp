@@ -32,7 +32,7 @@ final class ApiAnalyticsController
     public function record(Request $request): Response
     {
         $user = $this->security->getUser();
-        if (!$user instanceof User || !$this->memberships->hasActiveMembershipFor($user, $this->tenant->get())) {
+        if (!$user instanceof User || !$this->memberships->hasCustomerMembershipFor($user, $this->tenant->get())) {
             return new JsonResponse(['message' => 'Unauthorized.'], Response::HTTP_UNAUTHORIZED);
         }
 

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ElementRef, Injector, afterNextRender, in
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ChatService, ChatList, ChatDetail, Conversation } from '../../core/chat/chat.service';
+import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 
 @Component({
  selector:'app-chat-image',
@@ -63,7 +64,7 @@ export class ChatImageComponent implements OnInit,OnDestroy {
      <label for="chat-text">Ihre Nachricht</label>
      <textarea id="chat-text" name="text" rows="3" maxlength="5000" [(ngModel)]="draft" [disabled]="busy()" placeholder="Nachricht schreiben …"></textarea>
      @if(preview()){<div class="preview"><img [src]="preview()" alt="Ausgewählter Bildanhang" /><button type="button" [disabled]="busy()" (click)="removeImage()">Bild entfernen</button></div>}
-     <div class="composer-actions"><label class="upload"><span>Bild hinzufügen</span><input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="busy()" (change)="pick($event)" /></label><button class="primary" type="submit" [disabled]="busy() || (!draft.trim() && !file) || (!data.consented && !consent)">{{busy()?'Wird gesendet …':'Senden'}}</button></div>
+     <div class="composer-actions"><label class="upload"><span>Bild hinzufügen</span><input type="file" accept="image/jpeg,image/png,image/webp" [disabled]="busy()" (change)="pick($event)" /></label><button class="primary" type="submit" [disabled]="busy()">{{busy()?'Wird gesendet …':'Senden'}}</button></div>
      <small>JPEG, PNG oder WebP · maximal 5 MB · 16 Megapixel</small>
     </form>
    }
@@ -95,6 +96,7 @@ export class ChatPage implements OnInit,OnDestroy {
  }
  private readonly service=inject(ChatService);
  private readonly injector=inject(Injector);
+ private readonly dialogs=inject(ConfirmDialogService);
  private readonly messageEnd=viewChild<ElementRef<HTMLElement>>('messageEnd');
  private scrollToLatest():void {
   afterNextRender(()=>{if(!this.destroyed)this.messageEnd()?.nativeElement.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'end'});},{injector:this.injector});
@@ -116,8 +118,9 @@ export class ChatPage implements OnInit,OnDestroy {
  pick(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0];input.value='';if(!file)return;if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){this.error.set('Bitte ein JPEG-, PNG- oder WebP-Bild bis 5 MB wählen.');return;}this.removeImage();this.file=file;this.preview.set(URL.createObjectURL(file));this.retryBody=null;}
  removeImage(){if(this.preview())URL.revokeObjectURL(this.preview());this.preview.set('');this.file=null;}
  async send(){
-  if(this.busy()||(!this.draft.trim()&&!this.file))return;
-  if(!this.list()?.consented&&!this.consent)return;
+  if(this.busy())return;
+  if(!this.draft.trim()&&!this.file){this.error.set('Bitte schreiben Sie eine Nachricht oder fügen Sie ein Bild hinzu.');return;}
+  if(!this.list()?.consented&&!this.consent){this.error.set('Bitte stimmen Sie zuerst den Datenschutzhinweisen für den Chat zu.');return;}
   this.busy.set(true);this.error.set('');this.generation++;
   const body=new FormData();body.set('text',this.draft.trim());body.set('subject',this.subject.trim());body.set('conversationId',String(this.detail()?.conversation.id??0));body.set('consent',String(this.consent));body.set('consentVersion',this.list()?.consentVersion??'');if(this.file)body.set('image',this.file);
   if(!this.retryBody||this.retryBody.get('subject')!==body.get('subject')||this.retryBody.get('text')!==body.get('text')||this.retryBody.get('conversationId')!==body.get('conversationId'))this.requestId=crypto.randomUUID();
@@ -137,5 +140,5 @@ export class ChatPage implements OnInit,OnDestroy {
   }
   catch(e){this.failure(e);if(e instanceof HttpErrorResponse&&e.status===409){this.busy.set(false);await this.poll();}}finally{this.busy.set(false);}
  }
- async close(){const id=this.detail()?.conversation.id;if(!id||this.busy()||!confirm('Dieses Gespräch wirklich abschließen?'))return;this.busy.set(true);this.generation++;try{await this.service.close(id);this.busy.set(false);await this.open(id);}catch(e){this.failure(e);}finally{this.busy.set(false);}}
+ async close(){const id=this.detail()?.conversation.id;if(!id||this.busy()||!await this.dialogs.confirm('Dieses Gespräch wirklich abschließen?', { title: 'Gespräch abschließen', confirmLabel: 'Abschließen' }))return;this.busy.set(true);this.generation++;try{await this.service.close(id);this.busy.set(false);await this.open(id);}catch(e){this.failure(e);}finally{this.busy.set(false);}}
 }

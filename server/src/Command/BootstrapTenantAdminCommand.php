@@ -26,6 +26,7 @@ final class BootstrapTenantAdminCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly \App\Service\UsernameReservation $usernameReservation,
         #[Autowire('%env(APP_TENANT_SLUG)%')] private readonly string $tenantSlug,
     ) {
         parent::__construct();
@@ -59,6 +60,7 @@ final class BootstrapTenantAdminCommand extends Command
 
         if ($tenantName === '' || mb_strlen($tenantName) > 160
             || preg_match('/^[a-z][a-z0-9._-]{2,39}$/', $username) !== 1
+            || $this->usernameReservation->isReserved($username)
             || filter_var($email, FILTER_VALIDATE_EMAIL) === false || mb_strlen($email) > 180
             || $displayName === '' || mb_strlen($displayName) > 160) {
             $io->error('Ungültige Eingabe. Der Benutzername muss 3–40 Zeichen (a–z, 0–9, Punkt, Minus, Unterstrich) haben.');

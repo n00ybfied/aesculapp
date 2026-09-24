@@ -1,0 +1,81 @@
+<section class="calendar-card" aria-labelledby="appointment-calendar-title">
+  <div class="calendar-toolbar">
+    <div>
+      <p class="eyebrow">BUCHUNGEN</p>
+      <h3 id="appointment-calendar-title">Terminkalender</h3>
+      <p class="calendar-subtitle">{{ periodLabel() }} · Zeiten der Apotheke (Wien) · Freie Zeit anklicken, um einen Termin anzulegen</p>
+    </div>
+    <div class="calendar-controls">
+      <div class="period-controls" aria-label="Kalenderzeitraum ändern">
+        <button type="button" class="outline" (click)="goToday()">Heute</button>
+        <button type="button" class="icon" (click)="move(-1)" [attr.aria-label]="mode() === 'week' ? 'Vorherige Woche' : 'Vorheriger Tag'">‹</button>
+        <button type="button" class="icon" (click)="move(1)" [attr.aria-label]="mode() === 'week' ? 'Nächste Woche' : 'Nächster Tag'">›</button>
+        <input type="date" [value]="selectedDate()" (change)="chooseDate($event)" aria-label="Datum auswählen" />
+      </div>
+      <div class="view-controls" role="group" aria-label="Kalenderansicht">
+        <button type="button" [class.active]="mode() === 'week'" [attr.aria-pressed]="mode() === 'week'" (click)="setMode('week')">Woche</button>
+        <button type="button" [class.active]="mode() === 'day'" [attr.aria-pressed]="mode() === 'day'" (click)="setMode('day')">Tag</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="calendar-scroll" role="region" aria-label="Termine nach Wochentag und Uhrzeit" tabindex="0">
+    <div class="calendar-grid" [class.day-mode]="mode() === 'day'">
+      <div class="corner" aria-hidden="true"></div>
+      @for (day of days(); track day) {
+        <button type="button" class="day-heading" [class.today]="day === today" [class.past]="pastDay(day)" [class.blocked]="blockedDay(day)" (click)="openDay(day)" [attr.aria-label]="formatDay(day, { dateStyle: 'full' }) + ' in Tagesansicht öffnen'">
+          <span>{{ formatDay(day, { weekday: 'short' }) }}</span>
+          <strong>{{ formatDay(day, { day: 'numeric', month: 'short' }) }}</strong>
+        </button>
+      }
+
+      <div class="time-rail" [style.height.px]="gridHeight()" aria-hidden="true">
+        @for (hour of hours(); track hour) {
+          <span class="time-label" [style.top.px]="hourTop(hour)">{{ hour.toString().padStart(2, '0') }}:00</span>
+        }
+      </div>
+      @for (day of days(); track day) {
+        <div class="day-column" [class.today]="day === today" [class.past]="pastDay(day)" [class.blocked]="blockedDay(day)" [style.height.px]="gridHeight()" [attr.aria-label]="formatDay(day, { dateStyle: 'full' })">
+          @for (hour of hours(); track hour) {
+            <span class="hour-line" [style.top.px]="hourTop(hour)" aria-hidden="true"></span>
+          }
+          @for (segment of blocksByDay()[day] ?? []; track segment.block.id) {
+            <div class="calendar-block" [class.type-specific]="segment.block.typeId !== null" [style.top.px]="segment.top" [style.height.px]="segment.height" [attr.aria-label]="blockLabel(segment.block)" [title]="blockLabel(segment.block)">
+              <strong>{{ blockLabel(segment.block) }}</strong>
+            </div>
+          }
+          @for (slot of slots(); track slot) {
+            <button
+              type="button"
+              class="calendar-slot"
+              tabindex="-1"
+              [disabled]="slotUnavailable(day, slot)"
+              [style.top.px]="slotTop(slot)"
+              [attr.aria-label]="'Neuen Termin am ' + formatDay(day, { dateStyle: 'full' }) + ' um ' + slotTime(slot) + ' Uhr anlegen'"
+              (click)="createAt(day, slot)"></button>
+          }
+          @for (event of eventsByDay()[day] ?? []; track event.appointment.id) {
+            <button
+              type="button"
+              class="calendar-event"
+              [class.cancelled]="event.appointment.status === 'cancelled'"
+              [style.--appointment-color]="event.appointment.resourceColor"
+              [style.top.px]="event.top"
+              [style.height.px]="event.height"
+              [style.left]="event.left"
+              [style.width]="event.width"
+              [attr.aria-label]="event.startLabel + ' bis ' + event.endLabel + ': ' + event.appointment.customer + (event.appointment.status === 'cancelled' ? ', abgesagt' : '')"
+              (click)="selected.emit(event.appointment)">
+              @if (event.height < 38) {
+                <span class="event-compact">{{ event.startLabel }} · {{ event.appointment.customer }}</span>
+              } @else {
+                <span class="event-time">{{ event.startLabel }}–{{ event.endLabel }}</span>
+                <strong>{{ event.appointment.customer }}</strong>
+              }
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</section>
