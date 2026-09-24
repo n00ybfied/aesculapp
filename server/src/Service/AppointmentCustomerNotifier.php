@@ -46,7 +46,7 @@ final class AppointmentCustomerNotifier
                     "Guten Tag %s,\n\n%s\n\n%s\n%s Uhr%s\n\nIhre Termine finden Sie in der App:\n%s/termine/meine\n",
                     $customer->getDisplayName(), $intro, $appointment->getType()->getTitle(),
                     $appointment->getStartsAt()->format('d.m.Y H:i'), $person, rtrim($this->clientUrl, '/'),
-                )), $type);
+                )), $type, AppointmentTemplateValues::customer($appointment, $this->clientUrl));
         } catch (\Throwable $exception) {
             $this->logger->warning('appointment.customer_email.failed', [
                 'appointmentId' => $appointment->getId(), 'errorClass' => $exception::class,

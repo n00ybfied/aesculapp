@@ -47,10 +47,11 @@ final class ApiFamilyController
                 ->text("{$user->getDisplayName()} möchte mit Ihnen einen Familienzugang in AesculApp verbinden. Bestätigen Sie die Einladung innerhalb von sieben Tagen:\n{$url}\n\nDanach legen beide Seiten getrennt fest, welche Medikamentendaten freigegeben werden.")
                 ->html("<p>Hallo {$recipientName},</p><p><strong>{$inviterName}</strong> möchte mit Ihnen einen Familienzugang in AesculApp verbinden.</p><p><a href=\"{$safeUrl}\">Familieneinladung annehmen</a></p><p>Die Einladung ist sieben Tage gültig. Danach legen beide Seiten getrennt fest, welche Medikamentendaten freigegeben werden.</p>"),
                 'family_invitation',
+                ['actor_name' => $user->getDisplayName(), 'action_url' => $url],
             );
             $this->em->flush();
         } catch (\Throwable) { return new JsonResponse(['message' => 'Die Einladung konnte derzeit nicht versendet werden.'], 503); }
-        $this->push->scheduleFamilyNotification($recipient, $tenant, 'Familienzugang', 'Sie haben eine neue Einladung zum Familienzugang.');
+        $this->push->scheduleFamilyNotification($recipient, $tenant, 'Familienzugang', 'Sie haben eine neue Einladung zum Familienzugang.', 'family_invitation');
         return new JsonResponse(['connection' => $this->serialize($connection, $user)], 201);
     }
 
@@ -74,11 +75,12 @@ final class ApiFamilyController
                 ->text("{$user->getDisplayName()} hat Ihre Einladung zum Familienzugang in AesculApp angenommen. Sie können nun in den Familieneinstellungen getrennt festlegen, welche Medikamentendaten Sie freigeben möchten.\n\n{$this->clientUrl}/familie")
                 ->html("<p>Hallo {$inviterName},</p><p><strong>{$recipientName}</strong> hat Ihre Einladung zum Familienzugang in AesculApp angenommen.</p><p>Sie können nun getrennt festlegen, welche Medikamentendaten Sie füreinander freigeben möchten.</p><p><a href=\"{$url}\">Familieneinstellungen öffnen</a></p>"),
                 'family_invitation_accepted',
+                ['actor_name' => $user->getDisplayName(), 'action_url' => rtrim($this->clientUrl, '/').'/familie'],
             );
         } catch (\Throwable) {
             // The connection is already valid; mail delivery is logged by TenantMailer and must not undo acceptance.
         }
-        $this->push->scheduleFamilyNotification($inviter, $this->tenant->get(), 'Familienzugang', 'Eine Einladung zum Familienzugang wurde angenommen.');
+        $this->push->scheduleFamilyNotification($inviter, $this->tenant->get(), 'Familienzugang', 'Eine Einladung zum Familienzugang wurde angenommen.', 'family_invitation_accepted');
         return new JsonResponse(['connection' => $this->serialize($connection, $user)]);
     }
 
@@ -97,8 +99,8 @@ final class ApiFamilyController
         if (!$tenant->isFamilyPointSharingEnabled()) return new JsonResponse(['message' => 'Die Apotheke hat die Punkteteilung für Familien nicht freigegeben.'], 403);
         try { $connection->requestPointSharing($user); } catch (\LogicException) { return new JsonResponse(['message' => 'Die Punkteteilung kann derzeit nicht angefragt werden.'], 409); }
         $this->em->flush(); $recipient = $connection->other($user);
-        try { $url = rtrim($this->clientUrl, '/') . '/familie'; $this->mailer->send($tenant, (new Email())->from($this->mailFrom)->to($recipient->getEmail())->subject('Punkteteilung für Familie angefragt')->text("{$user->getDisplayName()} möchte die Punkte mit Ihnen teilen. Bitte öffnen Sie den Familienzugang und stimmen Sie zu oder lehnen Sie ab.\n\n{$url}"), 'family_point_sharing_requested'); } catch (\Throwable) { /* Delivery failure is logged and does not undo the request. */ }
-        $this->push->scheduleFamilyNotification($recipient, $tenant, 'Gemeinsame Punkte', 'Sie haben eine Anfrage zur gemeinsamen Punkteteilung erhalten.');
+        try { $url = rtrim($this->clientUrl, '/') . '/familie'; $this->mailer->send($tenant, (new Email())->from($this->mailFrom)->to($recipient->getEmail())->subject('Punkteteilung für Familie angefragt')->text("{$user->getDisplayName()} möchte die Punkte mit Ihnen teilen. Bitte öffnen Sie den Familienzugang und stimmen Sie zu oder lehnen Sie ab.\n\n{$url}"), 'family_point_sharing_requested', ['actor_name' => $user->getDisplayName(), 'action_url' => $url]); } catch (\Throwable) { /* Delivery failure is logged and does not undo the request. */ }
+        $this->push->scheduleFamilyNotification($recipient, $tenant, 'Gemeinsame Punkte', 'Sie haben eine Anfrage zur gemeinsamen Punkteteilung erhalten.', 'family_point_sharing_requested');
         return new JsonResponse(['connection' => $this->serialize($connection, $user)]);
     }
 
@@ -108,8 +110,8 @@ final class ApiFamilyController
         $user = $this->user(); $connection = $this->connection($id, $user);
         try { $connection->acceptPointSharing($user); } catch (\LogicException) { return new JsonResponse(['message' => 'Die Punkteteilung kann derzeit nicht angenommen werden.'], 409); }
         $this->em->flush(); $requester = $connection->other($user);
-        try { $this->mailer->send($this->tenant->get(), (new Email())->from($this->mailFrom)->to($requester->getEmail())->subject('Punkteteilung wurde angenommen')->text("{$user->getDisplayName()} hat der Punkteteilung zugestimmt.\n\n{$this->clientUrl}/familie"), 'family_point_sharing_accepted'); } catch (\Throwable) { /* Delivery failure is logged and does not undo consent. */ }
-        $this->push->scheduleFamilyNotification($requester, $this->tenant->get(), 'Gemeinsame Punkte', 'Ihre Anfrage zur gemeinsamen Punkteteilung wurde angenommen.');
+        try { $this->mailer->send($this->tenant->get(), (new Email())->from($this->mailFrom)->to($requester->getEmail())->subject('Punkteteilung wurde angenommen')->text("{$user->getDisplayName()} hat der Punkteteilung zugestimmt.\n\n{$this->clientUrl}/familie"), 'family_point_sharing_accepted', ['actor_name' => $user->getDisplayName(), 'action_url' => rtrim($this->clientUrl, '/').'/familie']); } catch (\Throwable) { /* Delivery failure is logged and does not undo consent. */ }
+        $this->push->scheduleFamilyNotification($requester, $this->tenant->get(), 'Gemeinsame Punkte', 'Ihre Anfrage zur gemeinsamen Punkteteilung wurde angenommen.', 'family_point_sharing_accepted');
         return new JsonResponse(['connection' => $this->serialize($connection, $user)]);
     }
 
@@ -120,8 +122,8 @@ final class ApiFamilyController
         if (!$connection->canBeAcceptedBy($user)) return new JsonResponse(['message' => 'Die Einladung ist ungültig oder abgelaufen.'], 404);
         $connection->accept(); $this->em->flush();
         $inviter = $connection->getInvitedBy();
-        try { $this->mailer->send($this->tenant->get(), (new Email())->from($this->mailFrom)->to($inviter->getEmail())->subject('Ihre Familien-Einladung wurde angenommen')->text("{$user->getDisplayName()} hat Ihre Einladung zum Familienzugang in AesculApp angenommen.\n\n{$this->clientUrl}/familie"), 'family_invitation_accepted'); } catch (\Throwable) { /* Delivery failure is logged and does not undo acceptance. */ }
-        $this->push->scheduleFamilyNotification($inviter, $this->tenant->get(), 'Familienzugang', 'Eine Einladung zum Familienzugang wurde angenommen.');
+        try { $this->mailer->send($this->tenant->get(), (new Email())->from($this->mailFrom)->to($inviter->getEmail())->subject('Ihre Familien-Einladung wurde angenommen')->text("{$user->getDisplayName()} hat Ihre Einladung zum Familienzugang in AesculApp angenommen.\n\n{$this->clientUrl}/familie"), 'family_invitation_accepted_in_app', ['actor_name' => $user->getDisplayName(), 'action_url' => rtrim($this->clientUrl, '/').'/familie']); } catch (\Throwable) { /* Delivery failure is logged and does not undo acceptance. */ }
+        $this->push->scheduleFamilyNotification($inviter, $this->tenant->get(), 'Familienzugang', 'Eine Einladung zum Familienzugang wurde angenommen.', 'family_invitation_accepted');
         return new JsonResponse(['connection' => $this->serialize($connection, $user)]);
     }
 
