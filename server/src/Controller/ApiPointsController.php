@@ -32,7 +32,7 @@ final class ApiPointsController
     public function balance(): JsonResponse
     {
         $user = $this->security->getUser();
-        if (!$user instanceof User || !$this->memberships->hasActiveMembershipFor($user, $this->tenant->get())) {
+        if (!$user instanceof User || !$this->memberships->hasCustomerMembershipFor($user, $this->tenant->get())) {
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
 
@@ -62,7 +62,7 @@ final class ApiPointsController
     public function transactions(Request $request): JsonResponse
     {
         $user = $this->security->getUser();
-        if (!$user instanceof User || !$this->memberships->hasActiveMembershipFor($user, $this->tenant->get())) {
+        if (!$user instanceof User || !$this->memberships->hasCustomerMembershipFor($user, $this->tenant->get())) {
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
 

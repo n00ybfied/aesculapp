@@ -67,6 +67,11 @@ services:
         arguments:
             $mailFrom: '%app.auth.mail_from%'
 
+    App\Service\AppointmentStaffNotifier:
+        arguments:
+            $mailFrom: '%app.auth.mail_from%'
+            $adminUrl: '%app.auth.admin_url%'
+
     App\Command\SendAppointmentRemindersCommand:
         arguments:
             $clientUrl: '%app.auth.client_url%'

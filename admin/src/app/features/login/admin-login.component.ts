@@ -22,6 +22,7 @@ export class AdminLoginComponent {
   protected username = '';
   protected password = '';
   protected readonly isSubmitting = signal(false);
+  protected readonly attempted = signal(false);
   protected readonly errorMessage = signal('');
 
   constructor() {
@@ -29,9 +30,11 @@ export class AdminLoginComponent {
   }
 
   protected submit(): void {
-    if (this.isSubmitting() || this.username.trim() === '' || this.password === '') {
+    if (this.isSubmitting()) {
       return;
     }
+    this.attempted.set(true);
+    if (this.username.trim() === '' || this.password === '') return;
 
     this.errorMessage.set('');
     this.isSubmitting.set(true);

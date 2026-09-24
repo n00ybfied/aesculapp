@@ -2,7 +2,7 @@
   <div class="heading"><div><p class="eyebrow">DASHBOARD</p><h2 id="slider-title">Bilder-Slider</h2><p>Diese Bilder erscheinen oben in der Kunden-App.</p></div><button type="button" class="primary" (click)="openCreate()">Sliderbild hinzufügen</button></div>
   <p class="hint">Ein hinterlegter Link öffnet beim Antippen das Ziel. Ohne Link wird das Bild groß angezeigt.</p>
   @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-  <form class="settings" (ngSubmit)="saveSettings()">
+  <form class="settings" (ngSubmit)="saveSettings()" novalidate>
     <p class="hint">Die Bilder wechseln mit einem horizontalen Slide-Effekt.</p>
     <label>Animationsdauer <span>in Millisekunden</span><input [(ngModel)]="animationDurationMs" name="animationDurationMs" type="number" min="100" max="3000" step="50" required /></label>
     <label>Wechselabstand <span>in Millisekunden</span><input [(ngModel)]="delayMs" name="delayMs" type="number" min="1000" max="60000" step="500" required /></label>

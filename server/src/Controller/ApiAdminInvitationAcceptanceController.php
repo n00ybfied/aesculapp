@@ -26,6 +26,7 @@ final class ApiAdminInvitationAcceptanceController
         UserRepository $users,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
+        \App\Service\UsernameReservation $usernameReservation,
     ): JsonResponse {
         try {
             $payload = $request->toArray();
@@ -61,6 +62,9 @@ final class ApiAdminInvitationAcceptanceController
 
         if (!is_string($password) || mb_strlen($password) < 10) {
             return $this->invalidResponse();
+        }
+        if ($usernameReservation->isReserved($invitation->getEmail())) {
+            return new JsonResponse(['message' => 'Diese Benutzerkennung kann vorübergehend nicht verwendet werden. Bitte versuchen Sie es später erneut.'], JsonResponse::HTTP_CONFLICT);
         }
 
         $user = new User($invitation->getEmail(), $invitation->getEmail(), $invitation->getDisplayName());

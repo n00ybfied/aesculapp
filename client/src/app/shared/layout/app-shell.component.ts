@@ -8,6 +8,7 @@ import { FooterNavigationItem, ProfileService } from '../../core/profile/profile
 import { ThemeService } from '../../core/theme/theme.service';
 import { SnackbarComponent } from '../feedback/snackbar.component';
 import { AnalyticsService } from '../../core/analytics/analytics.service';
+import { ConfirmDialogComponent } from '../feedback/confirm-dialog.component';
 
 interface FooterNavigationLink {
   readonly id: FooterNavigationItem;
@@ -32,7 +33,7 @@ const FOOTER_NAVIGATION_LINKS: readonly FooterNavigationLink[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [NgIcon, RouterLink, RouterLinkActive, RouterOutlet, SnackbarComponent],
+  imports: [NgIcon, RouterLink, RouterLinkActive, RouterOutlet, SnackbarComponent, ConfirmDialogComponent],
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent implements OnInit,OnDestroy {

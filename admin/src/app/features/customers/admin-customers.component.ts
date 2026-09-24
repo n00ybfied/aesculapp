@@ -24,6 +24,11 @@ export class AdminCustomersComponent {
     void this.load(1);
   }
 
+  protected resetFilters(): void {
+    this.query = '';
+    void this.load(1);
+  }
+
   protected goToPage(page: number): void {
     void this.load(page);
   }

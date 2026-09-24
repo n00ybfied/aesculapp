@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { MediaPickerComponent, type PickedMedia } from '../../shared/media-picker.component';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 
 interface DashboardSlide {
   readonly id: number;
@@ -27,6 +28,7 @@ interface DashboardSliderSettings {
 export class DashboardSlidesComponent {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AdminAuthService);
+  private readonly dialogs = inject(ConfirmDialogService);
   protected readonly slides = signal<readonly DashboardSlide[]>([]);
   protected readonly editorOpen = signal(false);
   protected readonly editingId = signal<number | null>(null);
@@ -65,7 +67,7 @@ export class DashboardSlidesComponent {
   }
 
   protected async remove(slide: DashboardSlide): Promise<void> {
-    if (!confirm('Dieses Sliderbild wirklich entfernen?')) return;
+    if (!await this.dialogs.confirm('Dieses Sliderbild wirklich entfernen?', { title: 'Sliderbild entfernen', confirmLabel: 'Entfernen', destructive: true })) return;
     this.error.set('');
     try { await firstValueFrom(this.http.delete(`${this.api()}/${slide.id}`, { headers: this.headers() })); await this.load(); }
     catch { this.error.set('Sliderbild konnte nicht entfernt werden.'); }
@@ -81,6 +83,12 @@ export class DashboardSlidesComponent {
 
   protected async saveSettings(): Promise<void> {
     if (this.settingsSaving()) return;
+    const duration = Number(this.animationDurationMs);
+    const delay = Number(this.delayMs);
+    if (!Number.isFinite(duration) || duration < 100 || duration > 3000 || !Number.isFinite(delay) || delay < 1000 || delay > 60000) {
+      this.error.set('Bitte Animationsdauer (100–3.000 ms) und Wechselabstand (1.000–60.000 ms) prüfen.');
+      return;
+    }
     this.settingsSaving.set(true); this.error.set('');
     try {
       const settings: DashboardSliderSettings = { transition: this.transition, animationDurationMs: Number(this.animationDurationMs), delayMs: Number(this.delayMs), autoplay: this.autoplay };

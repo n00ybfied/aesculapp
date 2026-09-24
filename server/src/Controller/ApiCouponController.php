@@ -37,7 +37,7 @@ final class ApiCouponController
     {
         $user = $this->security->getUser();
         $tenant = $this->activeTenant->get();
-        if (!$user instanceof User || !$this->memberships->hasActiveMembershipFor($user, $tenant)) {
+        if (!$user instanceof User || !$this->memberships->hasCustomerMembershipFor($user, $tenant)) {
             return new JsonResponse(['message' => 'Unauthorized.'], Response::HTTP_UNAUTHORIZED);
         }
 

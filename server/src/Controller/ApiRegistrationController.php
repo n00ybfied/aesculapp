@@ -26,6 +26,7 @@ final class ApiRegistrationController
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
         EmailVerificationService $emailVerification,
+        \App\Service\UsernameReservation $usernameReservation,
     ): JsonResponse {
         try {
             $payload = $request->toArray();
@@ -55,7 +56,7 @@ final class ApiRegistrationController
             return $this->validationError();
         }
 
-        if (null !== $users->findOneByUsername($username) || null !== $users->findOneByEmail($email)) {
+        if (null !== $users->findOneByUsername($username) || null !== $users->findOneByEmail($email) || $usernameReservation->isReserved($username)) {
             return new JsonResponse(['message' => 'An account with these details already exists.'], JsonResponse::HTTP_CONFLICT);
         }
 

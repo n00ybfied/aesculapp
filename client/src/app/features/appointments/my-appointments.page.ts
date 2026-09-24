@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AppointmentService, type CustomerAppointment } from '../../core/appointments/appointment.service';
+import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 
 @Component({
   selector: 'app-my-appointments-page',
@@ -9,16 +10,27 @@ import { AppointmentService, type CustomerAppointment } from '../../core/appoint
 })
 export class MyAppointmentsPage implements OnInit {
   private readonly appointmentsService = inject(AppointmentService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly dialogs = inject(ConfirmDialogService);
   protected readonly appointments = signal<readonly CustomerAppointment[]>([]);
+  protected readonly now = signal(Date.now());
+  protected readonly visibleAppointments = computed(() => this.appointments().filter(
+    (appointment) => new Date(appointment.endsAt).getTime() > this.now(),
+  ));
   protected readonly isLoading = signal(true);
   protected readonly isCancelling = signal<number | null>(null);
   protected readonly error = signal('');
   protected readonly message = signal('');
 
+  constructor() {
+    const timer = setInterval(() => this.now.set(Date.now()), 30_000);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
+  }
+
   async ngOnInit(): Promise<void> { await this.load(); }
 
   protected async cancel(appointment: CustomerAppointment): Promise<void> {
-    if (!confirm('Möchten Sie diesen Termin wirklich absagen?')) return;
+    if (!await this.dialogs.confirm('Möchten Sie diesen Termin wirklich absagen?', { title: 'Termin absagen', confirmLabel: 'Termin absagen', destructive: true })) return;
     this.isCancelling.set(appointment.id);
     this.error.set('');
     try {

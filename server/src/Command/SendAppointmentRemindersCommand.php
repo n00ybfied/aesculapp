@@ -53,7 +53,7 @@ final class SendAppointmentRemindersCommand extends Command
         $emailsSent = 0;
         $pushesSent = 0;
         foreach ($appointments as $appointment) {
-            if (!$appointment instanceof Appointment) {
+            if (!$appointment instanceof Appointment || $appointment->getCustomer() === null) {
                 continue;
             }
 

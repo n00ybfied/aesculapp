@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\{ChatMessage, Tenant, User, WebPushSubscription};
+use App\Entity\{Appointment, ChatMessage, Tenant, User, WebPushSubscription};
 use App\Repository\TenantMembershipRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Minishlink\WebPush\{Subscription, WebPush};
@@ -19,6 +19,9 @@ final class ChatPushService
 
     /** @var list<array{user: User, tenant: Tenant, title: string, body: string, url: string, tag: string}> */
     private array $scheduledFamilyNotifications = [];
+
+    /** @var list<int> */
+    private array $scheduledAppointmentBookings = [];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -105,6 +108,11 @@ final class ChatPushService
         $this->scheduledFamilyNotifications[] = ['user' => $user, 'tenant' => $tenant, 'title' => $title, 'body' => $body, 'url' => '/familie', 'tag' => 'aesculapp-family-access'];
     }
 
+    public function scheduleAppointmentBooking(int $appointmentId): void
+    {
+        $this->scheduledAppointmentBookings[] = $appointmentId;
+    }
+
     public function sendAppointmentReminder(User $user, Tenant $tenant, string $body): bool
     {
         if (!$this->memberships->findForUserAndTenant($user, $tenant)?->isAppointmentPushEnabled()) {
@@ -155,6 +163,40 @@ final class ChatPushService
         $this->scheduled = [];
         foreach ($this->scheduledFamilyNotifications as $notification) $this->deliverFamilyNotification(...$notification);
         $this->scheduledFamilyNotifications = [];
+        foreach ($this->scheduledAppointmentBookings as $id) $this->deliverAppointmentBooking($id);
+        $this->scheduledAppointmentBookings = [];
+    }
+
+    private function deliverAppointmentBooking(int $appointmentId): void
+    {
+        try {
+            $appointment = $this->em->getRepository(Appointment::class)->find($appointmentId);
+            if (!$appointment instanceof Appointment || $appointment->getStatus() !== 'reserved' || $appointment->getCustomer() === null) {
+                return;
+            }
+            $user = $appointment->getCustomer();
+            $tenant = $appointment->getTenant();
+            if (!$this->memberships->findForUserAndTenant($user, $tenant)?->isAppointmentPushEnabled()) {
+                return;
+            }
+            $config = $this->config();
+            if ($config === null) {
+                return;
+            }
+            $this->deliverToSubscriptions(
+                $user,
+                $tenant,
+                'Neuer Termin',
+                sprintf('Ihre Apotheke hat für Sie am %s um %s Uhr einen Termin eingetragen.', $appointment->getStartsAt()->format('d.m.Y'), $appointment->getStartsAt()->format('H:i')),
+                '/termine/meine',
+                'aesculapp-appointment-booking',
+                $config,
+                null,
+                'appointment_booking',
+            );
+        } catch (\Throwable $exception) {
+            $this->logger->warning('appointment.booking_push.failed', ['appointmentId' => $appointmentId, 'errorClass' => $exception::class]);
+        }
     }
 
     public function deliver(int $id): void

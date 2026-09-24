@@ -14,11 +14,17 @@ class ChatConversation {
     #[ORM\Column] public \DateTimeImmutable $createdAt;
     #[ORM\Column] public \DateTimeImmutable $updatedAt;
     #[ORM\Column(nullable: true)] public ?\DateTimeImmutable $closedAt = null;
-    #[ORM\Column(length: 40)] public string $consentVersion;
-    #[ORM\Column] public \DateTimeImmutable $consentedAt;
-    public function __construct(Tenant $tenant, User $customer, string $version) {
+    #[ORM\Column(length: 40, nullable: true)] public ?string $consentVersion;
+    #[ORM\Column(nullable: true)] public ?\DateTimeImmutable $consentedAt;
+    public function __construct(Tenant $tenant, User $customer, ?string $version = null) {
         $this->tenant = $tenant; $this->customer = $customer;
-        $this->createdAt = $this->updatedAt = $this->consentedAt = new \DateTimeImmutable();
+        $this->createdAt = $this->updatedAt = new \DateTimeImmutable();
+        $this->consentedAt = $version === null ? null : new \DateTimeImmutable();
         $this->consentVersion = $version;
+    }
+
+    public function recordConsent(string $version, \DateTimeImmutable $at): void {
+        $this->consentVersion = $version;
+        $this->consentedAt = $at;
     }
 }

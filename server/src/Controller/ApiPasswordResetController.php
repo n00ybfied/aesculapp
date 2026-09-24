@@ -77,7 +77,7 @@ final class ApiPasswordResetController
 
         $user = $users->findOneByEmail($email);
         $membership = $user === null ? null : $memberships->findForUserAndTenant($user, $activeTenant->get());
-        if (null === $user || !$user->isActive() || $membership === null || ($admin && !$this->hasAdminRole($membership->getRoles()))) {
+        if (null === $user || !$user->isActive() || $membership === null || ($admin && !$this->hasAdminRole($membership->getRoles())) || (!$admin && !in_array('ROLE_CUSTOMER', $membership->getRoles(), true))) {
             return $this->acceptedResponse();
         }
         $mostRecent = $resetTokens->findMostRecentFor($user);
