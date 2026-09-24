@@ -10,19 +10,20 @@
     </a>
     <p class="tenant">Stadtapotheke Trofaiach</p>
     <nav aria-label="Hauptnavigation">
-      <a routerLink="/dashboard" routerLinkActive="active" (click)="closeNavigation()">Übersicht</a>
-      <a routerLink="/slider" routerLinkActive="active" (click)="closeNavigation()">Dashboard-Slider</a>
-      <a routerLink="/statistik" routerLinkActive="active" (click)="closeNavigation()">Statistik</a>
-      <a class="chat-link" routerLink="/chat" routerLinkActive="active" (click)="closeNavigation()">Anfragen <app-open-chat-badge /></a>
-      <a routerLink="/inhalte" routerLinkActive="active" (click)="closeNavigation()">Inhalte</a>
-      <a routerLink="/medien" routerLinkActive="active" (click)="closeNavigation()">Medien</a>
-      <a routerLink="/praemien" routerLinkActive="active" (click)="closeNavigation()">Prämien</a>
-      <a routerLink="/gutscheine" routerLinkActive="active" (click)="closeNavigation()">Gutscheine</a>
-      <a class="appointments-link" routerLink="/termine" routerLinkActive="active" (click)="closeNavigation()">Termine <app-unseen-appointments-badge /></a>
-      <a routerLink="/einloesungen" routerLinkActive="active" (click)="closeNavigation()">Einlösungen</a>
-      <a routerLink="/kunden" routerLinkActive="active" (click)="closeNavigation()">Kunden</a>
-      <a routerLink="/benutzer" routerLinkActive="active" (click)="closeNavigation()">Benutzer</a>
-      <a routerLink="/einstellungen" routerLinkActive="active" (click)="closeNavigation()">Einstellungen</a>
+      @if (canAccess('dashboard')) { <a routerLink="/dashboard" routerLinkActive="active" (click)="closeNavigation()">Übersicht</a> }
+      @if (canAccess('slider')) { <a routerLink="/slider" routerLinkActive="active" (click)="closeNavigation()">Dashboard-Slider</a> }
+      @if (canAccess('statistics')) { <a routerLink="/statistik" routerLinkActive="active" (click)="closeNavigation()">Statistik</a> }
+      @if (canAccess('chat')) { <a class="chat-link" routerLink="/chat" routerLinkActive="active" (click)="closeNavigation()">Anfragen <app-open-chat-badge /></a> }
+      @if (canAccess('news')) { <a routerLink="/inhalte" routerLinkActive="active" (click)="closeNavigation()">Inhalte</a> }
+      @if (canAccess('media')) { <a routerLink="/medien" routerLinkActive="active" (click)="closeNavigation()">Medien</a> }
+      @if (canAccess('rewards')) { <a routerLink="/praemien" routerLinkActive="active" (click)="closeNavigation()">Prämien</a> }
+      @if (canAccess('coupons')) { <a routerLink="/gutscheine" routerLinkActive="active" (click)="closeNavigation()">Gutscheine</a> }
+      @if (canAccess('appointments')) { <a class="appointments-link" routerLink="/termine" routerLinkActive="active" (click)="closeNavigation()">Termine <app-unseen-appointments-badge /></a> }
+      <a routerLink="/meine-termine" routerLinkActive="active" (click)="closeNavigation()">Meine Termine</a>
+      @if (canAccess('redemptions')) { <a routerLink="/einloesungen" routerLinkActive="active" (click)="closeNavigation()">Einlösungen</a> }
+      @if (canAccess('customers')) { <a routerLink="/kunden" routerLinkActive="active" (click)="closeNavigation()">Kunden</a> }
+      @if (canAccess('users')) { <a routerLink="/benutzer" routerLinkActive="active" (click)="closeNavigation()">Benutzer</a> }
+      @if (canAccess('settings')) { <a routerLink="/einstellungen" routerLinkActive="active" (click)="closeNavigation()">Einstellungen</a> }
     </nav>
   </aside>
 
@@ -31,7 +32,17 @@
       <div class="header-title"><button type="button" class="menu-toggle" (click)="toggleNavigation()" aria-label="Hauptmenü öffnen" [attr.aria-expanded]="navigationOpen()">☰</button><div><p class="eyebrow">Apothekenportal</p><h1>Verwaltung</h1></div></div>
       <div class="account"><span>{{ displayName() }}</span><button type="button" (click)="logout()">Abmelden</button></div>
     </header>
-    <main><router-outlet /></main>
+    <main>
+      @if (appointmentAlert(); as alert) {
+        @if (alert.count > 0) {
+          <div class="confirmation-alert" role="alert">
+            <span>{{ alertText(alert) }}</span>
+            <a [routerLink]="isTenantAdmin() ? '/termine' : '/meine-termine'">{{ isTenantAdmin() ? 'Termine ansehen' : 'Meine Termine ansehen' }}</a>
+          </div>
+        }
+      }
+      <router-outlet />
+    </main>
   </div>
 </div>
 <app-confirm-dialog />

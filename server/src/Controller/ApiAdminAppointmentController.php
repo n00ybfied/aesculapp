@@ -93,10 +93,9 @@ final class ApiAdminAppointmentController
                 return new JsonResponse(['message' => 'Dieser Zeitraum ist gesperrt.'], JsonResponse::HTTP_CONFLICT);
             }
             $occupiedEnd = $end->modify('+'.$type->getBufferMinutes().' minutes');
-            $appointments = $this->entityManager->getRepository(Appointment::class)->findBy([
-                'resource' => $resource, 'status' => 'reserved',
-            ]);
+            $appointments = $this->entityManager->getRepository(Appointment::class)->findBy(['resource' => $resource]);
             foreach ($appointments as $appointment) {
+                if (!$appointment->occupiesSlot()) continue;
                 $existingEnd = $appointment->getEndsAt()->modify('+'.$appointment->getType()->getBufferMinutes().' minutes');
                 if ($appointment->getStartsAt() < $occupiedEnd && $existingEnd > $start) {
                     return new JsonResponse(['message' => 'Diese Person ist zu dieser Zeit bereits gebucht.'], JsonResponse::HTTP_CONFLICT);
@@ -104,6 +103,11 @@ final class ApiAdminAppointmentController
             }
 
             $appointment = new Appointment($tenant, $resource, $type, $customer, $start, $end, $note ?: null, $guestName ?: null);
+            $assignedUser = $resource->getAssignedUser();
+            $assignedMembership = $assignedUser === null ? null : $this->memberships->findForUserAndTenant($assignedUser, $tenant);
+            if ($tenant->isAppointmentStaffConfirmationEnabled() && $assignedMembership !== null && array_intersect(self::ADMIN_ROLES, $assignedMembership->getRoles())) {
+                $appointment->awaitStaffConfirmation();
+            }
             $this->entityManager->persist($appointment);
             $this->entityManager->flush();
             $createdAppointment = $appointment;
@@ -122,13 +126,14 @@ final class ApiAdminAppointmentController
                     (new Email())
                         ->from($this->mailFrom)
                         ->to($customer->getEmail())
-                        ->subject('Ein Termin wurde für Sie reserviert')
+                        ->subject($createdAppointment->getStatus() === 'pending_staff_confirmation' ? 'Ihr Termin wartet auf Bestätigung' : 'Ein Termin wurde für Sie reserviert')
                         ->text(sprintf(
-                            "Guten Tag %s,\n\nIhre Apotheke hat für Sie einen Termin reserviert:\n\n%s\n%s Uhr\nAnsprechperson: %s\n\nIhre Termine finden Sie in der App:\n%s/termine/meine\n",
+                            "Guten Tag %s,\n\n%s\n\n%s\n%s Uhr%s\n\nIhre Termine finden Sie in der App:\n%s/termine/meine\n",
                             $customer->getDisplayName(),
+                            $createdAppointment->getStatus() === 'pending_staff_confirmation' ? 'Ihr Termin wartet auf die Bestätigung der durchführenden Person.' : 'Ihre Apotheke hat für Sie einen Termin reserviert:',
                             $type->getTitle(),
                             $start->format('d.m.Y H:i'),
-                            $resource->getName(),
+                            $tenant->showsAppointmentStaffNames() ? "\nAnsprechperson: ".$resource->getName() : '',
                             rtrim($this->clientUrl, '/'),
                         )),
                     'appointment_created_by_staff',
@@ -139,7 +144,7 @@ final class ApiAdminAppointmentController
                     'errorClass' => $exception::class,
                 ]);
             }
-            $this->push->scheduleAppointmentBooking($createdAppointment->getId());
+            if ($createdAppointment->getStatus() === 'reserved') $this->push->scheduleAppointmentBooking($createdAppointment->getId());
         }
 
         return $response;
@@ -169,6 +174,21 @@ final class ApiAdminAppointmentController
         ]);
     }
 
+    #[Route('/api/v1/admin/appointments/staff-users', methods: ['GET'])]
+    public function staffUsers(): JsonResponse
+    {
+        if (!$this->isAdmin()) return new JsonResponse(['message' => 'Forbidden.'], 403);
+        $memberships = $this->memberships->findBy(['tenant' => $this->activeTenant->get()]);
+        $users = [];
+        foreach ($memberships as $membership) {
+            if (!array_intersect(self::ADMIN_ROLES, $membership->getRoles())) continue;
+            $user = $membership->getUser();
+            $users[] = ['id' => $user->getId(), 'displayName' => $user->getDisplayName(), 'email' => $user->getEmail()];
+        }
+        usort($users, static fn (array $left, array $right): int => strcasecmp($left['displayName'], $right['displayName']));
+        return new JsonResponse(['users' => $users]);
+    }
+
     #[Route('/api/v1/admin/appointments/customer-cancellations', methods: ['GET'])]
     public function customerCancellations(): JsonResponse
     {
@@ -179,11 +199,16 @@ final class ApiAdminAppointmentController
         $notices = $this->entityManager->createQueryBuilder()
             ->select('notice')
             ->from(AppointmentCancellationNotice::class, 'notice')
+            ->join('notice.appointment', 'appointment')
             ->where('notice.tenant = :tenant')
             ->andWhere('notice.id > :lastId')
             ->setParameter('tenant', $this->activeTenant->get())
-            ->setParameter('lastId', $membership->getLastAcknowledgedAppointmentCancellationId() ?? 0)
-            ->orderBy('notice.id', 'ASC')
+            ->setParameter('lastId', $membership->getLastAcknowledgedAppointmentCancellationId() ?? 0);
+        if (!in_array('ROLE_TENANT_ADMIN', $membership->getRoles(), true)) {
+            $notices->andWhere('appointment.assignedUser = :user')
+                ->setParameter('user', $membership->getUser());
+        }
+        $notices = $notices->orderBy('notice.id', 'ASC')
             ->setMaxResults(50)
             ->getQuery()
             ->getResult();
@@ -208,13 +233,17 @@ final class ApiAdminAppointmentController
         if (!is_int($throughId) || $throughId < 1) {
             return new JsonResponse(['message' => 'Ungültiger Lesestand.'], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
-        $latestId = (int) $this->entityManager->createQueryBuilder()
+        $query = $this->entityManager->createQueryBuilder()
             ->select('COALESCE(MAX(notice.id), 0)')
             ->from(AppointmentCancellationNotice::class, 'notice')
+            ->join('notice.appointment', 'appointment')
             ->where('notice.tenant = :tenant')
-            ->setParameter('tenant', $this->activeTenant->get())
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('tenant', $this->activeTenant->get());
+        if (!in_array('ROLE_TENANT_ADMIN', $membership->getRoles(), true)) {
+            $query->andWhere('appointment.assignedUser = :user')
+                ->setParameter('user', $membership->getUser());
+        }
+        $latestId = (int) $query->getQuery()->getSingleScalarResult();
         $membership->acknowledgeAppointmentCancellationsThrough(min($throughId, $latestId));
         $this->entityManager->flush();
 
@@ -230,7 +259,7 @@ final class ApiAdminAppointmentController
         }
 
         if ($membership->getLastSeenAppointmentId() === null) {
-            $membership->markAppointmentsSeenThrough($this->latestAppointmentId());
+            $membership->markAppointmentsSeenThrough($this->latestAppointmentId($membership));
             $this->entityManager->flush();
         }
 
@@ -250,7 +279,7 @@ final class ApiAdminAppointmentController
             return new JsonResponse(['message' => 'Ungültiger Lesestand.'], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $membership->markAppointmentsSeenThrough(min($throughId, $this->latestAppointmentId()));
+        $membership->markAppointmentsSeenThrough(min($throughId, $this->latestAppointmentId($membership)));
         $this->entityManager->flush();
 
         return new JsonResponse(['count' => $this->countUnseen($membership)]);
@@ -268,10 +297,15 @@ final class ApiAdminAppointmentController
             return new JsonResponse(['message' => 'Nicht gefunden.'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $appointment->cancel();
-        $this->entityManager->flush();
+        $wasCancelled = $this->entityManager->wrapInTransaction(function () use ($appointment): bool {
+            $this->entityManager->refresh($appointment, LockMode::PESSIMISTIC_WRITE);
+            if ($appointment->getStatus() === 'cancelled') return false;
+            $appointment->cancel();
+            $this->entityManager->flush();
+            return true;
+        });
 
-        if ($appointment->getCustomer() !== null && ($request->toArray()['notifyCustomer'] ?? true) === true) {
+        if ($wasCancelled && $appointment->getCustomer() !== null && ($request->toArray()['notifyCustomer'] ?? true) === true) {
             try {
                 $this->mailer->send(
                     $this->activeTenant->get(),
@@ -429,20 +463,23 @@ final class ApiAdminAppointmentController
             : null;
     }
 
-    private function latestAppointmentId(): int
+    private function latestAppointmentId(TenantMembership $membership): int
     {
-        return (int) $this->entityManager->createQueryBuilder()
+        $query = $this->entityManager->createQueryBuilder()
             ->select('COALESCE(MAX(appointment.id), 0)')
             ->from(Appointment::class, 'appointment')
             ->where('appointment.tenant = :tenant')
-            ->setParameter('tenant', $this->activeTenant->get())
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('tenant', $this->activeTenant->get());
+        if (!in_array('ROLE_TENANT_ADMIN', $membership->getRoles(), true)) {
+            $query->andWhere('appointment.assignedUser = :user')
+                ->setParameter('user', $membership->getUser());
+        }
+        return (int) $query->getQuery()->getSingleScalarResult();
     }
 
     private function countUnseen(TenantMembership $membership): int
     {
-        return (int) $this->entityManager->createQueryBuilder()
+        $query = $this->entityManager->createQueryBuilder()
             ->select('COUNT(appointment.id)')
             ->from(Appointment::class, 'appointment')
             ->where('appointment.tenant = :tenant')
@@ -450,9 +487,12 @@ final class ApiAdminAppointmentController
             ->andWhere('appointment.status = :status')
             ->setParameter('tenant', $this->activeTenant->get())
             ->setParameter('lastSeenId', $membership->getLastSeenAppointmentId() ?? 0)
-            ->setParameter('status', 'reserved')
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('status', 'reserved');
+        if (!in_array('ROLE_TENANT_ADMIN', $membership->getRoles(), true)) {
+            $query->andWhere('appointment.assignedUser = :user')
+                ->setParameter('user', $membership->getUser());
+        }
+        return (int) $query->getQuery()->getSingleScalarResult();
     }
 
     /** @return array<string, mixed> */

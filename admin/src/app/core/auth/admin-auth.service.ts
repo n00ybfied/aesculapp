@@ -6,7 +6,10 @@ import { Router } from '@angular/router';
 interface AdminLoginResponse {
   accessToken: string;
   expiresIn: number;
+  permissions?: readonly string[];
+  roles?: readonly string[];
   user: {
+    id: number;
     displayName: string;
     username: string;
   };
@@ -31,6 +34,9 @@ export class AdminAuthService {
   readonly isAuthenticated = this.session.asReadonly();
   readonly accessToken = () => this.session()?.accessToken ?? '';
   readonly displayName = () => this.session()?.user.displayName ?? '';
+  readonly currentUserId = () => this.session()?.user.id ?? null;
+  readonly canAccess = (area: string) => this.session()?.permissions?.includes(area) ?? true;
+  readonly isTenantAdmin = () => this.session()?.roles?.includes('ROLE_TENANT_ADMIN') ?? false;
 
   login(username: string, password: string) {
     return this.http
@@ -115,6 +121,10 @@ export class AdminAuthService {
     try {
       const session = JSON.parse(stored) as AdminLoginResponse & { expiresAt?: number };
       if (typeof session.expiresAt !== 'number' || session.expiresAt <= Date.now()) {
+        sessionStorage.removeItem(this.storageKey);
+        return null;
+      }
+      if (!Array.isArray(session.permissions) || !Array.isArray(session.roles)) {
         sessionStorage.removeItem(this.storageKey);
         return null;
       }

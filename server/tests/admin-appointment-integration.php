@@ -73,6 +73,7 @@ function appointmentCheck(bool $condition, string $message): void
 
 $entityManager->beginTransaction();
 try {
+    $tenant->setAppointmentStaffConfirmationEnabled(false);
     $suffix = bin2hex(random_bytes(6));
     $staff = new App\Entity\User('staff-'.$suffix, 'appointment-staff-'.$suffix.'@example.invalid', 'Test Staff');
     $staff->setPassword('not-a-login');
@@ -155,6 +156,47 @@ try {
     appointmentCheck(count($createdMails) === 1, 'A linked customer appointment must trigger exactly one booking email.');
     appointmentCheck($scheduledPushes->getValue($push) === [$accountData['id']], 'A linked customer appointment must schedule exactly one booking push.');
 
+    $tenant->setAppointmentStaffConfirmationEnabled(true);
+    $pendingResponse = $controller->create(appointmentRequest($base + ['time' => '13:00', 'customerId' => $customer->getId(), 'guestName' => '']));
+    appointmentCheck($pendingResponse->getStatusCode() === 201, 'Appointment awaiting staff confirmation must be created.');
+    $pendingData = json_decode((string) $pendingResponse->getContent(), true, 512, JSON_THROW_ON_ERROR)['appointment'];
+    appointmentCheck($pendingData['status'] === 'pending_staff_confirmation', 'Assigned appointment must remain pending.');
+    appointmentCheck($scheduledPushes->getValue($push) === [$accountData['id']], 'Pending appointment must not schedule a booking push.');
+    $staffController = new App\Controller\ApiStaffAppointmentController(
+        $entityManager,
+        new App\Service\ActiveTenantProvider($entityManager, $_ENV['APP_TENANT_SLUG']),
+        $entityManager->getRepository(App\Entity\TenantMembership::class),
+        $security,
+        new App\Service\AppointmentCustomerNotifier($mailer, $emailLogger, 'test@example.invalid', 'https://example.invalid'),
+        $push,
+    );
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($otherStaff, 'api', ['ROLE_TENANT_STAFF']));
+    $otherAppointments = json_decode((string) $staffController->mine()->getContent(), true, 512, JSON_THROW_ON_ERROR)['appointments'];
+    appointmentCheck(!in_array($pendingData['id'], array_column($otherAppointments, 'id'), true), 'Pending appointments must only appear for their assigned staff member.');
+    appointmentCheck($staffController->confirm($pendingData['id'])->getStatusCode() === 404, 'Another staff member must not confirm this appointment.');
+    $resource->setAssignedUser($otherStaff);
+    $entityManager->flush();
+
+    $areas = new App\Service\AdminAreaPermissions();
+    $staffMembership = $entityManager->getRepository(App\Entity\TenantMembership::class)->findForUserAndTenant($staff, $tenant);
+    appointmentCheck($areas->can($staffMembership, 'appointments'), 'Existing staff accounts must retain their rights until configured.');
+    $staffMembership->setPermissions(['appointments']);
+    appointmentCheck($areas->can($staffMembership, 'appointments') && !$areas->can($staffMembership, 'customers'), 'Area rights must distinguish appointments from customer data.');
+    appointmentCheck($areas->areaForPath('/api/v1/admin/appointments/mine') === null && $areas->areaForPath('/api/v1/admin/appointments') === 'appointments', 'Own appointments must not require calendar administration rights.');
+    $staffMembership->setPermissions(null);
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($staff, 'api', ['ROLE_TENANT_STAFF']));
+    $assignedAppointments = json_decode((string) $staffController->mine()->getContent(), true, 512, JSON_THROW_ON_ERROR)['appointments'];
+    appointmentCheck(in_array($pendingData['id'], array_column($assignedAppointments, 'id'), true), 'Original staff member must still see an assignment after person reassignment.');
+    appointmentCheck($staffController->confirm($pendingData['id'])->getStatusCode() === 200, 'Original staff member must be able to confirm after person reassignment.');
+    appointmentCheck($entityManager->getRepository(App\Entity\Appointment::class)->find($pendingData['id'])->getStatus() === 'reserved', 'Confirmation must reserve the appointment.');
+    appointmentCheck($staffController->confirm($pendingData['id'])->getStatusCode() === 200, 'Repeated confirmation must be idempotent.');
+    $confirmedMails = array_values(array_filter($emailLogger->entries, static fn (array $entry): bool =>
+        $entry['message'] === 'email.send.requested' && ($entry['context']['messageType'] ?? null) === 'appointment_staff_confirmed',
+    ));
+    appointmentCheck(count($confirmedMails) === 1, 'Confirmation must send exactly one customer email.');
+    $resource->setAssignedUser($staff);
+    $tenant->setAppointmentStaffConfirmationEnabled(false);
+
     $conversation = new App\Entity\ChatConversation($tenant, $customer, App\Controller\ApiChatController::CONSENT_VERSION);
     $entityManager->persist($conversation);
     $foreignConversation = new App\Entity\ChatConversation($tenant, $outsider, App\Controller\ApiChatController::CONSENT_VERSION);
@@ -180,7 +222,7 @@ try {
     $entityManager->flush();
     $blocked = $controller->create(appointmentRequest($base + ['time' => '12:00', 'customerId' => null, 'guestName' => 'Blocked Guest']));
     appointmentCheck($blocked->getStatusCode() === 409, 'Global blocked times must reject admin booking.');
-    appointmentCheck($scheduledPushes->getValue($push) === [$accountData['id']], 'Rejected bookings must not schedule a push.');
+    appointmentCheck($scheduledPushes->getValue($push) === [$accountData['id'], $pendingData['id']], 'Rejected bookings must not schedule a push.');
 
     $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($customer, 'api', ['ROLE_CUSTOMER']));
     appointmentCheck($customerController->cancel($accountData['id'])->getStatusCode() === 200, 'Customer cancellation must succeed.');
@@ -192,22 +234,24 @@ try {
     appointmentCheck($remaining === [], 'Dismissed customer cancellation must not reappear.');
     $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($otherStaff, 'api', ['ROLE_TENANT_STAFF']));
     $otherStaffNotices = json_decode((string) $controller->customerCancellations()->getContent(), true, 512, JSON_THROW_ON_ERROR)['cancellations'];
-    appointmentCheck(count($otherStaffNotices) === 1, 'Dismissing an alert for one staff member must not hide it from another.');
+    appointmentCheck($otherStaffNotices === [], 'Staff must not see cancellation alerts for appointments assigned to someone else.');
 
     $weekday = (int) (new DateTimeImmutable($date, new DateTimeZone('Europe/Vienna')))->format('N');
-    $entityManager->persist(new App\Entity\AppointmentAvailability($resource, $type, $weekday, '14:00', '15:00'));
+    $customerBookingType = new App\Entity\AppointmentType($tenant, 'Kundenberatung '.$suffix, null, 30, 5);
+    $entityManager->persist($customerBookingType);
+    $entityManager->persist(new App\Entity\AppointmentAvailability($resource, $customerBookingType, $weekday, '14:00', '15:00'));
     $entityManager->flush();
     $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($customer, 'api', ['ROLE_CUSTOMER']));
     $slotsResponse = $customerController->slots(Symfony\Component\HttpFoundation\Request::create('/api/v1/appointments/slots', 'GET', [
-        'typeId' => $type->getId(), 'date' => $date,
+        'typeId' => $customerBookingType->getId(), 'date' => $date,
     ]));
     $slots = json_decode((string) $slotsResponse->getContent(), true, 512, JSON_THROW_ON_ERROR)['slots'];
-    $customerBooking = $customerController->book(appointmentRequest(['typeId' => $type->getId(), 'startsAt' => $slots[0]['startsAt']]));
+    $customerBooking = $customerController->book(appointmentRequest(['typeId' => $customerBookingType->getId(), 'startsAt' => $slots[0]['startsAt']]));
     appointmentCheck($customerBooking->getStatusCode() === 201, 'Customer booking must succeed for the assigned person.');
     $staffMails = array_values(array_filter($emailLogger->entries, static fn (array $entry): bool =>
         $entry['message'] === 'email.send.requested' && ($entry['context']['messageType'] ?? null) === 'appointment_assigned_to_staff',
     ));
-    appointmentCheck(count($staffMails) === 2, 'Customer booking must also notify the assigned staff user.');
+    appointmentCheck(count($staffMails) === 3, 'Customer booking must also notify the assigned staff user.');
     $customerBookingId = json_decode((string) $customerBooking->getContent(), true, 512, JSON_THROW_ON_ERROR)['appointment']['id'];
     $conversation->status = 'closed';
     $entityManager->flush();
@@ -259,6 +303,69 @@ try {
     appointmentCheck($pending->consentedAt !== null && $pending->consentVersion === App\Controller\ApiChatController::CONSENT_VERSION, 'Customer consent must be recorded on the first customer reply.');
     $afterConsent = json_decode((string) $chatApi->list(new Symfony\Component\HttpFoundation\Request(), false)->getContent(), true, 512, JSON_THROW_ON_ERROR);
     appointmentCheck($afterConsent['consented'] === true, 'The customer chat must reflect the recorded consent.');
+
+    $admin = new App\Entity\User('appointment-admin-'.$suffix, 'appointment-admin-'.$suffix.'@example.invalid', 'Test Admin');
+    $admin->setPassword('not-a-login');
+    $entityManager->persist($admin);
+    $entityManager->persist(new App\Entity\TenantMembership($tenant, $admin, ['ROLE_TENANT_ADMIN']));
+    $adminStart = new DateTimeImmutable($date.' 17:00', new DateTimeZone('Europe/Vienna'));
+    $adminPending = new App\Entity\Appointment($tenant, $resource, $type, $customer, $adminStart, $adminStart->modify('+30 minutes'), null);
+    $adminPending->awaitStaffConfirmation();
+    $entityManager->persist($adminPending);
+    $entityManager->flush();
+    $tenant->setAppointmentStaffConfirmationEnabled(true);
+
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($otherStaff, 'api', ['ROLE_TENANT_STAFF']));
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'confirmation', 'count' => 0], 'Other staff must not see pending confirmations in their alert.');
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($staff, 'api', ['ROLE_TENANT_STAFF']));
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'confirmation', 'count' => 1], 'The assigned staff member must see exactly one pending confirmation.');
+    appointmentCheck($staffController->confirmAsAdmin($adminPending->getId())->getStatusCode() === 403, 'Staff must not use the administrator confirmation route.');
+
+    $mailsBeforeAdminConfirm = count(array_filter($emailLogger->entries, static fn (array $entry): bool =>
+        $entry['message'] === 'email.send.requested' && ($entry['context']['messageType'] ?? null) === 'appointment_staff_confirmed',
+    ));
+    $pushesBeforeAdminConfirm = count($scheduledPushes->getValue($push));
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($admin, 'api', ['ROLE_TENANT_ADMIN']));
+    $adminAlert = json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+    appointmentCheck($adminAlert['mode'] === 'confirmation' && $adminAlert['count'] >= 1, 'The administrator must see tenant-wide pending confirmations.');
+    appointmentCheck($staffController->confirmAsAdmin($adminPending->getId())->getStatusCode() === 200 && $adminPending->getStatus() === 'reserved', 'An administrator must be able to confirm an assigned staff appointment.');
+    appointmentCheck($staffController->confirmAsAdmin($adminPending->getId())->getStatusCode() === 200, 'Administrator confirmation must be idempotent.');
+    $mailsAfterAdminConfirm = count(array_filter($emailLogger->entries, static fn (array $entry): bool =>
+        $entry['message'] === 'email.send.requested' && ($entry['context']['messageType'] ?? null) === 'appointment_staff_confirmed',
+    ));
+    appointmentCheck($mailsAfterAdminConfirm === $mailsBeforeAdminConfirm + 1, 'Administrator confirmation must notify the customer exactly once.');
+    $scheduledAfterAdminConfirm = $scheduledPushes->getValue($push);
+    appointmentCheck(count($scheduledAfterAdminConfirm) === $pushesBeforeAdminConfirm + 1
+        && $scheduledAfterAdminConfirm[array_key_last($scheduledAfterAdminConfirm)] === $adminPending->getId(), 'Administrator confirmation must schedule the booking push exactly once.');
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($staff, 'api', ['ROLE_TENANT_STAFF']));
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'confirmation', 'count' => 0], 'A confirmed appointment must disappear from the pending alert.');
+
+    $tenant->setAppointmentStaffConfirmationEnabled(false);
+    $staffController->alert();
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($otherStaff, 'api', ['ROLE_TENANT_STAFF']));
+    $staffController->alert();
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($admin, 'api', ['ROLE_TENANT_ADMIN']));
+    $staffController->alert();
+    $adminNotices = json_decode((string) $controller->customerCancellations()->getContent(), true, 512, JSON_THROW_ON_ERROR)['cancellations'];
+    appointmentCheck(in_array($accountData['id'], array_column($adminNotices, 'appointmentId'), true), 'Administrators must retain tenant-wide cancellation alerts.');
+    $newStart = $adminStart->modify('+1 hour');
+    $newAppointment = new App\Entity\Appointment($tenant, $resource, $type, $customer, $newStart, $newStart->modify('+30 minutes'), null);
+    $entityManager->persist($newAppointment);
+    $entityManager->flush();
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'new', 'count' => 1], 'The administrator must see a new tenant appointment.');
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($staff, 'api', ['ROLE_TENANT_STAFF']));
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'new', 'count' => 1], 'Assigned staff must see a new appointment.');
+    appointmentCheck(json_decode((string) $controller->unseenCount()->getContent(), true, 512, JSON_THROW_ON_ERROR)['count'] === 1, 'The calendar badge must count only assigned new appointments for staff.');
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($otherStaff, 'api', ['ROLE_TENANT_STAFF']));
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'new', 'count' => 0], 'Other staff must not see a new appointment alert.');
+    appointmentCheck(json_decode((string) $controller->unseenCount()->getContent(), true, 512, JSON_THROW_ON_ERROR)['count'] === 0, 'Other staff must not see a calendar badge for someone else\'s appointment.');
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($staff, 'api', ['ROLE_TENANT_STAFF']));
+    appointmentCheck($staffController->markOwnSeen(appointmentRequest(['throughId' => $newAppointment->getId()]))->getStatusCode() === 200, 'Staff must be able to mark their own appointment as seen.');
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'new', 'count' => 0], 'The staff alert must clear after opening own appointments.');
+    $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($admin, 'api', ['ROLE_TENANT_ADMIN']));
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'new', 'count' => 1], 'The administrator read state must be independent from staff.');
+    $controller->markSeen(appointmentRequest(['throughId' => $newAppointment->getId()]));
+    appointmentCheck(json_decode((string) $staffController->alert()->getContent(), true, 512, JSON_THROW_ON_ERROR) === ['mode' => 'new', 'count' => 0], 'The administrator alert must clear after opening the calendar.');
 
     echo "Admin appointment integration checks passed.\n";
 } finally {

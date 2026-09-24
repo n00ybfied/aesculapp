@@ -14,10 +14,12 @@ export interface AdminAppointment {
   resourceColor: string;
   startsAt: string;
   endsAt: string;
-  status: 'reserved' | 'cancelled';
+  status: 'reserved' | 'cancelled' | 'pending_staff_confirmation';
   note: string | null;
   chatConversationId: number | null;
 }
+
+export interface AppointmentStaffUser { id: number; displayName: string; email: string; }
 
 export interface AppointmentType {
   id: number;
@@ -102,6 +104,11 @@ export class AdminAppointmentService {
     return result.appointments;
   }
 
+  async listStaffUsers(): Promise<AppointmentStaffUser[]> {
+    const result = await firstValueFrom(this.http.get<{ users: AppointmentStaffUser[] }>(`${this.api}/admin/appointments/staff-users`, this.options()));
+    return result.users;
+  }
+
   async listCustomerCancellations(): Promise<CustomerCancellationNotice[]> {
     const result = await firstValueFrom(this.http.get<{ cancellations: CustomerCancellationNotice[] }>(
       `${this.api}/admin/appointments/customer-cancellations`, this.options(),
@@ -179,6 +186,10 @@ export class AdminAppointmentService {
 
   cancel(id: number): Promise<unknown> {
     return firstValueFrom(this.http.post(`${this.api}/admin/appointments/${id}/cancel`, { notifyCustomer: true }, this.options()));
+  }
+
+  async confirm(id: number): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.api}/admin/appointments/${id}/confirm`, {}, this.options()));
   }
 
   async listChats(id: number): Promise<{ conversations: { id: number; status: string; updatedAt: string }[] }> {
