@@ -38,6 +38,14 @@ export class AdminAuthService {
       .pipe(tap((session) => this.storeSession(session)));
   }
 
+  requestPasswordReset(email: string) {
+    return this.http.post<void>(`${this.apiBaseUrl()}/admin/auth/password-reset/request`, { email });
+  }
+
+  resetPassword(token: string, password: string) {
+    return this.http.post<void>(`${this.apiBaseUrl()}/admin/auth/password-reset/confirm`, { token, password });
+  }
+
   logout(): void {
     const pendingRefresh = this.refreshInFlight;
     this.clearSession();

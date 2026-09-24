@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use App\Service\TenantMailer;
+use Gesdinet\JWTRefreshTokenBundle\Model\RevokeRefreshTokenManagerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,6 +23,7 @@ final class ApiPasswordResetController
 {
     public function __construct(
         private readonly string $clientUrl,
+        private readonly string $adminUrl,
         private readonly string $mailFrom,
     ) {
     }
@@ -34,6 +36,33 @@ final class ApiPasswordResetController
         ActiveTenantProvider $activeTenant,
         EntityManagerInterface $entityManager,
         TenantMailer $mailer,
+        PasswordResetTokenRepository $resetTokens,
+    ): JsonResponse {
+        return $this->sendResetLink($request, $users, $memberships, $activeTenant, $entityManager, $mailer, $resetTokens, false);
+    }
+
+    #[Route('/api/v1/admin/auth/password-reset/request', name: 'api_v1_admin_password_reset_request', methods: ['POST'])]
+    public function requestAdminReset(
+        Request $request,
+        UserRepository $users,
+        TenantMembershipRepository $memberships,
+        ActiveTenantProvider $activeTenant,
+        EntityManagerInterface $entityManager,
+        TenantMailer $mailer,
+        PasswordResetTokenRepository $resetTokens,
+    ): JsonResponse {
+        return $this->sendResetLink($request, $users, $memberships, $activeTenant, $entityManager, $mailer, $resetTokens, true);
+    }
+
+    private function sendResetLink(
+        Request $request,
+        UserRepository $users,
+        TenantMembershipRepository $memberships,
+        ActiveTenantProvider $activeTenant,
+        EntityManagerInterface $entityManager,
+        TenantMailer $mailer,
+        PasswordResetTokenRepository $resetTokens,
+        bool $admin,
     ): JsonResponse {
         try {
             $payload = $request->toArray();
@@ -47,7 +76,12 @@ final class ApiPasswordResetController
         }
 
         $user = $users->findOneByEmail($email);
-        if (null === $user || !$user->isActive() || !$memberships->hasActiveMembershipFor($user, $activeTenant->get())) {
+        $membership = $user === null ? null : $memberships->findForUserAndTenant($user, $activeTenant->get());
+        if (null === $user || !$user->isActive() || $membership === null || ($admin && !$this->hasAdminRole($membership->getRoles()))) {
+            return $this->acceptedResponse();
+        }
+        $mostRecent = $resetTokens->findMostRecentFor($user);
+        if ($mostRecent !== null && $mostRecent->getRequestedAt() > new \DateTimeImmutable('-1 minute')) {
             return $this->acceptedResponse();
         }
 
@@ -57,14 +91,15 @@ final class ApiPasswordResetController
             hash('sha256', $rawToken),
             new \DateTimeImmutable('+60 minutes'),
         ));
-        $resetUrl = rtrim($this->clientUrl, '/') . '/passwort-zuruecksetzen?token=' . rawurlencode($rawToken);
+        $resetUrl = rtrim($admin ? $this->adminUrl : $this->clientUrl, '/') . '/passwort-zuruecksetzen?token=' . rawurlencode($rawToken);
+        $subject = $admin ? 'Passwort für das Aesculapp Apothekenportal zurücksetzen' : 'Passwort für Aesculapp zurücksetzen';
         try {
             $mailer->send(
                 $activeTenant->get(),
                 (new Email())
                     ->from($this->mailFrom)
                     ->to($user->getEmail())
-                    ->subject('Passwort für Aesculapp zurücksetzen')
+                    ->subject($subject)
                     ->text("Sie haben angefordert, Ihr Passwort zurückzusetzen.\n\nÖffnen Sie innerhalb von 60 Minuten diesen Link:\n{$resetUrl}\n\nWenn Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."),
                 'password_reset',
             );
@@ -82,6 +117,32 @@ final class ApiPasswordResetController
         PasswordResetTokenRepository $resetTokens,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
+        RevokeRefreshTokenManagerInterface $refreshTokens,
+    ): JsonResponse {
+        return $this->confirmPassword($request, $resetTokens, $entityManager, $passwordHasher, $refreshTokens, null, null);
+    }
+
+    #[Route('/api/v1/admin/auth/password-reset/confirm', name: 'api_v1_admin_password_reset_confirm', methods: ['POST'])]
+    public function confirmAdminReset(
+        Request $request,
+        PasswordResetTokenRepository $resetTokens,
+        EntityManagerInterface $entityManager,
+        UserPasswordHasherInterface $passwordHasher,
+        RevokeRefreshTokenManagerInterface $refreshTokens,
+        TenantMembershipRepository $memberships,
+        ActiveTenantProvider $activeTenant,
+    ): JsonResponse {
+        return $this->confirmPassword($request, $resetTokens, $entityManager, $passwordHasher, $refreshTokens, $memberships, $activeTenant);
+    }
+
+    private function confirmPassword(
+        Request $request,
+        PasswordResetTokenRepository $resetTokens,
+        EntityManagerInterface $entityManager,
+        UserPasswordHasherInterface $passwordHasher,
+        RevokeRefreshTokenManagerInterface $refreshTokens,
+        ?TenantMembershipRepository $memberships,
+        ?ActiveTenantProvider $activeTenant,
     ): JsonResponse {
         try {
             $payload = $request->toArray();
@@ -101,9 +162,16 @@ final class ApiPasswordResetController
         }
 
         $user = $resetToken->getUser();
+        if ($memberships !== null && $activeTenant !== null) {
+            $membership = $memberships->findForUserAndTenant($user, $activeTenant->get());
+            if (!$user->isActive() || $membership === null || !$this->hasAdminRole($membership->getRoles())) {
+                return $this->invalidTokenResponse();
+            }
+        }
         $user->setPassword($passwordHasher->hashPassword($user, $password));
         $resetToken->markUsed();
         $resetTokens->invalidateForUser($user);
+        $refreshTokens->revokeAllForUser($user);
         $entityManager->flush();
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
@@ -117,5 +185,11 @@ final class ApiPasswordResetController
     private function invalidTokenResponse(): JsonResponse
     {
         return new JsonResponse(['message' => 'The password reset token is invalid or expired.'], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    /** @param list<string> $roles */
+    private function hasAdminRole(array $roles): bool
+    {
+        return in_array('ROLE_TENANT_STAFF', $roles, true) || in_array('ROLE_TENANT_ADMIN', $roles, true);
     }
 }

@@ -92,7 +92,9 @@ fi
 failed=0
 
 log "START: $job on demo"
-if (cd "$DEMO_ROOT" && APP_ENV=prod APP_DEBUG=0 php bin/console "$command_name" --no-interaction); then
+# Only the demo PHP process needs a group-writable cache; keep the private
+# scheduler state and lock files under the script-wide umask 077.
+if (cd "$DEMO_ROOT" && umask 0007 && APP_ENV=prod APP_DEBUG=0 php bin/console "$command_name" --no-interaction); then
     log "OK: $job on demo"
 else
     status=$?

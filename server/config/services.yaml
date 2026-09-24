@@ -31,6 +31,7 @@ services:
     App\Controller\ApiPasswordResetController:
         arguments:
             $clientUrl: '%app.auth.client_url%'
+            $adminUrl: '%app.auth.admin_url%'
             $mailFrom: '%app.auth.mail_from%'
 
     App\Service\EmailVerificationService:

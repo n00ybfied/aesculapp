@@ -1,14 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { TenantBrandingService } from '../../core/settings/tenant-branding.service';
 
 @Component({
   selector: 'app-admin-login',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './admin-login.component.html',
   styleUrl: './admin-login.component.css',
 })

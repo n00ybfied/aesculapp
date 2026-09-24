@@ -45,6 +45,11 @@ class PasswordResetToken
         return $this->user;
     }
 
+    public function getRequestedAt(): \DateTimeImmutable
+    {
+        return $this->requestedAt;
+    }
+
     public function markUsed(): void
     {
         $this->usedAt = new \DateTimeImmutable();
