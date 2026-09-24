@@ -94,11 +94,11 @@ final class SendAppointmentRemindersCommand extends Command
     private function emailText(Appointment $appointment): string
     {
         return sprintf(
-            "Guten Tag %s,\n\nSie haben morgen einen Termin in Ihrer Apotheke:\n\n%s\n%s Uhr\nAnsprechperson: %s\n\nIhre Termine finden Sie in der App:\n%s/termine/meine\n",
+            "Guten Tag %s,\n\nSie haben morgen einen Termin in Ihrer Apotheke:\n\n%s\n%s Uhr%s\n\nIhre Termine finden Sie in der App:\n%s/termine/meine\n",
             $appointment->getCustomer()->getDisplayName(),
             $appointment->getType()->getTitle(),
             $appointment->getStartsAt()->format('d.m.Y H:i'),
-            $appointment->getResource()->getName(),
+            $appointment->getTenant()->showsAppointmentStaffNames() ? "\nAnsprechperson: ".$appointment->getResource()->getName() : '',
             rtrim($this->clientUrl, '/'),
         );
     }

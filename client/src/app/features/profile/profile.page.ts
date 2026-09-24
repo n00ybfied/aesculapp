@@ -9,6 +9,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { CustomerProfile, FooterNavigationItem, ProfileService } from '../../core/profile/profile.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
+import { PasswordVisibilityToggleComponent } from '../../shared/password-visibility-toggle.component';
 
 interface ProfileForm {
   username: string;
@@ -35,7 +36,7 @@ interface ProfileForm {
 
 @Component({
   selector: 'app-profile-page',
-  imports: [FormsModule, NgIcon],
+  imports: [FormsModule, NgIcon, PasswordVisibilityToggleComponent],
   templateUrl: './profile.page.html',
 })
 export class ProfilePage {

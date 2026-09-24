@@ -29,24 +29,18 @@
 
         <div>
           <label for="password" class="mb-2 block text-sm font-semibold">Passwort</label>
-          <div class="relative">
+          <div class="password-field">
             <input
+              #passwordInput
               id="password"
-              [type]="passwordVisible() ? 'text' : 'password'"
+              type="password"
               formControlName="password"
               autocomplete="current-password"
-              class="min-h-12 w-full rounded-xl border border-border bg-background px-4 pr-20 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-focus"
+              class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-focus"
               [attr.aria-invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
               aria-describedby="password-error"
             />
-            <button
-              type="button"
-              class="absolute inset-y-0 right-1 min-w-16 rounded-lg px-3 text-sm font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              (click)="togglePasswordVisibility()"
-              [attr.aria-label]="passwordVisible() ? 'Passwort verbergen' : 'Passwort anzeigen'"
-            >
-              {{ passwordVisible() ? 'Aus' : 'Anzeigen' }}
-            </button>
+            <app-password-visibility-toggle [field]="passwordInput" />
           </div>
           @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
             <p id="password-error" class="mt-2 text-sm text-danger">Bitte geben Sie Ihr Passwort ein.</p>

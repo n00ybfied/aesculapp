@@ -46,5 +46,6 @@ button, input { font: inherit; }
 .calendar-event strong, .event-compact { display: block; max-width: 100%; overflow: hidden; font-size: .78rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .calendar-event:focus-visible, .day-heading:focus-visible, .calendar-controls button:focus-visible, .calendar-controls input:focus-visible { z-index: 6; outline: 3px solid var(--admin-primary); outline-offset: 1px; }
 .calendar-event.cancelled { border-style: dashed; background: #eff1f3; color: #687783; text-decoration: line-through; opacity: .85; }
+.calendar-event.pending { border-style: dashed; opacity: .72; }
 @media (max-width: 920px) { .calendar-toolbar { align-items: start; flex-direction: column; }.calendar-controls { flex-wrap: wrap; } }
 @media (max-width: 600px) { .calendar-toolbar { padding: 1rem; }.calendar-controls { width: 100%; justify-content: space-between; }.period-controls { flex-wrap: wrap; }.view-controls { margin-left: 0; }.calendar-controls input { width: 8.5rem; }.calendar-grid { min-width: 950px; }.calendar-grid.day-mode { min-width: 0; } }

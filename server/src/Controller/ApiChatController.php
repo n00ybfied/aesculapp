@@ -194,6 +194,9 @@ final class ApiChatController {
             $existing = $this->em->getRepository(ChatMessage::class)->findOneBy(['conversation'=>$chat,'requestId'=>$requestId]);
             if (!$existing) {
                 if ($chat->status !== 'open') { throw new HttpException(409,'Dieses Gespräch wurde abgeschlossen.'); }
+                if (!$admin && $this->hasTenUnansweredCustomerMessages($chat)) {
+                    throw new HttpException(429, 'Sie haben bereits 10 Nachrichten hintereinander gesendet. Bitte warten Sie auf eine Antwort der Apotheke.');
+                }
                 $message = new ChatMessage($chat,$user,$admin?'staff':'customer',$requestId);
                 $message->pushPending=$admin;
                 $message->encryptedText = $this->cipher->encrypt($text,$this->context($chat).':text');
@@ -205,6 +208,22 @@ final class ApiChatController {
             if($admin && isset($message))$this->push?->schedule($message->id);
             return $this->json(['conversationId'=>$chat->id],201);
         } catch (\Throwable $e) { $this->em->rollback(); throw $e; }
+    }
+    private function hasTenUnansweredCustomerMessages(ChatConversation $chat): bool {
+        $latest = $this->em->createQueryBuilder()
+            ->select('message.senderRole AS role')
+            ->from(ChatMessage::class, 'message')
+            ->where('message.conversation = :chat')
+            ->setParameter('chat', $chat)
+            ->orderBy('message.id', 'DESC')
+            ->setMaxResults(10)
+            ->getQuery()
+            ->getScalarResult();
+        if (count($latest) < 10) return false;
+        foreach ($latest as $message) {
+            if ($message['role'] !== 'customer') return false;
+        }
+        return true;
     }
     private function image(UploadedFile $file): string {
         if (!$file->isValid() || $file->getSize()>5*1024*1024 || !in_array($file->getMimeType(),['image/jpeg','image/png','image/webp'],true)) { throw new HttpException(422,'Erlaubt sind JPEG, PNG und WebP bis 5 MB.'); }

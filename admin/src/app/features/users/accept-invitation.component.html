@@ -15,20 +15,26 @@
       <button type="button" (click)="goToLogin()">Zur Anmeldung</button>
     } @else {
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <label>
-          <span>Neues Passwort <small>(nur bei einem neuen Konto)</small></span>
-          <input type="password" formControlName="password" autocomplete="new-password" [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched" aria-describedby="invite-password-error" />
+        <div class="password-entry">
+          <label for="invitation-password">Neues Passwort <small>(nur bei einem neuen Konto)</small></label>
+          <span class="password-field">
+            <input #invitationPasswordInput id="invitation-password" type="password" formControlName="password" autocomplete="new-password" [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched" aria-describedby="invite-password-error" />
+            <app-password-visibility-toggle [field]="invitationPasswordInput" />
+          </span>
           @if (form.controls.password.invalid && form.controls.password.touched) {
             <small id="invite-password-error" class="field-error" role="alert">Das Passwort muss mindestens 10 Zeichen lang sein.</small>
           }
-        </label>
-        <label>
-          <span>Passwort wiederholen</span>
-          <input type="password" formControlName="passwordConfirmation" autocomplete="new-password" [attr.aria-invalid]="form.controls.passwordConfirmation.touched && form.controls.password.value !== form.controls.passwordConfirmation.value" aria-describedby="invite-confirmation-error" />
+        </div>
+        <div class="password-entry">
+          <label for="invitation-confirmation">Passwort wiederholen</label>
+          <span class="password-field">
+            <input #invitationConfirmationInput id="invitation-confirmation" type="password" formControlName="passwordConfirmation" autocomplete="new-password" [attr.aria-invalid]="form.controls.passwordConfirmation.touched && form.controls.password.value !== form.controls.passwordConfirmation.value" aria-describedby="invite-confirmation-error" />
+            <app-password-visibility-toggle [field]="invitationConfirmationInput" />
+          </span>
           @if (form.controls.passwordConfirmation.touched && form.controls.password.value !== form.controls.passwordConfirmation.value) {
             <small id="invite-confirmation-error" class="field-error" role="alert">Die Passwörter stimmen nicht überein.</small>
           }
-        </label>
+        </div>
         <p class="hint">Besteht bereits ein Kundenkonto mit dieser E-Mail-Adresse, lassen Sie beide Felder leer. Ihr bisheriges Passwort bleibt unverändert.</p>
         @if (error(); as message) { <p class="error" role="alert">{{ message }}</p> }
         <button type="submit" [disabled]="isSubmitting() || token === null">{{ isSubmitting() ? 'Zugang wird eingerichtet …' : 'Zugang einrichten' }}</button>

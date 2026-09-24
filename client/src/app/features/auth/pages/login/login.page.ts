@@ -3,10 +3,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ThemeService } from '../../../../core/theme/theme.service';
+import { PasswordVisibilityToggleComponent } from '../../../../shared/password-visibility-toggle.component';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordVisibilityToggleComponent],
   templateUrl: './login.page.html',
 })
 export class LoginPage {
@@ -18,7 +19,6 @@ export class LoginPage {
 
   protected readonly loginFailed = signal(false);
   protected readonly isSubmitting = signal(false);
-  protected readonly passwordVisible = signal(false);
   protected readonly loginForm = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
@@ -50,7 +50,4 @@ export class LoginPage {
     }
   }
 
-  protected togglePasswordVisibility(): void {
-    this.passwordVisible.update((visible) => !visible);
-  }
 }

@@ -10,6 +10,7 @@ export interface AdminUserSummary {
   readonly displayName: string;
   readonly email: string;
   readonly roles: readonly string[];
+  readonly permissions: readonly string[] | null;
 }
 
 export interface PendingInvitation {
@@ -17,6 +18,7 @@ export interface PendingInvitation {
   readonly displayName: string;
   readonly email: string;
   readonly roles: readonly string[];
+  readonly permissions: readonly string[] | null;
   readonly createdAt: string;
 }
 
@@ -38,8 +40,20 @@ export class AdminUserService {
     return firstValueFrom(this.http.get<AdminUsersOverview>(`${this.api()}/admin/users`, { headers: this.headers() }));
   }
 
-  async invite(displayName: string, email: string, role: StaffRole): Promise<void> {
-    await firstValueFrom(this.http.post(`${this.api()}/admin/users/invitations`, { displayName, email, role }, { headers: this.headers() }));
+  async invite(displayName: string, email: string, role: StaffRole, permissions: readonly string[]): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.api()}/admin/users/invitations`, { displayName, email, role, permissions }, { headers: this.headers() }));
+  }
+
+  async create(displayName: string, email: string, password: string, role: StaffRole, permissions: readonly string[]): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.api()}/admin/users`, { displayName, email, password, role, permissions }, { headers: this.headers() }));
+  }
+
+  async updatePermissions(id: number, permissions: readonly string[]): Promise<void> {
+    await firstValueFrom(this.http.patch(`${this.api()}/admin/users/${id}/permissions`, { permissions }, { headers: this.headers() }));
+  }
+
+  async changePassword(id: number, password: string): Promise<void> {
+    await firstValueFrom(this.http.patch<void>(`${this.api()}/admin/users/${id}/password`, { password }, { headers: this.headers() }));
   }
 
   async acceptInvitation(token: string, password: string): Promise<InvitationAcceptanceResult> {

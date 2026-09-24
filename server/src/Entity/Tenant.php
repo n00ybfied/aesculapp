@@ -50,6 +50,10 @@ class Tenant
     #[ORM\Column(options: ['default' => 24])]
     private int $appointmentCancellationHours = 24;
     #[ORM\Column(options: ['default' => false])]
+    private bool $appointmentStaffConfirmationEnabled = false;
+    #[ORM\Column(options: ['default' => false])]
+    private bool $showAppointmentStaffNames = false;
+    #[ORM\Column(options: ['default' => false])]
     private bool $allowDuplicateReceiptImports = false;
     #[ORM\Column(options: ['default' => false])]
     private bool $showCustomerDebugOutput = false;
@@ -128,6 +132,10 @@ class Tenant
     public function setAppointmentBookingFutureDays(int $days): void { $this->appointmentBookingFutureDays = $days; }
     public function getAppointmentCancellationHours(): int { return $this->appointmentCancellationHours; }
     public function setAppointmentCancellationHours(int $hours): void { $this->appointmentCancellationHours = $hours; }
+    public function isAppointmentStaffConfirmationEnabled(): bool { return $this->appointmentStaffConfirmationEnabled; }
+    public function setAppointmentStaffConfirmationEnabled(bool $enabled): void { $this->appointmentStaffConfirmationEnabled = $enabled; }
+    public function showsAppointmentStaffNames(): bool { return $this->showAppointmentStaffNames; }
+    public function setShowAppointmentStaffNames(bool $enabled): void { $this->showAppointmentStaffNames = $enabled; }
     public function allowsDuplicateReceiptImports(): bool { return $this->allowDuplicateReceiptImports; }
     public function setAllowDuplicateReceiptImports(bool $value): void { $this->allowDuplicateReceiptImports = $value; }
     public function showsCustomerDebugOutput(): bool { return $this->showCustomerDebugOutput; }

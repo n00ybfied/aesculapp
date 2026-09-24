@@ -15,7 +15,10 @@
       @if (attempted() && !username.trim()) { <p id="username-error" class="field-error" role="alert">Bitte geben Sie Ihren Benutzernamen ein.</p> }
 
       <label for="password">Passwort</label>
-      <input id="password" name="password" [(ngModel)]="password" autocomplete="current-password" type="password" required [attr.aria-invalid]="attempted() && !password" aria-describedby="login-password-error" />
+      <span class="password-field">
+        <input #passwordInput id="password" name="password" [(ngModel)]="password" autocomplete="current-password" type="password" required [attr.aria-invalid]="attempted() && !password" aria-describedby="login-password-error" />
+        <app-password-visibility-toggle [field]="passwordInput" />
+      </span>
       @if (attempted() && !password) { <p id="login-password-error" class="field-error" role="alert">Bitte geben Sie Ihr Passwort ein.</p> }
       <a class="reset-link" routerLink="/passwort-vergessen">Passwort vergessen?</a>
 

@@ -77,6 +77,8 @@
       <div class="loyalty">
         <label>Maximal buchbar im Voraus<input name="appointmentBookingFutureDays" type="number" min="0" max="365" [(ngModel)]="appointmentBookingFutureDays" /><span>Tage</span></label>
         <label>Online-Stornierung bis vor Termin<input name="appointmentCancellationHours" type="number" min="0" max="365" [(ngModel)]="appointmentCancellationHours" /><span>Stunden</span></label>
+        <label class="confirmation"><input name="appointmentStaffConfirmationEnabled" type="checkbox" [(ngModel)]="appointmentStaffConfirmationEnabled" /><span>Termin erst nach Bestätigung durch die zugeordnete Person verbindlich buchen</span></label>
+        <label class="confirmation"><input name="showAppointmentStaffNames" type="checkbox" [(ngModel)]="showAppointmentStaffNames" /><span>Namen der durchführenden Personen für Kunden anzeigen</span></label>
         <small>Standard: 4 Wochen im Voraus und Stornierung bis 24 Stunden vor dem Termin.</small>
       </div>
     </details>
@@ -155,7 +157,14 @@
         <label>Port<input name="smtpPort" type="number" min="1" max="65535" [(ngModel)]="smtpPort" /></label>
         <label>Verschlüsselung<select name="smtpEncryption" [(ngModel)]="smtpEncryption"><option value="tls">STARTTLS (empfohlen)</option><option value="ssl">SSL/TLS</option><option value="none">Keine</option></select></label>
         <label>Benutzername<input name="smtpUsername" [(ngModel)]="smtpUsername" autocomplete="off" /></label>
-        <label>Passwort<input name="smtpPassword" type="password" [(ngModel)]="smtpPassword" [placeholder]="smtpPasswordConfigured ? 'Gespeichertes Passwort beibehalten' : ''" autocomplete="new-password" /><span>Wird verschlüsselt gespeichert.</span></label>
+        <div class="smtp-password-entry">
+          <label for="smtp-password">Passwort</label>
+          <span class="password-field">
+            <input #smtpPasswordInput id="smtp-password" name="smtpPassword" type="password" [(ngModel)]="smtpPassword" [placeholder]="smtpPasswordConfigured ? 'Gespeichertes Passwort beibehalten' : ''" autocomplete="new-password" />
+            <app-password-visibility-toggle [field]="smtpPasswordInput" />
+          </span>
+          <small>Wird verschlüsselt gespeichert.</small>
+        </div>
         <label>Absenderadresse<input name="smtpFrom" type="email" [(ngModel)]="smtpFrom" placeholder="office@apotheke.at" /></label>
       </div>
     </details>

@@ -13,6 +13,7 @@ const appointment = (id: number, startsAt: string, endsAt: string): AdminAppoint
   endsAt,
   status: 'reserved',
   note: null,
+  chatConversationId: null,
 });
 
 describe('appointment calendar layout', () => {

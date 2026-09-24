@@ -163,11 +163,11 @@ try {
 
     // A tenant may enable family point sharing before any pool exists. Once a
     // pool has been created, the server must refuse to disable that feature.
-    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['familyPointSharingEnabled' => 'true'])), 200);
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['familyPointSharingEnabled' => 'true', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 200);
     authorizationCheck($activeTenant->isFamilyPointSharingEnabled(), 'Tenant staff must be able to enable family point sharing.');
     $activeTenant->lockFamilyPointSharing();
     $entityManager->flush();
-    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['familyPointSharingEnabled' => 'false'])), 422);
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['familyPointSharingEnabled' => 'false', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 422);
     authorizationCheck($activeTenant->isFamilyPointSharingEnabled() && $activeTenant->isFamilyPointSharingLocked(), 'A tenant with an existing family pool must keep point sharing enabled.');
 
     // The matching tenant staff can access its own tenant's reward, proving the test is not a false negative.

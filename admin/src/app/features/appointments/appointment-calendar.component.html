@@ -59,12 +59,13 @@
               type="button"
               class="calendar-event"
               [class.cancelled]="event.appointment.status === 'cancelled'"
+              [class.pending]="event.appointment.status === 'pending_staff_confirmation'"
               [style.--appointment-color]="event.appointment.resourceColor"
               [style.top.px]="event.top"
               [style.height.px]="event.height"
               [style.left]="event.left"
               [style.width]="event.width"
-              [attr.aria-label]="event.startLabel + ' bis ' + event.endLabel + ': ' + event.appointment.customer + (event.appointment.status === 'cancelled' ? ', abgesagt' : '')"
+              [attr.aria-label]="event.startLabel + ' bis ' + event.endLabel + ': ' + event.appointment.customer + (event.appointment.status === 'cancelled' ? ', abgesagt' : event.appointment.status === 'pending_staff_confirmation' ? ', wartet auf Bestätigung' : '')"
               (click)="selected.emit(event.appointment)">
               @if (event.height < 38) {
                 <span class="event-compact">{{ event.startLabel }} · {{ event.appointment.customer }}</span>

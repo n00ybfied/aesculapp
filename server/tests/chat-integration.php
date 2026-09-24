@@ -65,6 +65,19 @@ try {
  $lastReply=end($readReply['messages'])['id'];
  $api->markRead($id,new Symfony\Component\HttpFoundation\Request(content:json_encode(['lastMessageId'=>$lastReply])));
  check(json_decode($api->unreadCount()->getContent(),true)['count']===0,'Read acknowledgement failed');
+ $lastCustomerRequest=[];
+ for($index=1;$index<=10;$index++){
+  $lastCustomerRequest=['text'=>'Follow-up '.$index,'conversationId'=>$id,'requestId'=>sprintf('50000000-0000-4000-8000-%012d',$index)];
+  status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([],$lastCustomerRequest),false),201);
+ }
+ $eleventh=['text'=>'Too many follow-ups','conversationId'=>$id,'requestId'=>'60000000-0000-4000-8000-000000000001'];
+ status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([],$eleventh),false),429);
+ status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([],$lastCustomerRequest),false),200);
+ check((int)$em->getConnection()->fetchOne('SELECT COUNT(*) FROM chat_message WHERE conversation_id = ? AND sender_role = ?',[$id,'customer'])===11,'Customer must be limited to ten consecutive messages while retries remain idempotent');
+ asUser($storage,$users['staff']);
+ status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([],['text'=>'Staff answer','conversationId'=>$id,'requestId'=>'70000000-0000-4000-8000-000000000001']),true),201);
+ asUser($storage,$users['customer']);
+ status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([],$eleventh),false),201);
  asUser($storage,$users['staff']);
  $api->close($id);
  asUser($storage,$users['customer']);
@@ -72,7 +85,7 @@ try {
  status(fn()=>$api->send(new Symfony\Component\HttpFoundation\Request([],$params),false),409);
  check($cipher->decrypt($cipher->encrypt('secret','context'),'context')==='secret','Cipher roundtrip');
  try {$cipher->decrypt($cipher->encrypt('secret','context'),'other');throw new LogicException('Context accepted');}catch(RuntimeException $expected){}
- echo "Chat checks passed: consent, encryption, roundtrip, idempotency, owner isolation, customer/staff unread badges, close locking, cache headers.\n";
+ echo "Chat checks passed: consent, encryption, roundtrip, idempotency, ten-message limit, owner isolation, customer/staff unread badges, close locking, cache headers.\n";
 } finally {
  while($em->getConnection()->isTransactionActive())$em->getConnection()->rollBack();
  $kernel->shutdown();

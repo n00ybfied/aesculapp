@@ -106,6 +106,15 @@ Fiktive Apothekennews, Gutscheine und Prämien einschließlich der versionierten
 php bin/console app:seed:demo-catalog
 ```
 
+Für die separate Apotheken-Testinstallation gibt es einen kleineren, ausdrücklich als fiktiv markierten Katalog mit 12 Inhalten, 8 Gutscheinen und 8 Prämien. Nur nach Datenbankbackup und nur auf dem Testserver manuell ausführen; weder Deployment noch der normale Demo-Seed starten ihn automatisch. Bestehende Einträge mit demselben Titel werden nicht überschrieben.
+
+```bash
+cd /home/.sites/95/site1646665/web/aesculapp-api
+APP_ENV=prod APP_DEBUG=0 php84 bin/console app:seed:apotheke-test-catalog --confirm
+```
+
+Die Bilder liegen unter `public/uploads/demo` und werden beim Apotheken-Deploy separat mitkopiert. Neue Testeinträge sind in der Kunden-App sichtbar und können dort testweise eingelöst werden; sie stellen keine realen Angebote dar.
+
 Nur bei bereits vorhandenen Katalogeinträgen ohne Bild können die jeweiligen Demobilder ergänzt werden:
 
 ```powershell
