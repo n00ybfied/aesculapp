@@ -102,6 +102,7 @@ final class ApiPasswordResetController
                     ->subject($subject)
                     ->text("Sie haben angefordert, Ihr Passwort zurückzusetzen.\n\nÖffnen Sie innerhalb von 60 Minuten diesen Link:\n{$resetUrl}\n\nWenn Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren."),
                 'password_reset',
+                ['portal_name' => $admin ? 'das Aesculapp Apothekenportal' : 'Aesculapp', 'action_url' => $resetUrl],
             );
             $entityManager->flush();
         } catch (\Throwable) {

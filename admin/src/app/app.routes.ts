@@ -49,6 +49,7 @@ export const routes: Routes = [
       { path: 'kunden', loadComponent: () => import('./features/customers/admin-customers.component').then((module) => module.AdminCustomersComponent) },
       { path: 'benutzer', loadComponent: () => import('./features/users/admin-users.component').then((module) => module.AdminUsersComponent) },
       { path: 'einstellungen', loadComponent: () => import('./features/settings/tenant-branding.component').then((module) => module.TenantBrandingComponent) },
+      { path: 'nachrichtenvorlagen', loadComponent: () => import('./features/settings/notification-templates.component').then((module) => module.NotificationTemplatesComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

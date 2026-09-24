@@ -17,7 +17,7 @@ final class ChatPushService
     /** @var list<int> */
     private array $scheduled = [];
 
-    /** @var list<array{user: User, tenant: Tenant, title: string, body: string, url: string, tag: string}> */
+    /** @var list<array{user: User, tenant: Tenant, title: string, body: string, url: string, tag: string, kind: string}> */
     private array $scheduledFamilyNotifications = [];
 
     /** @var list<int> */
@@ -29,6 +29,7 @@ final class ChatPushService
         private readonly LoggerInterface $logger,
         private readonly TenantMembershipRepository $memberships,
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
+        private readonly ?NotificationTemplates $notificationTemplates = null,
     ) {
     }
 
@@ -103,9 +104,9 @@ final class ChatPushService
         $this->scheduled[] = $id;
     }
 
-    public function scheduleFamilyNotification(User $user, Tenant $tenant, string $title, string $body): void
+    public function scheduleFamilyNotification(User $user, Tenant $tenant, string $title, string $body, string $kind = 'family_invitation'): void
     {
-        $this->scheduledFamilyNotifications[] = ['user' => $user, 'tenant' => $tenant, 'title' => $title, 'body' => $body, 'url' => '/familie', 'tag' => 'aesculapp-family-access'];
+        $this->scheduledFamilyNotifications[] = ['user' => $user, 'tenant' => $tenant, 'title' => $title, 'body' => $body, 'url' => '/familie', 'tag' => 'aesculapp-family-access', 'kind' => $kind];
     }
 
     public function scheduleAppointmentBooking(int $appointmentId): void
@@ -113,7 +114,7 @@ final class ChatPushService
         $this->scheduledAppointmentBookings[] = $appointmentId;
     }
 
-    public function sendAppointmentReminder(User $user, Tenant $tenant, string $body): bool
+    public function sendAppointmentReminder(User $user, Tenant $tenant, string $body, string $appointmentTime): bool
     {
         if (!$this->memberships->findForUserAndTenant($user, $tenant)?->isAppointmentPushEnabled()) {
             return true;
@@ -125,7 +126,7 @@ final class ChatPushService
         }
 
         try {
-            $this->deliverToSubscriptions($user, $tenant, 'Terminerinnerung', $body, '/termine/meine', 'aesculapp-appointment-reminder', $config, null, 'appointment');
+            $this->deliverToSubscriptions($user, $tenant, 'Terminerinnerung', $body, '/termine/meine', 'aesculapp-appointment-reminder', $config, null, 'appointment', ['appointment_time' => $appointmentTime]);
             return true;
         } catch (\Throwable $exception) {
             $this->logger->warning('appointment.push.failed', ['errorClass' => $exception::class]);
@@ -193,6 +194,10 @@ final class ChatPushService
                 $config,
                 null,
                 'appointment_booking',
+                [
+                    'appointment_date' => $appointment->getStartsAt()->format('d.m.Y'),
+                    'appointment_time' => $appointment->getStartsAt()->format('H:i'),
+                ],
             );
         } catch (\Throwable $exception) {
             $this->logger->warning('appointment.booking_push.failed', ['appointmentId' => $appointmentId, 'errorClass' => $exception::class]);
@@ -222,21 +227,39 @@ final class ChatPushService
         }
     }
 
-    private function deliverFamilyNotification(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag): void
+    private function deliverFamilyNotification(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, string $kind): void
     {
         try {
             if (!$this->memberships->findForUserAndTenant($user, $tenant)?->isFamilyPushEnabled()) return;
             $config = $this->config();
             if (!$config) return;
-            $this->deliverToSubscriptions($user, $tenant, $title, $body, $url, $tag, $config);
+            $this->deliverToSubscriptions($user, $tenant, $title, $body, $url, $tag, $config, null, $kind);
         } catch (\Throwable $e) {
             $this->logger->warning('family.push.failed', ['errorClass' => $e::class]);
         }
     }
 
     /** @return array{subscriptions: int, delivered: int, failed: int} */
-    private function deliverToSubscriptions(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, array $config, ?int $messageId = null, string $kind = 'family'): array
+    /** @param array<string, string> $templateValues */
+    private function deliverToSubscriptions(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, array $config, ?int $messageId = null, string $kind = 'family', array $templateValues = []): array
     {
+        if ($this->notificationTemplates !== null) {
+            $key = $messageId !== null ? 'push_chat_reply' : 'push_'.match ($kind) {
+                'appointment' => 'appointment_reminder',
+                'test' => 'test',
+                default => $kind,
+            };
+            try {
+                $rendered = $this->notificationTemplates->render($tenant, $key, $title, $body, $templateValues);
+                if (preg_match('/{{[^{}]+}}/', $rendered['title'].$rendered['body'])) {
+                    throw new \RuntimeException('Unresolved notification insert tag.');
+                }
+                $title = $rendered['title'];
+                $body = $rendered['body'];
+            } catch (\Throwable $exception) {
+                $this->logger->warning('push.template.failed', ['kind' => $kind, 'errorClass' => $exception::class]);
+            }
+        }
         $subs = $this->em->getRepository(WebPushSubscription::class)->findBy(['user' => $user, 'tenant' => $tenant]);
         $push = new WebPush(
             ['VAPID' => $config],

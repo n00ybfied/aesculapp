@@ -81,6 +81,7 @@ final class ApiEmailChangeController
                     ->subject('Neue E-Mail-Adresse für Aesculapp bestätigen')
                     ->text("Sie haben eine Änderung Ihrer E-Mail-Adresse angefordert.\n\nBestätigen Sie die neue Adresse innerhalb von 24 Stunden:\n{$url}\n\nWenn Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail."),
                 'email_change',
+                ['action_url' => $url],
             );
             $this->entityManager->persist($token);
             $this->entityManager->flush();

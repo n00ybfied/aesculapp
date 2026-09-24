@@ -20,10 +20,11 @@
       @if (canAccess('coupons')) { <a routerLink="/gutscheine" routerLinkActive="active" (click)="closeNavigation()">Gutscheine</a> }
       @if (canAccess('appointments')) { <a class="appointments-link" routerLink="/termine" routerLinkActive="active" (click)="closeNavigation()">Termine <app-unseen-appointments-badge /></a> }
       <a routerLink="/meine-termine" routerLinkActive="active" (click)="closeNavigation()">Meine Termine</a>
-      @if (canAccess('redemptions')) { <a routerLink="/einloesungen" routerLinkActive="active" (click)="closeNavigation()">Einlösungen</a> }
+      @if (canAccess('redemptions')) { <a class="redemptions-link" routerLink="/einloesungen" routerLinkActive="active" (click)="closeNavigation()">Einlösungen <app-active-redemptions-badge /></a> }
       @if (canAccess('customers')) { <a routerLink="/kunden" routerLinkActive="active" (click)="closeNavigation()">Kunden</a> }
       @if (canAccess('users')) { <a routerLink="/benutzer" routerLinkActive="active" (click)="closeNavigation()">Benutzer</a> }
       @if (canAccess('settings')) { <a routerLink="/einstellungen" routerLinkActive="active" (click)="closeNavigation()">Einstellungen</a> }
+      @if (canAccess('settings')) { <a routerLink="/nachrichtenvorlagen" routerLinkActive="active" (click)="closeNavigation()">Nachrichtenvorlagen</a> }
     </nav>
   </aside>
 

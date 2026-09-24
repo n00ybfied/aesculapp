@@ -1,0 +1,53 @@
+<section class="notification-settings">
+  <p class="eyebrow">Einstellungen</p>
+  <h2>Nachrichtenvorlagen</h2>
+  <p class="intro">Texte für automatisch verschickte E-Mails und Push-Nachrichten zentral bearbeiten. Änderungen gelten nur für diese Apotheke und nur für neue Nachrichten.</p>
+  @if (!loading() && error() && !selected()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+
+  @if (loading()) { <p>Vorlagen werden geladen …</p> }
+  @else {
+    <div class="tabs" role="group" aria-label="Nachrichtenkanal">
+      <button type="button" [class.active]="channel() === 'email'" (click)="selectChannel('email')">E-Mails</button>
+      <button type="button" [class.active]="channel() === 'push'" (click)="selectChannel('push')">Push</button>
+    </div>
+    <div class="editor-layout">
+      <nav class="template-list" aria-label="Vorlagen">
+        @for (template of filtered(); track template.key) {
+          <button type="button" [class.active]="selectedKey() === template.key" (click)="select(template.key)">
+            <span>{{ template.label }}</span>
+            @if (template.customized) { <small>Angepasst</small> }
+          </button>
+        }
+      </nav>
+      @if (selected(); as template) {
+        <form class="editor" (ngSubmit)="save()">
+          <h3>{{ template.label }}</h3>
+          <p class="help">{{ template.channel === 'email' ? 'Betreff und Nachrichtentext' : 'Push-Titel und Kurztext' }}. Der Versand erfolgt weiterhin nur beim jeweiligen Ereignis.</p>
+          <label for="template-title">{{ template.channel === 'email' ? 'Betreff' : 'Titel' }}</label>
+          <input #titleEditor id="template-title" name="title" [(ngModel)]="title" (focus)="focusField('title')" required maxlength="200" />
+          <label for="template-body">Text</label>
+          <textarea #bodyEditor id="template-body" name="body" [(ngModel)]="body" (focus)="focusField('body')" required rows="11" maxlength="10000"></textarea>
+          <div class="hint">
+            <strong>Inserttags für diese Nachricht</strong>
+            <p>Setzen Sie den Cursor in Betreff oder Text und wählen Sie ein Tag. Beim Versand wird es durch den jeweiligen Wert ersetzt.</p>
+            <div class="tags">
+              @for (tag of template.tags; track tag) {
+                <button type="button" (click)="insertTag(tag)" [attr.aria-label]="'Inserttag ' + tagLabels[tag] + ' einfügen'">
+                  <code>{{ '{{' + tag + '}}' }}</code> <span>{{ tagLabels[tag] }}</span>
+                  @if (template.required.includes(tag)) { <small>Pflicht</small> }
+                </button>
+              }
+            </div>
+            @if (template.required.length) { <p>Pflicht-Tags müssen im Nachrichtentext bleiben, damit Links und Termindaten erhalten bleiben.</p> }
+          </div>
+          @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+          @if (success()) { <p class="feedback success" role="status">{{ success() }}</p> }
+          <div class="actions">
+            <button type="submit" [disabled]="saving()">{{ saving() ? 'Speichern …' : 'Vorlage speichern' }}</button>
+            @if (template.customized) { <button type="button" class="secondary" [disabled]="saving()" (click)="reset()">Standard wiederherstellen</button> }
+          </div>
+        </form>
+      }
+    </div>
+  }
+</section>

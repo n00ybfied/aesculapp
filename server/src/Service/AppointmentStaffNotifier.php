@@ -47,7 +47,14 @@ final class AppointmentStaffNotifier
                         $appointment->getDisplayName(),
                         rtrim($this->adminUrl, '/'),
                     )),
-                'appointment_assigned_to_staff',
+                $appointment->getStatus() === 'pending_staff_confirmation' ? 'appointment_assigned_to_staff_pending' : 'appointment_assigned_to_staff',
+                [
+                    'staff_name' => $staff->getDisplayName(),
+                    'appointment_type' => $appointment->getType()->getTitle(),
+                    'appointment_datetime' => $appointment->getStartsAt()->format('d.m.Y H:i'),
+                    'customer_name' => $appointment->getDisplayName(),
+                    'action_url' => rtrim($this->adminUrl, '/').'/meine-termine',
+                ],
             );
         } catch (\Throwable $exception) {
             $this->logger->warning('appointment.staff_email.failed', [
