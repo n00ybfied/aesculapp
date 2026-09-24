@@ -1,58 +1,91 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { MockRewardRepository, rewardStorageKey } from './reward.repository';
+import { API_BASE_URL } from '../api/api.config';
+import { AuthService } from '../auth/auth.service';
+import { RewardCatalogService } from './reward-catalog.service';
+import { MockRewardRepository, rewardStorageKey, type Reward, type RewardsOverview } from './reward.repository';
 
 describe('MockRewardRepository', () => {
+  const api = 'http://api.test/api/v1';
+  const tea: Reward = { id: 'tea', title: 'Tee-Genuss', subtitle: 'Wohlfühltee', description: 'Testprämie', requiredPoints: 500 };
   let repository: MockRewardRepository;
+  let httpTesting: HttpTestingController;
 
   beforeEach(() => {
     localStorage.removeItem(rewardStorageKey);
-    TestBed.configureTestingModule({ providers: [MockRewardRepository] });
+    TestBed.configureTestingModule({ providers: [
+      MockRewardRepository,
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      { provide: API_BASE_URL, useValue: api },
+      { provide: AuthService, useValue: { accessToken: () => null } },
+      { provide: RewardCatalogService, useValue: { getVisibleRewards: async () => [tea] } },
+    ] });
     repository = TestBed.inject(MockRewardRepository);
+    httpTesting = TestBed.inject(HttpTestingController);
   });
 
-  it('keeps the points in Local Storage', async () => {
+  afterEach(() => httpTesting.verify());
+
+  async function loadCatalog(target = repository): Promise<RewardsOverview> {
+    const loading = target.getOverview();
+    httpTesting.expectOne(`${api}/rewards/active`).flush(null, { status: 503, statusText: 'Service Unavailable' });
+    return loading;
+  }
+
+  async function completeRedemption(quantity: number, remainingPoints: number, redemptionId: number) {
+    const redemption = repository.redeem([{ rewardId: 'tea', quantity }]);
+    const request = httpTesting.expectOne(`${api}/rewards/redeem`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ selections: [{ rewardId: 'tea', quantity }] });
+    request.flush({ remainingPoints, redemption: { id: redemptionId, validUntil: new Date(Date.now() + 300_000).toISOString() } });
+    await Promise.resolve();
+    httpTesting.expectOne(`${api}/rewards/active`).flush(null, { status: 503, statusText: 'Service Unavailable' });
+    return redemption;
+  }
+
+  it('keeps credited points in Local Storage', async () => {
     await repository.credit(42, 'Testgutschrift');
 
-    const reloadedRepository = new MockRewardRepository();
-    const overview = await reloadedRepository.getOverview();
+    const reloadedRepository = TestBed.runInInjectionContext(() => new MockRewardRepository());
+    const overview = await loadCatalog(reloadedRepository);
 
     expect(overview.availablePoints).toBe(1_272);
   });
 
-  it('redeems multiple quantities of an available reward and subtracts its points', async () => {
-    const redemption = await repository.redeem([{ rewardId: 'tea', quantity: 2 }]);
-    const overview = await repository.getOverview();
+  it('redeems multiple quantities and subtracts their points', async () => {
+    await loadCatalog();
+    const redemption = await completeRedemption(2, 230, 1);
 
     expect(redemption.remainingPoints).toBe(230);
     expect(redemption.activeRedemption.items).toEqual([{
-      rewardId: 'tea',
-      title: 'Tee-Genuss',
-      quantity: 2,
-      pointsPerItem: 500,
+      rewardId: 'tea', title: 'Tee-Genuss', subtitle: 'Wohlfühltee', imageUrl: undefined,
+      quantity: 2, pointsPerItem: 500,
     }]);
-    expect(overview.history[0]).toMatchObject({ label: '2× Tee-Genuss', points: -1_000 });
+    const stored = JSON.parse(localStorage.getItem(rewardStorageKey) ?? 'null') as { history: Array<{ label: string; points: number }> };
+    expect(stored.history[0]).toMatchObject({ label: '2× Tee-Genuss', points: -1_000 });
   });
 
   it('adds further rewards to an active redemption and persists it', async () => {
+    await loadCatalog();
     await repository.credit(1_000, 'Testgutschrift');
-    await repository.redeem([{ rewardId: 'tea', quantity: 1 }]);
-    const redemption = await repository.redeem([{ rewardId: 'tea', quantity: 2 }]);
-    const reloadedRepository = new MockRewardRepository();
+    await completeRedemption(1, 1_730, 1);
+    const redemption = await completeRedemption(2, 730, 1);
+    const reloadedRepository = TestBed.runInInjectionContext(() => new MockRewardRepository());
+    const active = reloadedRepository.getActiveRedemption();
+    httpTesting.expectOne(`${api}/rewards/active`).flush(null, { status: 503, statusText: 'Service Unavailable' });
 
     expect(redemption.remainingPoints).toBe(730);
     expect(redemption.activeRedemption.items[0].quantity).toBe(3);
-    expect(await reloadedRepository.getActiveRedemption()).toEqual(redemption.activeRedemption);
+    expect(await active).toEqual(redemption.activeRedemption);
   });
 
-  it('does not change the point balance when the selection is too expensive', async () => {
-    let error: unknown;
-    try {
-      await repository.redeem([{ rewardId: 'tea', quantity: 3 }]);
-    } catch (caught) {
-      error = caught;
-    }
+  it('does not change the balance when a selection is too expensive', async () => {
+    await loadCatalog();
 
-    expect(error).toBeDefined();
-    expect((await repository.getOverview()).availablePoints).toBe(1_230);
+    await expect(repository.redeem([{ rewardId: 'tea', quantity: 3 }])).rejects.toThrow();
+    const stored = JSON.parse(localStorage.getItem(rewardStorageKey) ?? 'null') as { availablePoints: number };
+    expect(stored.availablePoints).toBe(1_230);
   });
 });

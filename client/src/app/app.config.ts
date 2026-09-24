@@ -8,6 +8,7 @@ import { AuthService } from './core/auth/auth.service';
 import { authExpiryInterceptor } from './core/auth/auth-expiry.interceptor';
 import { provideLucideIcons } from './core/icons/lucide-icons';
 import { ThemeService } from './core/theme/theme.service';
+import { PwaInstallService } from './core/pwa/pwa-install.service';
 import { MockReceiptRepository, ReceiptRepository } from './core/receipts/receipt.repository';
 import { MockRewardRepository, RewardRepository } from './core/rewards/reward.repository';
 
@@ -21,6 +22,7 @@ export const appConfig: ApplicationConfig = {
     provideLucideIcons(),
     provideAppInitializer(() => inject(ThemeService).initialize()),
     provideAppInitializer(() => inject(AuthService).restoreSession()),
+    provideAppInitializer(() => void inject(PwaInstallService)),
     AuthService,
     MockReceiptRepository,
     { provide: ReceiptRepository, useExisting: MockReceiptRepository },

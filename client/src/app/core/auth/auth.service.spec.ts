@@ -66,6 +66,11 @@ describe('AuthService', () => {
 
     service.logout();
 
+    const logoutRequest = httpTesting.expectOne('http://api.test/api/v1/auth/logout');
+    expect(logoutRequest.request.method).toBe('POST');
+    expect(logoutRequest.request.withCredentials).toBe(true);
+    logoutRequest.flush(null);
+
     expect(service.currentUser()).toBeNull();
     expect(service.accessToken()).toBeNull();
   });

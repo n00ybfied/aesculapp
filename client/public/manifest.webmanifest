@@ -5,5 +5,8 @@
  "start_url":"/",
  "scope":"/",
  "display":"standalone",
- "icons":[{"src":"/assets/tenants/sta/favicon.png","type":"image/png","sizes":"any"}]
+ "icons":[
+  {"src":"/assets/tenants/sta/icon-192.png","type":"image/png","sizes":"192x192"},
+  {"src":"/assets/tenants/sta/icon-512.png","type":"image/png","sizes":"512x512"}
+ ]
 }

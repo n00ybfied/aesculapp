@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AdminUserService, type AdminUsersOverview, type StaffRole } from '../../core/users/admin-user.service';
+import { AdminUserService, type AdminUsersOverview, type PendingInvitation, type StaffRole } from '../../core/users/admin-user.service';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { PasswordVisibilityToggleComponent } from '../../shared/password-visibility-toggle.component';
 
@@ -38,6 +38,7 @@ export class AdminUsersComponent {
   protected readonly overview = signal<AdminUsersOverview | null>(null);
   protected readonly isLoading = signal(true);
   protected readonly isSubmitting = signal(false);
+  protected readonly resendingInvitationId = signal<number | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly success = signal<string | null>(null);
   protected readonly inviteForm = this.formBuilder.nonNullable.group({
@@ -104,6 +105,32 @@ export class AdminUsersComponent {
 
   protected roleLabel(roles: readonly string[]): string {
     return roles.includes('ROLE_TENANT_ADMIN') ? 'Administrator' : 'Mitarbeiter';
+  }
+
+  protected async resendInvitation(id: number): Promise<void> {
+    if (this.resendingInvitationId() !== null) return;
+    this.resendingInvitationId.set(id);
+    this.error.set(null);
+    this.success.set(null);
+    try {
+      await this.users.resendInvitation(id);
+      await this.load();
+      this.success.set('Die Einladung wurde erneut per E-Mail versendet. Der bisherige Link ist nicht mehr gültig.');
+    } catch (failure: unknown) {
+      const serverMessage = failure instanceof HttpErrorResponse && typeof failure.error?.message === 'string' ? failure.error.message : null;
+      this.error.set(serverMessage ?? 'Die Einladung konnte nicht erneut versendet werden.');
+    } finally {
+      this.resendingInvitationId.set(null);
+    }
+  }
+
+  protected isInvitationExpired(expiresAt: string): boolean {
+    return new Date(expiresAt).getTime() <= Date.now();
+  }
+
+  protected canResendInvitation(invitation: PendingInvitation): boolean {
+    return (this.isAdmin() || !invitation.roles.includes('ROLE_TENANT_ADMIN'))
+      && (invitation.permissions ?? this.areas.map(([area]) => area)).every((area) => this.auth.canAccess(area));
   }
 
   protected togglePermission(area: string, checked: boolean, editing = false): void {

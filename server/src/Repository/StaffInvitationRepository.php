@@ -35,9 +35,7 @@ final class StaffInvitationRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('invitation')
             ->andWhere('invitation.tenant = :tenant')
             ->andWhere('invitation.acceptedAt IS NULL')
-            ->andWhere('invitation.expiresAt > :now')
             ->setParameter('tenant', $tenant)
-            ->setParameter('now', new \DateTimeImmutable())
             ->orderBy('invitation.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
