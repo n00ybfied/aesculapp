@@ -1,5 +1,5 @@
 :host { display: block; }
-.page { max-width: 72rem; }
+.page { max-width: 100rem; }
 .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; }
 .eyebrow { margin: 0; color: var(--admin-primary); font-size: .8rem; font-weight: 700; letter-spacing: .08em; }
 h2, h3, p { margin-top: 0; }
@@ -10,6 +10,11 @@ button { min-height: 2.7rem; padding: .55rem .9rem; border: 0; border-radius: .5
 .danger { background: var(--admin-danger); }
 .message { margin: 1rem 0; color: var(--admin-primary-strong); }
 .error { color: var(--admin-danger); }
+.cancellation-alert { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding: 1rem 1.2rem; border: 1px solid var(--admin-danger); border-radius: .75rem; background: color-mix(in srgb, var(--admin-danger) 9%, var(--admin-surface)); color: var(--admin-text); }
+.cancellation-alert p { margin: .35rem 0 0; }
+.cancellation-alert button { min-width: 2.5rem; min-height: 2.5rem; padding: 0; font-size: 1.5rem; }
+.resource-legend { display: flex; align-items: center; gap: .6rem; }
+.resource-color { display: inline-block; width: 1rem; height: 1rem; flex: none; border: 1px solid var(--admin-border); border-radius: .22rem; }
 .card { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid var(--admin-border); border-radius: 1rem; background: var(--admin-surface); }
 .section-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
 .section-header h3 { margin: 0; }
@@ -25,10 +30,19 @@ button { min-height: 2.7rem; padding: .55rem .9rem; border: 0; border-radius: .5
 .modal { width: min(100%, 35rem); max-height: calc(100vh - 2rem); overflow: auto; padding: 1.5rem; border-radius: 1rem; background: var(--admin-surface); box-shadow: 0 1.5rem 4rem rgb(20 37 49 / 30%); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .modal-header h3 { margin: 0; }
+.appointment-detail .status { display: inline-block; margin-top: 1rem; }
+.detail-list { display: grid; gap: 0; margin: 1.25rem 0; }
+.detail-list > div { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: 1rem; padding: .75rem 0; border-top: 1px solid var(--admin-border); }
+.detail-list dt { color: var(--admin-muted); }
+.detail-list dd { margin: 0; font-weight: 700; }
+.detail-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.appointment-chat-link { display: grid; gap: .45rem; margin: 1rem 0; }
+.appointment-chat-link small { line-height: 1.4; }
 .icon-button { display: grid; width: 2.5rem; height: 2.5rem; min-height: 0; place-items: center; padding: 0; background: transparent; color: var(--admin-muted); font-size: 1.5rem; }
 form { display: grid; gap: 1rem; margin-top: 1.25rem; }
 label { display: grid; gap: .4rem; font-weight: 700; }
 input, select, textarea { min-height: 2.7rem; padding: .5rem; border: 1px solid var(--admin-border); border-radius: .5rem; background: #fff; color: var(--admin-text); font: inherit; }
+input[type='color'] { width: 5rem; height: 3rem; padding: .2rem; cursor: pointer; }
 textarea { min-height: 5rem; resize: vertical; }
 .checkbox-label { display: flex; align-items: center; gap: .5rem; }
 .checkbox-label input { min-height: auto; }
@@ -46,4 +60,4 @@ legend { margin-bottom: .4rem; font-weight: 700; }
 .weekdays input { min-height: auto; margin: 0; }
 .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .form-actions { justify-content: flex-end; margin-top: .5rem; }
-@media (max-width: 760px) { .page-header, .appointment { align-items: stretch; flex-direction: column; }.grid, .time-grid { grid-template-columns: 1fr; }.actions button, .appointment button { width: 100%; } }
+@media (max-width: 760px) { .page-header { align-items: stretch; flex-direction: column; }.grid, .time-grid { grid-template-columns: 1fr; }.actions button { width: 100%; }.detail-list > div { grid-template-columns: 1fr; gap: .2rem; } }

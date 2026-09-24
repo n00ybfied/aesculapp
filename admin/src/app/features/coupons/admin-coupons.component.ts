@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { AdminCoupon, AdminCouponPage, AdminCouponService } from '../../core/coupons/admin-coupon.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 
 @Component({
   standalone: true,
@@ -16,6 +17,9 @@ import { AdminCoupon, AdminCouponPage, AdminCouponService } from '../../core/cou
         <label>Suche nach Titel<input name="query" [(ngModel)]="query" placeholder="Titel eingeben" /></label>
         <label>Einträge pro Seite<select name="pageSize" [value]="pageSize" (change)="updatePageSize($event)"><option [value]="10">10</option><option [value]="25">25</option><option [value]="50">50</option><option value="all">Alle</option></select></label>
         <button type="submit">Filtern</button>
+        @if (query.trim() || pageSize !== 25) {
+          <button type="button" class="filter-reset" (click)="resetFilters()">Filter zurücksetzen</button>
+        }
       </form>
       @if (loading()) {
         <p>Lädt …</p>
@@ -59,6 +63,7 @@ import { AdminCoupon, AdminCouponPage, AdminCouponService } from '../../core/cou
     .list-controls label { display: grid; gap: .35rem; color: var(--admin-muted); font-size: .9rem; }
     .list-controls input, .list-controls select { min-height: 2.8rem; min-width: 14rem; padding: .5rem .65rem; border: 1px solid var(--admin-border); border-radius: .45rem; font: inherit; }
     .list-controls select { min-width: 8rem; }
+    .list-controls .filter-reset { min-height: auto; padding: .25rem 0; border: 0; background: transparent; color: var(--admin-primary); font-size: .85rem; font-weight: 500; text-decoration: underline; text-underline-offset: .2rem; }
     article { display: flex; align-items: center; gap: 1rem; margin-top: .75rem; padding: 1rem; border: 1px solid var(--admin-border); border-radius: .75rem; background: #fff; }
     article div { flex: 1; }
     h3, p { margin: 0; }
@@ -74,6 +79,7 @@ import { AdminCoupon, AdminCouponPage, AdminCouponService } from '../../core/cou
 })
 export class AdminCouponsComponent {
   private readonly service = inject(AdminCouponService);
+  private readonly dialogs = inject(ConfirmDialogService);
   protected readonly couponPage = signal<AdminCouponPage | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
@@ -94,7 +100,7 @@ export class AdminCouponsComponent {
   }
 
   protected async deleteCoupon(coupon: AdminCoupon): Promise<void> {
-    if (!confirm(`„${coupon.title}“ wirklich löschen? Bereits zugehörige Einlösungen werden ebenfalls entfernt.`)) {
+    if (!await this.dialogs.confirm(`„${coupon.title}“ wirklich löschen? Bereits zugehörige Einlösungen werden ebenfalls entfernt.`, { title: 'Gutschein löschen', confirmLabel: 'Löschen', destructive: true })) {
       return;
     }
 
@@ -108,6 +114,12 @@ export class AdminCouponsComponent {
 
   protected applyFilters(): void {
     void this.load();
+  }
+
+  protected resetFilters(): void {
+    this.query = '';
+    this.pageSize = 25;
+    void this.load(1);
   }
 
   protected updatePageSize(event: Event): void {

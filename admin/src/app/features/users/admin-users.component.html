@@ -8,11 +8,17 @@
     <form [formGroup]="inviteForm" (ngSubmit)="invite()" novalidate>
       <label>
         <span>Name</span>
-        <input type="text" formControlName="displayName" autocomplete="name" />
+        <input type="text" formControlName="displayName" autocomplete="name" [attr.aria-invalid]="inviteForm.controls.displayName.invalid && inviteForm.controls.displayName.touched" aria-describedby="invite-name-error" />
+        @if (inviteForm.controls.displayName.invalid && inviteForm.controls.displayName.touched) {
+          <span id="invite-name-error" class="field-error" role="alert">Bitte geben Sie einen Namen mit 2 bis 160 Zeichen ein.</span>
+        }
       </label>
       <label>
         <span>E-Mail-Adresse</span>
-        <input type="email" formControlName="email" autocomplete="email" autocapitalize="none" />
+        <input type="email" formControlName="email" autocomplete="email" autocapitalize="none" [attr.aria-invalid]="inviteForm.controls.email.invalid && inviteForm.controls.email.touched" aria-describedby="invite-email-error" />
+        @if (inviteForm.controls.email.invalid && inviteForm.controls.email.touched) {
+          <span id="invite-email-error" class="field-error" role="alert">Bitte geben Sie eine gültige E-Mail-Adresse ein.</span>
+        }
       </label>
       <label>
         <span>Rolle</span>

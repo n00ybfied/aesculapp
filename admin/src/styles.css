@@ -36,7 +36,7 @@ button, input { font: inherit; }
 button:not(:disabled) { cursor: pointer; }
 
 @media (min-width: 1400px) {
-  button:not(.customer-avatar):not(.menu-toggle) {
+  button:not(.customer-avatar):not(.menu-toggle):not(.calendar-event):not(.calendar-slot) {
     min-height: 2.5rem !important;
     padding: .45rem .75rem !important;
     font-size: .9rem;

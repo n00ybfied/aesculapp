@@ -1,20 +1,28 @@
 import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { ChatService } from '../core/chat/chat.service';
 import { OpenChatBadgeComponent } from '../shared/open-chat-badge.component';
+import { AdminAppointmentService } from '../core/appointments/admin-appointment.service';
+import { UnseenAppointmentsBadgeComponent } from '../shared/unseen-appointments-badge.component';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AdminAuthService } from '../core/auth/admin-auth.service';
 import { TenantBrandingService } from '../core/settings/tenant-branding.service';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 
 @Component({
   selector: 'app-admin-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, OpenChatBadgeComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, OpenChatBadgeComponent, UnseenAppointmentsBadgeComponent, ConfirmDialogComponent],
   templateUrl: './admin-shell.component.html',
   styleUrl: './admin-shell.component.css',
 })
 export class AdminShellComponent implements OnDestroy {
   private readonly chats=inject(ChatService);
+  private readonly appointments = inject(AdminAppointmentService);
   private readonly countTimer:ReturnType<typeof setInterval>;
-  private readonly refreshCount=()=>{if(!document.hidden)void this.chats.refreshOpenCount();};
+  private readonly refreshCount=()=>{
+    if (document.hidden) return;
+    void this.chats.refreshOpenCount();
+    void this.appointments.refreshUnseenCount();
+  };
   private readonly auth = inject(AdminAuthService);
   private readonly router = inject(Router);
   private readonly brandingService = inject(TenantBrandingService);
@@ -30,7 +38,7 @@ export class AdminShellComponent implements OnDestroy {
     document.addEventListener('visibilitychange',this.refreshCount);
   }
 
-  ngOnDestroy():void{clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshCount);this.chats.openCount.set(null);}
+  ngOnDestroy():void{clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshCount);this.chats.openCount.set(null);this.appointments.unseenCount.set(null);}
 
   protected logout(): void {
     this.auth.logout();

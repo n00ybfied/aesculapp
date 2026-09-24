@@ -1,0 +1,67 @@
+<div class="backdrop" (click)="dismissed.emit()">
+  <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="create-appointment-title" (click)="$event.stopPropagation()" (keydown.escape)="dismissed.emit()">
+    <div class="dialog-header">
+      <div>
+        <p class="eyebrow">TERMINPLANUNG</p>
+        <h3 id="create-appointment-title">Termin anlegen</h3>
+      </div>
+      <button type="button" class="close" aria-label="Dialog schließen" (click)="dismissed.emit()">×</button>
+    </div>
+
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <fieldset class="customer-choice">
+        <legend>Für wen ist der Termin?</legend>
+        <label><input type="radio" formControlName="customerMode" value="account" (change)="setMode('account')" /> App-Benutzer</label>
+        <label><input type="radio" formControlName="customerMode" value="guest" (change)="setMode('guest')" /> Name ohne App-Konto</label>
+      </fieldset>
+
+      @if (form.controls.customerMode.value === 'account') {
+        <div class="field">
+          <label for="appointment-customer-search">Benutzer nach Namen suchen *</label>
+          <div class="search-line">
+            <input #firstField id="appointment-customer-search" type="search" [formControl]="search" autocomplete="off" (input)="onSearchInput()" placeholder="Mindestens 2 Zeichen eingeben" />
+            @if (selectedCustomer()) { <button type="button" class="secondary" (click)="clearCustomer()">Ändern</button> }
+          </div>
+          @if (selectedCustomer(); as customer) {
+            <p class="selected">Ausgewählt: {{ customer.displayName }}</p>
+          } @else if (searching()) {
+            <p class="hint" role="status">Suche läuft …</p>
+          } @else if (search.value.trim().length >= 2) {
+            <div class="results" aria-label="Suchergebnisse">
+              @for (customer of matches(); track customer.id) {
+                <button type="button" (click)="selectCustomer(customer)"><strong>{{ customer.displayName }}</strong><small>{{ customer.email }}</small></button>
+              } @empty { <p>Keine passenden Benutzer gefunden.</p> }
+            </div>
+          }
+        </div>
+      } @else {
+        <label class="field">Name *<input formControlName="guestName" maxlength="160" autocomplete="name" placeholder="Vor- und Nachname" /></label>
+        <p class="hint">Ohne App-Konto erscheinen Termine nur im Admin-Kalender; automatische App- und E-Mail-Erinnerungen entfallen.</p>
+      }
+
+      <div class="two-columns">
+        <label class="field">Terminart *
+          <select formControlName="typeId"><option value="">Bitte wählen</option>@for (type of types(); track type.id) { <option [value]="type.id">{{ type.title }} ({{ type.durationMinutes }} Min.)</option> }</select>
+        </label>
+        <label class="field">Person *
+          <select formControlName="resourceId"><option value="">Bitte wählen</option>@for (resource of resources(); track resource.id) { <option [value]="resource.id">{{ resource.name }}</option> }</select>
+        </label>
+      </div>
+      <div class="two-columns">
+        <label class="field">Datum *<input type="date" formControlName="date" /></label>
+        <label class="field">Beginn *<input type="time" formControlName="time" step="300" /></label>
+      </div>
+      @if (blockedPeriod()) { <p class="error" role="status">Dieser Zeitraum ist für die gewählte Terminart gesperrt.</p> }
+      @if (pastPeriod()) { <p class="error" role="status">Termine können nur in der Zukunft angelegt werden.</p> }
+      <label class="field">Anmerkung<textarea formControlName="note" maxlength="1000" rows="3"></textarea></label>
+      <p class="hint">Zeiten gelten für die Apotheke (Europe/Vienna). Bestehende Buchungen derselben Person werden geprüft.</p>
+
+      <div class="actions">
+        <button type="button" class="secondary" (click)="dismissed.emit()">Abbrechen</button>
+        <button type="submit" class="primary" [disabled]="saving() || blockedPeriod() || pastPeriod()">{{ saving() ? 'Wird angelegt …' : 'Termin anlegen' }}</button>
+      </div>
+    </form>
+  </section>
+</div>

@@ -7,6 +7,9 @@
     <label for="customer-search">Kunde suchen</label>
     <input id="customer-search" name="query" [(ngModel)]="query" placeholder="Name, E-Mail-Adresse oder ID" />
     <button type="submit">Suchen</button>
+    @if (query.trim()) {
+      <button type="button" class="filter-reset" (click)="resetFilters()">Filter zurücksetzen</button>
+    }
   </form>
 
   @if (error(); as message) { <p class="error" role="alert">{{ message }}</p> }

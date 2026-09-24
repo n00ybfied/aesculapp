@@ -23,6 +23,11 @@ export class PointTransactionsComponent {
     const params = { query: this.query, activeOnly: String(this.activeOnly) };
     this.http.get<{ transactions: Transaction[] }>(this.api() + '/admin/point-transactions', { params, headers: this.headers() }).subscribe({ next: ({ transactions }) => { this.transactions.set(transactions); this.error.set(''); }, error: () => this.error.set('Buchungen konnten nicht geladen werden.') });
   }
+  protected resetFilters(): void {
+    this.query = '';
+    this.activeOnly = false;
+    this.search();
+  }
   protected openCustomer(id: number): void { this.customers.open(id); }
   protected initials(customer: CustomerSummary): string { return this.customers.initials(customer); }
   private headers(): HttpHeaders { return new HttpHeaders({ Authorization: 'Bearer ' + this.auth.accessToken() }); }

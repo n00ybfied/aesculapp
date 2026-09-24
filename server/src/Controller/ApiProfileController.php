@@ -9,7 +9,11 @@ use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
 use App\Service\ChatPushService;
 use App\Service\ImageProcessor;
+use App\Service\UsernameReservation;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Gesdinet\JWTRefreshTokenBundle\Model\RevokeRefreshTokenManagerInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -30,6 +34,9 @@ final class ApiProfileController
         private readonly EntityManagerInterface $entityManager,
         private readonly ImageProcessor $imageProcessor,
         private readonly ChatPushService $push,
+        private readonly UsernameReservation $usernameReservation,
+        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly RevokeRefreshTokenManagerInterface $refreshTokens,
     ) {
     }
 
@@ -57,6 +64,7 @@ final class ApiProfileController
             return $this->invalidProfile();
         }
 
+        $username = $data['username'] ?? $user->getUsername();
         $displayName = $this->text($data['displayName'] ?? null, 2, 160, false);
         $phone = $this->text($data['phone'] ?? null, 0, 40, true);
         $streetAddress = $this->text($data['streetAddress'] ?? null, 0, 160, true);
@@ -76,10 +84,28 @@ final class ApiProfileController
         $nightReminderTime = $this->time($data['nightReminderTime'] ?? null);
         $footerNavigationItems = $this->footerNavigationItems($data['footerNavigationItems'] ?? null);
 
-        if (!is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerNavigationItems === false) {
+        if (!is_string($username) || !is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerNavigationItems === false) {
             return $this->invalidProfile();
         }
 
+        $username = mb_strtolower(trim($username));
+        $usernameChanged = $username !== $user->getUsername();
+        if ($username !== $user->getUsername() && preg_match('/^[a-z0-9][a-z0-9._+%@-]{2,99}$/D', $username) !== 1) {
+            return new JsonResponse(['message' => 'Der Benutzername muss 3 bis 100 erlaubte Zeichen enthalten.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        if ($usernameChanged && (!is_string($data['usernamePassword'] ?? null) || !$this->passwordHasher->isPasswordValid($user, $data['usernamePassword']))) {
+            return new JsonResponse(['message' => 'Bitte bestätigen Sie die Änderung mit Ihrem aktuellen Passwort.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+        $existing = $this->entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
+        if (($existing instanceof User && $existing->getId() !== $user->getId()) || ($usernameChanged && $this->usernameReservation->isReserved($username))) {
+            return new JsonResponse(['message' => 'Dieser Benutzername ist bereits vergeben.'], Response::HTTP_CONFLICT);
+        }
+
+        if ($usernameChanged) {
+            $this->usernameReservation->reserve($user->getUsername());
+            $this->refreshTokens->revokeAllForUser($user);
+            $user->setUsername($username);
+        }
         $user->setDisplayName($displayName);
         $user->setPhone($phone);
         $user->setStreetAddress($streetAddress);
@@ -98,7 +124,11 @@ final class ApiProfileController
         $membership->setEveningReminderTime($eveningReminderTime);
         $membership->setNightReminderTime($nightReminderTime);
         $membership->setFooterNavigationItems($footerNavigationItems);
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->flush();
+        } catch (UniqueConstraintViolationException) {
+            return new JsonResponse(['message' => 'Dieser Benutzername ist bereits vergeben.'], Response::HTTP_CONFLICT);
+        }
 
         return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
     }
@@ -173,7 +203,8 @@ final class ApiProfileController
         if (!$user instanceof User) {
             return null;
         }
-        return $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
+        $membership = $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
+        return $membership !== null && in_array('ROLE_CUSTOMER', $membership->getRoles(), true) ? $membership : null;
     }
 
     private function text(mixed $value, int $minimumLength, int $maximumLength, bool $nullable): string|false|null
