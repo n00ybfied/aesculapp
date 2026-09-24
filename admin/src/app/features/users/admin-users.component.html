@@ -129,8 +129,16 @@
       <div class="list">
         @for (invitation of data.invitations; track invitation.id) {
           <article>
-            <div><strong>{{ invitation.displayName }}</strong><small>{{ invitation.email }} · gesendet {{ invitation.createdAt | date:'short' }}</small></div>
+            <div><strong>{{ invitation.displayName }}</strong><small>{{ invitation.email }} · erstellt {{ invitation.createdAt | date:'short' }}</small></div>
             <span class="role">{{ roleLabel(invitation.roles) }}</span>
+            @if (isInvitationExpired(invitation.expiresAt)) {
+              <span class="expired">Link abgelaufen</span>
+            }
+            @if (canResendInvitation(invitation)) {
+              <button type="button" [disabled]="resendingInvitationId() !== null" (click)="resendInvitation(invitation.id)">
+                {{ resendingInvitationId() === invitation.id ? 'Wird gesendet …' : 'Erneut senden' }}
+              </button>
+            }
           </article>
         } @empty {
           <p class="empty">Keine offenen Einladungen.</p>

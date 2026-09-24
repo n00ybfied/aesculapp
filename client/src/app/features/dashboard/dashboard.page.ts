@@ -10,10 +10,11 @@ import { CouponService, type CouponRedemption } from '../../core/coupons/coupon.
 import { ThemeService } from '../../core/theme/theme.service';
 import { DashboardSlidesService, type DashboardSlide, type DashboardSliderSettings } from '../../core/dashboard/dashboard-slides.service';
 import { DashboardSliderComponent } from './dashboard-slider.component';
+import { PwaInstallBannerComponent } from './pwa-install-banner.component';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [NgIcon, RouterLink, DashboardSliderComponent],
+  imports: [NgIcon, RouterLink, DashboardSliderComponent, PwaInstallBannerComponent],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage implements OnInit {

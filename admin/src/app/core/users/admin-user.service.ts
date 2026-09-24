@@ -20,6 +20,7 @@ export interface PendingInvitation {
   readonly roles: readonly string[];
   readonly permissions: readonly string[] | null;
   readonly createdAt: string;
+  readonly expiresAt: string;
 }
 
 export interface AdminUsersOverview {
@@ -42,6 +43,10 @@ export class AdminUserService {
 
   async invite(displayName: string, email: string, role: StaffRole, permissions: readonly string[]): Promise<void> {
     await firstValueFrom(this.http.post(`${this.api()}/admin/users/invitations`, { displayName, email, role, permissions }, { headers: this.headers() }));
+  }
+
+  async resendInvitation(id: number): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.api()}/admin/users/invitations/${id}/resend`, {}, { headers: this.headers() }));
   }
 
   async create(displayName: string, email: string, password: string, role: StaffRole, permissions: readonly string[]): Promise<void> {

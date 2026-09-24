@@ -70,5 +70,12 @@ class StaffInvitation
     /** @param list<string>|null $permissions */
     public function setPermissions(?array $permissions): void { $this->permissions = $permissions === null ? null : array_values(array_unique($permissions)); }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    public function getExpiresAt(): \DateTimeImmutable { return $this->expiresAt; }
+    public function isAccepted(): bool { return $this->acceptedAt !== null; }
+    public function renew(string $tokenHash): void
+    {
+        $this->tokenHash = $tokenHash;
+        $this->expiresAt = new \DateTimeImmutable('+7 days');
+    }
     public function markAccepted(): void { $this->acceptedAt = new \DateTimeImmutable(); }
 }
