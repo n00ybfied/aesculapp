@@ -1,5 +1,19 @@
 <section>
   <div class="heading"><div><p class="eyebrow">Inhalte</p><h2>Apotheken-News</h2><p class="intro">Beiträge für die Kunden-App verwalten.</p></div><a routerLink="/inhalte/neu" class="primary">Neuer Beitrag</a></div>
+  <section class="category-manager" aria-labelledby="news-categories-title">
+    <h3 id="news-categories-title">Nachrichtenkategorien</h3>
+    <p>Ordnen Sie Beiträge Kategorien zu. Kunden wählen im Profil, welche davon sie interessieren.</p>
+    <form (ngSubmit)="createCategory()"><label for="new-category-name">Neue Kategorie</label><div class="category-form"><input id="new-category-name" name="categoryName" [(ngModel)]="categoryName" maxlength="100" placeholder="z. B. Gesundheitstipps" /><button type="submit">Anlegen</button></div></form>
+    <div class="category-list">
+      @for (category of categories(); track category.id) {
+        @if (editingCategoryId() === category.id) {
+          <form class="category-chip" (ngSubmit)="renameCategory(category)"><input [name]="'rename-' + category.id" [(ngModel)]="editingCategoryName" maxlength="100" [attr.aria-label]="category.name + ' umbenennen'" /><button type="submit">Speichern</button><button type="button" (click)="editingCategoryId.set(null)">Abbrechen</button></form>
+        } @else {
+          <span class="category-chip">{{ category.name }} <button type="button" (click)="startCategoryRename(category)" [attr.aria-label]="category.name + ' umbenennen'">Umbenennen</button><button type="button" (click)="removeCategory(category)" [attr.aria-label]="category.name + ' löschen'">Löschen</button></span>
+        }
+      } @empty { <span>Noch keine Kategorien angelegt.</span> }
+    </div>
+  </section>
   <form class="list-controls" (ngSubmit)="applyFilters()">
     <label>Suche nach Titel<input name="query" [(ngModel)]="query" placeholder="Titel eingeben" /></label>
     <label>Einträge pro Seite<select name="pageSize" [value]="pageSize" (change)="updatePageSize($event)"><option [value]="10">10</option><option [value]="25">25</option><option [value]="50">50</option><option value="all">Alle</option></select></label>

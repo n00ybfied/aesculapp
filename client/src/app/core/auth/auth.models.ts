@@ -17,7 +17,6 @@ export interface LoginResponse {
 }
 
 export interface RegistrationDetails {
-  readonly displayName: string;
   readonly email: string;
   readonly password: string;
 }

@@ -13,7 +13,11 @@ export interface AdminNewsPost {
   readonly publishedAt: string;
   readonly showFrom: string | null;
   readonly showUntil: string | null;
+  readonly categoryIds: readonly number[];
+  readonly notificationSalutations: readonly ('frau' | 'herr' | 'divers')[];
 }
+
+export interface NewsCategory { readonly id: number; readonly name: string; }
 
 export interface NewsPage {
   readonly posts: readonly AdminNewsPost[];
@@ -58,6 +62,23 @@ export class AdminNewsService {
 
   async remove(id: number): Promise<void> {
     await firstValueFrom(this.http.delete<void>(this.api() + '/admin/news/' + id, { headers: this.headers() }));
+  }
+
+  async categories(): Promise<readonly NewsCategory[]> {
+    const response = await firstValueFrom(this.http.get<{ categories: NewsCategory[] }>(this.api() + '/admin/news/categories', { headers: this.headers() }));
+    return response.categories;
+  }
+
+  async createCategory(name: string): Promise<void> {
+    await firstValueFrom(this.http.post(this.api() + '/admin/news/categories', { name }, { headers: this.headers() }));
+  }
+
+  async renameCategory(id: number, name: string): Promise<void> {
+    await firstValueFrom(this.http.patch(this.api() + '/admin/news/categories/' + id, { name }, { headers: this.headers() }));
+  }
+
+  async removeCategory(id: number): Promise<void> {
+    await firstValueFrom(this.http.delete(this.api() + '/admin/news/categories/' + id, { headers: this.headers() }));
   }
 
   private headers(): HttpHeaders { return new HttpHeaders({ Authorization: 'Bearer ' + this.auth.accessToken() }); }

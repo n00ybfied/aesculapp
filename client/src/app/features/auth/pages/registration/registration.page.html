@@ -3,18 +3,11 @@
     <header class="mb-8 text-center">
       <img [src]="theme.logoPath" width="530" height="174" class="mx-auto mb-6 h-auto w-52" [alt]="theme.pharmacyName" />
       <h1 id="registration-title" class="text-3xl font-bold tracking-tight">Konto erstellen</h1>
-      <p class="mt-3 text-base text-muted">Registrieren Sie sich für Ihre Vorteile bei {{ theme.pharmacyName }}.</p>
+      <p class="mt-3 text-base text-muted">Registrieren Sie sich für Ihre Vorteile bei {{ theme.pharmacyName }}. Nach der ersten Anmeldung richten Sie Ihr Profil ein.</p>
     </header>
 
     <div class="rounded-3xl border border-border bg-surface p-6 shadow-card sm:p-8">
       <form class="space-y-5" [formGroup]="registrationForm" (ngSubmit)="submit()" novalidate>
-        <div>
-          <label for="display-name" class="mb-2 block text-sm font-semibold">Name</label>
-          <input id="display-name" type="text" formControlName="displayName" autocomplete="name" class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-focus" [attr.aria-invalid]="registrationForm.controls.displayName.invalid && registrationForm.controls.displayName.touched" aria-describedby="registration-name-error" />
-          @if (registrationForm.controls.displayName.invalid && registrationForm.controls.displayName.touched) {
-            <p id="registration-name-error" class="mt-2 text-sm text-danger" role="alert">Bitte geben Sie einen Namen mit 2 bis 160 Zeichen ein.</p>
-          }
-        </div>
         <div>
           <label for="email" class="mb-2 block text-sm font-semibold">E-Mail-Adresse</label>
           <input id="email" type="email" formControlName="email" autocomplete="email" autocapitalize="none" spellcheck="false" class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base outline-none transition focus:border-primary focus:ring-3 focus:ring-focus" [attr.aria-invalid]="registrationForm.controls.email.invalid && registrationForm.controls.email.touched" aria-describedby="registration-email-error" />

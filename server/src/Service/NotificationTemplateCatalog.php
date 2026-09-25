@@ -104,6 +104,10 @@ final class NotificationTemplateCatalog
             'channel' => 'push', 'label' => 'Neue Chatantwort', 'title' => 'Neue Antwort',
             'body' => 'Sie haben eine neue Antwort von Ihrer Apotheke.', 'tags' => [], 'required' => [],
         ],
+        'push_news' => [
+            'channel' => 'push', 'label' => 'Neue Apotheken-News', 'title' => 'Neue Nachricht Ihrer Apotheke',
+            'body' => 'In einer Ihrer gewählten Kategorien gibt es einen neuen Beitrag.', 'tags' => [], 'required' => [],
+        ],
         'push_appointment_booking' => [
             'channel' => 'push', 'label' => 'Neuer Termin', 'title' => 'Neuer Termin',
             'body' => 'Ihre Apotheke hat für Sie am {{appointment_date}} um {{appointment_time}} Uhr einen Termin eingetragen.',

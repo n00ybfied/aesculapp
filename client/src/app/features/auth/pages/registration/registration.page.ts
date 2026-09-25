@@ -20,7 +20,6 @@ export class RegistrationPage {
   protected readonly isSubmitting = signal(false);
   protected readonly submissionError = signal<string | null>(null);
   protected readonly registrationForm = this.formBuilder.nonNullable.group({
-    displayName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(160)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(10)]],
     passwordConfirmation: ['', [Validators.required]],

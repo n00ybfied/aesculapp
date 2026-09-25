@@ -28,6 +28,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 160)]
     private string $displayName;
 
+    #[ORM\Column(length: 80, nullable: true)]
+    private ?string $firstName = null;
+
+    #[ORM\Column(length: 80, nullable: true)]
+    private ?string $lastName = null;
+
     #[ORM\Column(length: 40, nullable: true)]
     private ?string $phone = null;
 
@@ -45,6 +51,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $birthDate = null;
+
+    #[ORM\Column(length: 12, nullable: true)]
+    private ?string $salutation = null;
 
     #[ORM\Column(length: 255)]
     private string $password;
@@ -103,6 +112,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->displayName = $displayName;
     }
 
+    public function getFirstName(): ?string { return $this->firstName; }
+    public function getLastName(): ?string { return $this->lastName; }
+    public function setNames(?string $firstName, ?string $lastName): void
+    {
+        $this->firstName = $firstName;
+        $this->lastName = $lastName;
+        $displayName = trim(($firstName ?? '').' '.($lastName ?? ''));
+        if ($displayName !== '') {
+            $this->displayName = $displayName;
+        }
+    }
+
     public function getPhone(): ?string
     {
         return $this->phone;
@@ -154,6 +175,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
     public function getBirthDate(): ?\DateTimeImmutable { return $this->birthDate; }
     public function setBirthDate(?\DateTimeImmutable $birthDate): void { $this->birthDate = $birthDate; }
+    public function getSalutation(): ?string { return $this->salutation; }
+    public function setSalutation(?string $salutation): void { $this->salutation = $salutation; }
 
     /**
      * Globale Rollen werden bewusst klein gehalten. Mandantenrollen liegen in TenantMembership.

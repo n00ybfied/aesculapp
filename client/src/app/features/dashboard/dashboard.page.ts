@@ -11,10 +11,12 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { DashboardSlidesService, type DashboardSlide, type DashboardSliderSettings } from '../../core/dashboard/dashboard-slides.service';
 import { DashboardSliderComponent } from './dashboard-slider.component';
 import { PwaInstallBannerComponent } from './pwa-install-banner.component';
+import { AchievementService, type Achievement } from '../../core/achievements/achievement.service';
+import { DashboardAchievementStripComponent } from './dashboard-achievement-strip.component';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [NgIcon, RouterLink, DashboardSliderComponent, PwaInstallBannerComponent],
+  imports: [NgIcon, RouterLink, DashboardSliderComponent, PwaInstallBannerComponent, DashboardAchievementStripComponent],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage implements OnInit {
@@ -25,11 +27,13 @@ export class DashboardPage implements OnInit {
   private readonly family = inject(FamilyService);
   private readonly coupons = inject(CouponService);
   private readonly slidesService = inject(DashboardSlidesService);
+  private readonly achievementService = inject(AchievementService);
   protected readonly theme = inject(ThemeService).activeTheme;
 
   protected readonly activeRedemption = signal<ActiveRedemption | null>(null);
   protected readonly activeCouponRedemption = signal<CouponRedemption | null>(null);
   protected readonly pointsOverview = signal<RewardsOverview | null>(null);
+  protected readonly achievements = signal<readonly Achievement[]>([]);
   protected readonly nextReward = computed(() => {
     const overview = this.pointsOverview();
     return overview?.rewards.find((reward) => reward.requiredPoints > overview.availablePoints) ?? null;
@@ -61,13 +65,14 @@ export class DashboardPage implements OnInit {
   async ngOnInit(): Promise<void> {
     this.restorePushHint();
     try {
-      const [overview, news, , , activeCouponRedemption, slider] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null), this.family.load().catch(() => []), this.coupons.active().catch(() => null), this.slidesService.list().catch(() => ({ slides: [], settings: this.sliderSettings() }))]);
+      const [overview, news, , , activeCouponRedemption, slider, achievements] = await Promise.all([this.rewardRepository.getOverview(), this.newsService.getLatest().catch(() => []), this.profiles.load().catch(() => null), this.family.load().catch(() => []), this.coupons.active().catch(() => null), this.slidesService.list().catch(() => ({ slides: [], settings: this.sliderSettings() })), this.achievementService.list().catch(() => [])]);
       this.pointsOverview.set(overview);
       this.activeRedemption.set(overview.activeRedemption);
       this.activeCouponRedemption.set(activeCouponRedemption);
       this.news.set(news);
       this.slides.set(slider.slides);
       this.sliderSettings.set(slider.settings);
+      this.achievements.set(achievements);
     } finally {
       this.isLoading.set(false);
     }
