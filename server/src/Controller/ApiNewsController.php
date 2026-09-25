@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\NewsPost;
+use App\Entity\NewsCategory;
 use App\Entity\User;
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
@@ -108,12 +109,16 @@ final class ApiNewsController
         if (!$this->isAdmin()) {
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
+        $audience = $this->readAudienceData($request);
+        if ($audience === null) return new JsonResponse(['message' => 'Bitte Kategorien und Anreden prüfen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         $data = $this->readPostData($request, $slugger);
         if (!is_array($data)) {
             return new JsonResponse(['message' => 'Bitte prüfen Sie Titel, Untertitel, Inhalt und Zeitangaben.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $post = new NewsPost($this->activeTenant->get(), ...$data);
+        $post->setCategoryIds($audience['categoryIds']);
+        $post->setNotificationSalutations($audience['notificationSalutations']);
         $this->entityManager->persist($post);
         $this->entityManager->flush();
         return new JsonResponse(['post' => $this->serialize($post, $request)], Response::HTTP_CREATED);
@@ -146,11 +151,15 @@ final class ApiNewsController
         if (!$post instanceof NewsPost) {
             return new JsonResponse(['message' => 'Post not found.'], Response::HTTP_NOT_FOUND);
         }
+        $audience = $this->readAudienceData($request);
+        if ($audience === null) return new JsonResponse(['message' => 'Bitte Kategorien und Anreden prüfen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         $data = $this->readPostData($request, $slugger, $post->getImagePath());
         if (!is_array($data)) {
             return new JsonResponse(['message' => 'Bitte prüfen Sie Titel, Untertitel, Inhalt und Zeitangaben.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $post->update(...$data);
+        $post->setCategoryIds($audience['categoryIds']);
+        $post->setNotificationSalutations($audience['notificationSalutations']);
         $this->entityManager->flush();
         return new JsonResponse(['post' => $this->serialize($post, $request)]);
     }
@@ -241,6 +250,23 @@ final class ApiNewsController
     {
         try { return new \DateTimeImmutable($value); } catch (\Exception) { return null; }
     }
+
+    /** @return array{categoryIds:list<int>,notificationSalutations:list<string>}|null */
+    private function readAudienceData(Request $request): ?array
+    {
+        try {
+            $categoryIds = json_decode((string) $request->request->get('categoryIds', '[]'), true, 512, JSON_THROW_ON_ERROR);
+            $salutations = json_decode((string) $request->request->get('notificationSalutations', '[]'), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) { return null; }
+        if (!is_array($categoryIds) || !array_is_list($categoryIds) || count($categoryIds) > 100 || !is_array($salutations) || !array_is_list($salutations) || count($salutations) > 3) return null;
+        foreach ($categoryIds as $id) {
+            if (!is_int($id) || $id < 1 || !$this->entityManager->getRepository(NewsCategory::class)->findOneBy(['id' => $id, 'tenant' => $this->activeTenant->get()])) return null;
+        }
+        foreach ($salutations as $salutation) {
+            if (!is_string($salutation) || !in_array($salutation, ['frau', 'herr', 'divers'], true)) return null;
+        }
+        return ['categoryIds' => array_values(array_unique($categoryIds)), 'notificationSalutations' => array_values(array_unique($salutations))];
+    }
     private function parseOptionalDate(mixed $value): ?\DateTimeImmutable
     {
         if (!is_string($value) || trim($value) === '') { return null; }
@@ -271,6 +297,6 @@ final class ApiNewsController
     /** @return array{id:int,title:string,subtitle:string,bodyHtml:string,imageUrl:?string,isVisible:bool,publishedAt:string,showFrom:?string,showUntil:?string} */
     private function serialize(NewsPost $post, Request $request): array
     {
-        return ['id' => $post->getId(), 'title' => $post->getTitle(), 'subtitle' => $post->getSubtitle(), 'bodyHtml' => $post->getBodyHtml(), 'imageUrl' => $post->getImagePath() ? $request->getSchemeAndHttpHost().$post->getImagePath() : null, 'isVisible' => $post->isVisible(), 'publishedAt' => $post->getPublishedAt()->format(DATE_ATOM), 'showFrom' => $post->getShowFrom()?->format(DATE_ATOM), 'showUntil' => $post->getShowUntil()?->format(DATE_ATOM)];
+        return ['id' => $post->getId(), 'title' => $post->getTitle(), 'subtitle' => $post->getSubtitle(), 'bodyHtml' => $post->getBodyHtml(), 'imageUrl' => $post->getImagePath() ? $request->getSchemeAndHttpHost().$post->getImagePath() : null, 'isVisible' => $post->isVisible(), 'publishedAt' => $post->getPublishedAt()->format(DATE_ATOM), 'showFrom' => $post->getShowFrom()?->format(DATE_ATOM), 'showUntil' => $post->getShowUntil()?->format(DATE_ATOM), 'categoryIds' => $post->getCategoryIds(), 'notificationSalutations' => $post->getNotificationSalutations()];
     }
 }

@@ -158,6 +158,21 @@ final class ChatPushService
         ];
     }
 
+    public function sendNewsNotification(User $user, Tenant $tenant, int $postId): bool
+    {
+        $membership = $this->memberships->findForUserAndTenant($user, $tenant);
+        if (!$user->isActive() || !$membership?->isNewsPushEnabled()) return true;
+        $config = $this->config();
+        if ($config === null) return false;
+        try {
+            $result = $this->deliverToSubscriptions($user, $tenant, 'Neue Nachricht Ihrer Apotheke', 'In einer Ihrer gewählten Kategorien gibt es einen neuen Beitrag.', '/news/'.$postId, 'aesculapp-news-'.$postId, $config, null, 'news');
+            return $result['failed'] === 0;
+        } catch (\Throwable $exception) {
+            $this->logger->warning('news.push.failed', ['postId' => $postId, 'errorClass' => $exception::class]);
+            return false;
+        }
+    }
+
     public function flushScheduled(): void
     {
         foreach ($this->scheduled as $id) $this->deliver($id);

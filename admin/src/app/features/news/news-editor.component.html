@@ -1,1 +1,36 @@
-<section><a routerLink="/inhalte" class="back">← Zu allen Beiträgen</a><p class="eyebrow">Inhalte</p><h2>{{ isEdit ? 'Beitrag bearbeiten' : 'Neuen Beitrag anlegen' }}</h2><form (ngSubmit)="save()" novalidate><div class="grid"><label>Titel<input name="title" [(ngModel)]="title" required /></label><label>Untertitel<input name="subtitle" [(ngModel)]="subtitle" required /></label><label>Beitragsdatum<input name="publishedAt" [(ngModel)]="publishedAt" type="datetime-local" required /></label><label class="check"><input name="visible" [(ngModel)]="isVisible" type="checkbox" /> Beitrag sichtbar</label><label>Anzeigen ab<input name="showFrom" [(ngModel)]="showFrom" type="datetime-local" /></label><label>Anzeigen bis<input name="showUntil" [(ngModel)]="showUntil" type="datetime-local" /></label></div><div class="editor-field"><div class="editor-label">Detailtext</div><app-rich-text-editor [(value)]="bodyHtml" /></div><div class="upload"><span>Beitragsbild <small>(optional)</small></span><app-media-picker (selected)="selectCoverMedia($event)" />@if(imagePreviewUrl();as preview){<div class="preview"><img [src]="preview" alt="Vorschau des Beitragsbilds" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}</div>@if(error()){<p class="error" role="alert">{{error()}}</p>}<button class="save" [disabled]="isSaving()">Beitrag speichern</button></form></section>
+<section>
+  <a routerLink="/inhalte" class="back">← Zu allen Beiträgen</a>
+  <p class="eyebrow">Inhalte</p><h2>{{ isEdit ? 'Beitrag bearbeiten' : 'Neuen Beitrag anlegen' }}</h2>
+  <form (ngSubmit)="save()" novalidate>
+    <div class="grid">
+      <label>Titel<input name="title" [(ngModel)]="title" required /></label>
+      <label>Untertitel<input name="subtitle" [(ngModel)]="subtitle" required /></label>
+      <label>Beitragsdatum<input name="publishedAt" [(ngModel)]="publishedAt" type="datetime-local" required /></label>
+      <label class="check"><input name="visible" [(ngModel)]="isVisible" type="checkbox" /> Beitrag sichtbar</label>
+      <label>Anzeigen ab<input name="showFrom" [(ngModel)]="showFrom" type="datetime-local" /></label>
+      <label>Anzeigen bis<input name="showUntil" [(ngModel)]="showUntil" type="datetime-local" /></label>
+    </div>
+    <fieldset class="audience-field">
+      <legend>Kategorien</legend>
+      <p>Nur Kunden mit passenden Interessen erhalten eine Push-Mitteilung. Ohne Kategorie wird keine News-Push-Mitteilung verschickt.</p>
+      <div class="audience-options">
+        @for (category of categories(); track category.id) {
+          <label><input type="checkbox" [checked]="categoryIds.includes(category.id)" (change)="toggleCategory(category.id, $any($event.target).checked)" />{{ category.name }}</label>
+        } @empty { <span>Noch keine Kategorien angelegt. <a routerLink="/inhalte">Auf der Übersicht anlegen</a>.</span> }
+      </div>
+    </fieldset>
+    <fieldset class="audience-field">
+      <legend>Push-Zielgruppe nach Anrede</legend>
+      <p>Keine Auswahl bedeutet alle Anreden, einschließlich Kunden ohne Angabe. Die Beiträge selbst bleiben für alle sichtbar.</p>
+      <div class="audience-options">
+        <label><input type="checkbox" [checked]="notificationSalutations.includes('frau')" (change)="toggleSalutation('frau', $any($event.target).checked)" />Frau</label>
+        <label><input type="checkbox" [checked]="notificationSalutations.includes('herr')" (change)="toggleSalutation('herr', $any($event.target).checked)" />Herr</label>
+        <label><input type="checkbox" [checked]="notificationSalutations.includes('divers')" (change)="toggleSalutation('divers', $any($event.target).checked)" />Divers</label>
+      </div>
+    </fieldset>
+    <div class="editor-field"><div class="editor-label">Detailtext</div><app-rich-text-editor [(value)]="bodyHtml" /></div>
+    <div class="upload"><span>Beitragsbild <small>(optional)</small></span><app-media-picker (selected)="selectCoverMedia($event)" />@if(imagePreviewUrl();as preview){<div class="preview"><img [src]="preview" alt="Vorschau des Beitragsbilds" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}</div>
+    @if(error()){<p class="error" role="alert">{{error()}}</p>}
+    <button class="save" [disabled]="isSaving()">Beitrag speichern</button>
+  </form>
+</section>

@@ -29,6 +29,7 @@ const FOOTER_NAVIGATION_LINKS: readonly FooterNavigationLink[] = [
   { id: 'family', label: 'Familie', route: '/familie', icon: 'lucideUsers' },
   { id: 'contact', label: 'Kontakt', route: '/kontakt', icon: 'lucideMapPin' },
   { id: 'website', label: 'Webseite', route: '/webseite', icon: 'lucideGlobe' },
+  { id: 'achievements', label: 'Trophäen', route: '/trophaeen', icon: 'lucideTrophy' },
 ];
 
 @Component({

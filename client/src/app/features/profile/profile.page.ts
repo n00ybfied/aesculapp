@@ -10,20 +10,25 @@ import { CustomerProfile, FooterNavigationItem, ProfileService } from '../../cor
 import { AuthService } from '../../core/auth/auth.service';
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 import { PasswordVisibilityToggleComponent } from '../../shared/password-visibility-toggle.component';
+import { AchievementCelebrationService } from '../../core/achievements/achievement-celebration.service';
 
 interface ProfileForm {
   username: string;
   usernamePassword: string;
   displayName: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   streetAddress: string;
   postalCode: string;
   city: string;
   birthDate: string;
+  salutation: 'frau' | 'herr' | 'divers' | null;
   newsletterEnabled: boolean;
   chatPushEnabled: boolean;
   rewardPushEnabled: boolean;
   newsPushEnabled: boolean;
+  newsCategoryIds: number[];
   medicationPushEnabled: boolean;
   appointmentPushEnabled: boolean;
   familyPushEnabled: boolean;
@@ -44,6 +49,7 @@ export class ProfilePage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly messages = inject(StatusMessageService);
+  private readonly celebrations = inject(AchievementCelebrationService);
   private readonly dialogs = inject(ConfirmDialogService);
   protected readonly push = inject(ChatPushService);
   protected readonly theme = inject(ThemeService).activeTheme;
@@ -60,10 +66,11 @@ export class ProfilePage {
   protected readonly deleteBusy = signal(false);
   protected readonly deleteError = signal('');
   protected readonly formError = signal<string | null>(null);
+  protected readonly newsCategories = signal<readonly { id: number; name: string }[]>([]);
   protected readonly cropOpen = signal(false);
   protected readonly zoom = signal(1);
   protected readonly cropImage = signal<HTMLImageElement | null>(null);
-  protected readonly form: ProfileForm = { username: '', usernamePassword: '', displayName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '', newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false, newsPushEnabled: false, medicationPushEnabled: false, appointmentPushEnabled: true, familyPushEnabled: true, morningReminderTime: '08:00', noonReminderTime: '12:00', eveningReminderTime: '18:00', nightReminderTime: '22:00', footerNavigationItems: ['home', 'chat', 'rewards', 'website'] };
+  protected readonly form: ProfileForm = { username: '', usernamePassword: '', displayName: '', firstName: '', lastName: '', phone: '', streetAddress: '', postalCode: '', city: '', birthDate: '', salutation: null, newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false, newsPushEnabled: false, newsCategoryIds: [], medicationPushEnabled: false, appointmentPushEnabled: true, familyPushEnabled: true, morningReminderTime: '08:00', noonReminderTime: '12:00', eveningReminderTime: '18:00', nightReminderTime: '22:00', footerNavigationItems: ['home', 'chat', 'rewards', 'website'] };
   protected readonly footerNavigationOptions: readonly { readonly id: FooterNavigationItem; readonly label: string }[] = [
     { id: 'home', label: 'Home' },
     { id: 'chat', label: 'Chat' },
@@ -76,6 +83,7 @@ export class ProfilePage {
     { id: 'family', label: 'Familie' },
     { id: 'contact', label: 'Kontakt' },
     { id: 'website', label: 'Webseite' },
+    { id: 'achievements', label: 'Trophäen' },
   ];
   private dragStart: { x: number; y: number; offsetX: number; offsetY: number } | null = null;
   private cropOffsetX = 0;
@@ -83,14 +91,15 @@ export class ProfilePage {
 
   async ngOnInit(): Promise<void> {
     void this.push.initialize().then(() => this.push.check());
+    void this.profiles.loadNewsCategories().then((categories) => this.newsCategories.set(categories)).catch(() => this.messages.error('Nachrichtenkategorien konnten nicht geladen werden.'));
     try { this.applyProfile(await this.profiles.load()); } catch { this.messages.error('Das Profil konnte nicht geladen werden.'); } finally { this.isLoading.set(false); }
   }
 
   protected async save(): Promise<void> {
     if (this.isSaving()) return;
     this.formError.set(null);
-    if (this.form.displayName.trim().length < 2) {
-      this.formError.set('Bitte geben Sie einen Namen mit mindestens 2 Zeichen ein.');
+    if ((this.form.firstName.trim() + ' ' + this.form.lastName.trim()).length > 160) {
+      this.formError.set('Vor- und Nachname sind zusammen zu lang.');
       return;
     }
     if (this.form.username.trim() !== this.profile()?.username && !/^[a-z0-9][a-z0-9._+%@-]{2,99}$/i.test(this.form.username.trim())) {
@@ -104,13 +113,22 @@ export class ProfilePage {
     }
     this.isSaving.set(true);
     try {
-      this.applyProfile(await this.profiles.save(this.form));
+      const previousProfile = this.profile();
+      const bonusAlreadyAwarded = previousProfile?.profileCompletionBonusAwarded ?? false;
+      const achievementAlreadyCompleted = bonusAlreadyAwarded || (previousProfile?.profileComplete ?? false);
+      const savedProfile = await this.profiles.save(this.form);
+      this.applyProfile(savedProfile);
       this.form.usernamePassword = '';
       if (usernameChanged) {
         this.auth.logout();
         void this.router.navigateByUrl('/login');
-      } else {
-        this.messages.show('Ihre Profil- und Benachrichtigungseinstellungen wurden gespeichert.', { kind: 'success' });
+      }
+      if (!achievementAlreadyCompleted && (savedProfile.profileComplete || savedProfile.profileCompletionBonusAwarded)) {
+        this.celebrations.celebrate({ title: 'Profil vervollständigen', points: !bonusAlreadyAwarded && savedProfile.profileCompletionBonusAwarded ? savedProfile.profileCompletionBonusPoints : 0 });
+      } else if (!usernameChanged) {
+        this.messages.show(!bonusAlreadyAwarded && savedProfile.profileCompletionBonusAwarded
+          ? `Für Ihr vollständiges Profil haben wir Ihnen ${savedProfile.profileCompletionBonusPoints} Punkte gutgeschrieben!`
+          : 'Ihre Profil- und Benachrichtigungseinstellungen wurden gespeichert.', { kind: 'success' });
       }
     } catch (error) { this.formError.set(error instanceof HttpErrorResponse && typeof error.error?.message === 'string' ? error.error.message : 'Das Profil konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
@@ -165,6 +183,7 @@ export class ProfilePage {
   protected togglePush(): void { if (this.push.enabled()) void this.push.disable(); else void this.push.enable(); }
   protected hasSelectedPushCategory(): boolean { return this.form.chatPushEnabled || this.form.rewardPushEnabled || this.form.newsPushEnabled || this.form.medicationPushEnabled || this.form.appointmentPushEnabled || this.form.familyPushEnabled; }
   protected isFooterNavigationItemSelected(item: FooterNavigationItem): boolean { return this.form.footerNavigationItems.includes(item); }
+  protected toggleNewsCategory(id: number, checked: boolean): void { this.form.newsCategoryIds = checked ? [...this.form.newsCategoryIds, id] : this.form.newsCategoryIds.filter((selected) => selected !== id); }
   protected toggleFooterNavigationItem(item: FooterNavigationItem, selected: boolean): void {
     if (selected) {
       if (this.form.footerNavigationItems.length >= 4) {
@@ -216,7 +235,7 @@ export class ProfilePage {
     } catch { this.messages.error('Das Profilbild konnte nicht gespeichert werden.'); } finally { this.isSaving.set(false); }
   }
   protected initials(): string { return this.form.displayName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'K'; }
-  private applyProfile(profile: CustomerProfile): void { this.form.username = profile.username; this.form.displayName = profile.displayName; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; this.form.medicationPushEnabled = profile.medicationPushEnabled; this.form.appointmentPushEnabled = profile.appointmentPushEnabled; this.form.familyPushEnabled = profile.familyPushEnabled; this.form.morningReminderTime = profile.morningReminderTime; this.form.noonReminderTime = profile.noonReminderTime; this.form.eveningReminderTime = profile.eveningReminderTime; this.form.nightReminderTime = profile.nightReminderTime; this.form.footerNavigationItems = [...profile.footerNavigationItems]; }
+  private applyProfile(profile: CustomerProfile): void { this.form.username = profile.username; this.form.displayName = profile.displayName; this.form.firstName = profile.firstName ?? ''; this.form.lastName = profile.lastName ?? ''; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.salutation = profile.salutation; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; this.form.newsCategoryIds = [...profile.newsCategoryIds]; this.form.medicationPushEnabled = profile.medicationPushEnabled; this.form.appointmentPushEnabled = profile.appointmentPushEnabled; this.form.familyPushEnabled = profile.familyPushEnabled; this.form.morningReminderTime = profile.morningReminderTime; this.form.noonReminderTime = profile.noonReminderTime; this.form.eveningReminderTime = profile.eveningReminderTime; this.form.nightReminderTime = profile.nightReminderTime; this.form.footerNavigationItems = [...profile.footerNavigationItems]; }
   private drawCropCanvas(): void {
     const canvas = this.cropCanvas()?.nativeElement;
     const image = this.cropImage();

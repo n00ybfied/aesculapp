@@ -35,10 +35,11 @@ final class ApiRegistrationController
         }
 
         $email = $payload['email'] ?? null;
-        $displayName = $payload['displayName'] ?? null;
+        $displayName = $payload['displayName'] ?? 'Neuer Kunde';
         $password = $payload['password'] ?? null;
+        $salutation = $payload['salutation'] ?? null;
 
-        if (!is_string($email) || !is_string($displayName) || !is_string($password)) {
+        if (!is_string($email) || !is_string($displayName) || !is_string($password) || !in_array($salutation, [null, 'frau', 'herr', 'divers'], true)) {
             return $this->validationError();
         }
 
@@ -61,6 +62,7 @@ final class ApiRegistrationController
         }
 
         $user = new User($username, $email, $displayName);
+        $user->setSalutation($salutation);
         $user->setPassword($passwordHasher->hashPassword($user, $password));
         $user->setActive(false);
         $tenant = $activeTenant->get();

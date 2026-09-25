@@ -35,6 +35,12 @@ class TenantMembership
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $customerSetupCompletedAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $profileCompletionBonusAwardedAt = null;
+
     #[ORM\Column(options: ['default' => false])]
     private bool $newsletterEnabled = false;
 
@@ -46,6 +52,10 @@ class TenantMembership
 
     #[ORM\Column(options: ['default' => false])]
     private bool $newsPushEnabled = false;
+
+    /** @var list<int> */
+    #[ORM\Column]
+    private array $newsCategoryIds = [];
 
     #[ORM\Column(options: ['default' => false])]
     private bool $medicationPushEnabled = false;
@@ -113,6 +123,11 @@ class TenantMembership
         return $this->createdAt;
     }
 
+    public function isCustomerSetupCompleted(): bool { return $this->customerSetupCompletedAt !== null; }
+    public function completeCustomerSetup(): void { $this->customerSetupCompletedAt ??= new \DateTimeImmutable(); }
+    public function hasProfileCompletionBonus(): bool { return $this->profileCompletionBonusAwardedAt !== null; }
+    public function markProfileCompletionBonusAwarded(): void { $this->profileCompletionBonusAwardedAt ??= new \DateTimeImmutable(); }
+
     /**
      * @return list<string>
      */
@@ -140,6 +155,10 @@ class TenantMembership
     public function setRewardPushEnabled(bool $value): void { $this->rewardPushEnabled = $value; }
     public function isNewsPushEnabled(): bool { return $this->newsPushEnabled; }
     public function setNewsPushEnabled(bool $value): void { $this->newsPushEnabled = $value; }
+    /** @return list<int> */
+    public function getNewsCategoryIds(): array { return $this->newsCategoryIds; }
+    /** @param list<int> $ids */
+    public function setNewsCategoryIds(array $ids): void { $this->newsCategoryIds = array_values(array_unique($ids)); }
     public function isMedicationPushEnabled(): bool { return $this->medicationPushEnabled; }
     public function setMedicationPushEnabled(bool $value): void { $this->medicationPushEnabled = $value; }
     public function isAppointmentPushEnabled(): bool { return $this->appointmentPushEnabled; }

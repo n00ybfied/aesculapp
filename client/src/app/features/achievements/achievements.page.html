@@ -1,0 +1,62 @@
+@if (loading()) {
+  <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center bg-background" aria-label="Trophäen werden geladen">
+    <span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary"></span>
+  </main>
+} @else {
+  <main class="px-5 pb-7 pt-6">
+    <p class="text-sm font-semibold text-primary">MEINE ERFOLGE</p>
+    <div class="mt-2 flex items-center gap-3">
+      <span class="grid size-14 shrink-0 place-items-center rounded-2xl bg-accent text-primary"><ng-icon name="lucideTrophy" size="1.75rem" aria-hidden="true" /></span>
+      <h1 class="text-3xl font-bold tracking-tight">Trophäen</h1>
+    </div>
+    <p class="mt-3 text-base leading-6 text-muted">Kleine Ziele, die sich lohnen. Sie entscheiden selbst, welche Sie erreichen möchten.</p>
+
+    @if (error()) {
+      <div class="mt-7 rounded-2xl border border-danger/30 bg-surface p-5" role="alert">
+        <p>Die Trophäen konnten nicht geladen werden.</p>
+        <button type="button" class="mt-3 min-h-11 font-bold text-primary underline underline-offset-4" (click)="load()">Erneut versuchen</button>
+      </div>
+    } @else {
+      <p class="mt-6 text-sm font-semibold text-muted">{{ completedCount() }} von {{ achievements().length }} {{ achievements().length === 1 ? 'Trophäe' : 'Trophäen' }} geschafft</p>
+      <div class="mt-4 space-y-4">
+        @for (achievement of achievements(); track achievement.id) {
+          <article class="rounded-3xl border bg-surface p-5 shadow-card" [class.border-success]="achievement.completed" [class.border-border]="!achievement.completed">
+            <div class="flex items-start gap-4">
+              <span class="grid size-12 shrink-0 place-items-center rounded-2xl" [class.bg-success/10]="achievement.completed" [class.text-success]="achievement.completed" [class.bg-accent]="!achievement.completed" [class.text-primary]="!achievement.completed">
+                <ng-icon [name]="achievement.completed ? 'lucideCircleCheck' : 'lucideTrophy'" size="1.5rem" aria-hidden="true" />
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                  <h2 class="text-lg font-bold" [class.text-success]="achievement.completed" [class.line-through]="achievement.completed">{{ achievement.title }}</h2>
+                  <span class="shrink-0 rounded-full bg-accent px-3 py-1 text-sm font-bold text-primary">+{{ achievement.points }} Punkte</span>
+                </div>
+                <p class="mt-1 text-sm leading-5 text-muted">{{ achievement.description }}</p>
+              </div>
+            </div>
+
+            @if (achievement.completed) {
+              <p class="mt-5 font-semibold text-success">Erledigt</p>
+            } @else {
+              <div class="mt-5">
+                <div class="flex justify-between gap-3 text-sm font-semibold"><span>Fortschritt</span><span>{{ achievement.progress }} / {{ achievement.target }}</span></div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-accent" role="progressbar" [attr.aria-valuenow]="achievement.progress" [attr.aria-valuemin]="0" [attr.aria-valuemax]="achievement.target" [attr.aria-label]="achievement.title">
+                  <div class="h-full rounded-full bg-primary" [style.width.%]="achievement.target > 0 ? achievement.progress / achievement.target * 100 : 0"></div>
+                </div>
+                @if (achievement.missingFields.length) {
+                  <p class="mt-3 text-sm leading-6 text-muted">Noch offen: {{ achievement.missingFields.join(', ') }}</p>
+                }
+                @if (achievement.actionPath) {
+                  <a [routerLink]="achievement.actionPath" class="mt-4 inline-flex min-h-11 items-center gap-2 font-bold text-primary underline underline-offset-4">
+                    Zum Profil <ng-icon name="lucideChevronRight" size="1rem" aria-hidden="true" />
+                  </a>
+                }
+              </div>
+            }
+          </article>
+        } @empty {
+          <p class="rounded-2xl border border-border bg-surface p-5 text-muted">Derzeit gibt es noch keine Trophäen.</p>
+        }
+      </div>
+    }
+  </main>
+}
