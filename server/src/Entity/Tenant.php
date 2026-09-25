@@ -40,6 +40,9 @@ class Tenant
     #[ORM\Column(options: ['default' => 1230])]
     private int $initialPoints = 1230;
 
+    #[ORM\Column(options: ['default' => 0])]
+    private int $profileCompletionBonusPoints = 0;
+
     #[ORM\Column(options: ['default' => 200])]
     private int $birthdayBonusPoints = 200;
 
@@ -124,6 +127,8 @@ class Tenant
     public function setFaviconPath(?string $path): void { $this->faviconPath = $path; }
     public function getInitialPoints(): int { return $this->initialPoints; }
     public function setInitialPoints(int $points): void { $this->initialPoints = $points; }
+    public function getProfileCompletionBonusPoints(): int { return $this->profileCompletionBonusPoints; }
+    public function setProfileCompletionBonusPoints(int $points): void { $this->profileCompletionBonusPoints = $points; }
     public function getBirthdayBonusPoints(): int { return $this->birthdayBonusPoints; }
     public function setBirthdayBonusPoints(int $points): void { $this->birthdayBonusPoints = $points; }
     public function getPointsPerEuro(): int { return $this->pointsPerEuro; }

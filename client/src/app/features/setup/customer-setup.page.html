@@ -1,0 +1,73 @@
+<main class="min-h-dvh bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] text-foreground sm:px-6">
+  <div class="mx-auto w-full max-w-[620px]">
+    <header class="mb-6 flex items-center gap-4">
+      <img [src]="theme.logoPath" class="h-12 w-auto max-w-36 object-contain" [alt]="theme.pharmacyName" />
+      <div class="min-w-0 flex-1"><p class="text-sm font-bold text-primary">WILLKOMMEN</p><p class="text-sm text-muted">Richten Sie Ihre App ein</p></div>
+      <button type="button" class="min-h-11 text-sm font-semibold text-muted underline underline-offset-4" (click)="logout()">Abmelden</button>
+    </header>
+    @if (loading()) {
+      <div class="grid min-h-64 place-items-center" aria-label="Einrichtung wird geladen"><span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary"></span></div>
+    } @else if (loadFailed()) {
+      <div class="rounded-3xl border border-danger/30 bg-surface p-6"><p class="text-danger" role="alert">{{ error() }}</p><button type="button" class="mt-4 min-h-11 rounded-xl bg-primary px-5 font-bold text-on-primary" (click)="load()">Erneut versuchen</button></div>
+    } @else {
+      <div class="mb-4 flex items-center justify-between gap-3"><p class="text-sm font-semibold text-primary" aria-live="polite">Schritt {{ step() + 1 }} von 3</p><p class="text-sm text-muted">Nur einmal nötig</p></div>
+      <div class="mb-6 flex gap-2" aria-hidden="true"><span class="h-1.5 flex-1 rounded-full" [class.bg-primary]="step() >= 0" [class.bg-border]="step() < 0"></span><span class="h-1.5 flex-1 rounded-full" [class.bg-primary]="step() >= 1" [class.bg-border]="step() < 1"></span><span class="h-1.5 flex-1 rounded-full" [class.bg-primary]="step() >= 2" [class.bg-border]="step() < 2"></span></div>
+      <form class="overflow-hidden rounded-3xl border border-border bg-surface shadow-card" [formGroup]="form" (ngSubmit)="next()" novalidate>
+        <div class="overflow-hidden transition-[height] duration-300 motion-reduce:transition-none" [style.height.px]="panelHeight()">
+          <div class="flex transition-transform duration-[350ms] ease-in-out motion-reduce:transition-none" [style.transform]="'translateX(-' + (step() * 100) + '%)'">
+          <section #stepPanel class="w-full shrink-0 p-5 sm:p-8" [attr.aria-hidden]="step() !== 0" [attr.inert]="step() !== 0 ? '' : null" aria-labelledby="setup-person-title">
+            <p class="text-sm font-bold text-primary">01 · ÜBER SIE</p><h1 #stepHeading id="setup-person-title" tabindex="-1" class="mt-2 text-2xl font-bold outline-none">Wie dürfen wir Sie ansprechen?</h1>
+            <p class="mt-2 text-sm leading-6 text-muted">Alle Angaben sind freiwillig. Sie können Ihr Profil jederzeit später vervollständigen und dafür Punkte sammeln.</p>
+            <div class="mt-7 space-y-5">
+              <label class="block text-sm font-semibold">Anrede<select formControlName="salutation" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4"><option value="">Keine Angabe</option><option value="frau">Frau</option><option value="herr">Herr</option><option value="divers">Divers</option></select></label>
+              <label class="block text-sm font-semibold">Vorname<input formControlName="firstName" autocomplete="given-name" maxlength="80" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" [attr.aria-invalid]="form.controls.firstName.invalid && form.controls.firstName.touched" /></label>
+              <label class="block text-sm font-semibold">Nachname<input formControlName="lastName" autocomplete="family-name" maxlength="80" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" [attr.aria-invalid]="form.controls.lastName.invalid && form.controls.lastName.touched" /></label>
+            </div>
+          </section>
+          <section #stepPanel class="w-full shrink-0 p-5 sm:p-8" [attr.aria-hidden]="step() !== 1" [attr.inert]="step() !== 1 ? '' : null" aria-labelledby="setup-contact-title">
+            <p class="text-sm font-bold text-primary">02 · KONTAKT</p><h2 #stepHeading id="setup-contact-title" tabindex="-1" class="mt-2 text-2xl font-bold outline-none">Wie erreichen wir Sie?</h2>
+            <p class="mt-2 text-sm leading-6 text-muted">Telefon, Adresse und Geburtsdatum können Sie auch später im Profil ergänzen.</p>
+            @if (bonusPoints() > 0) { <p class="mt-4 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-foreground">Für ein vollständig ausgefülltes Profil erhalten Sie einmalig {{ bonusPoints() }} Punkte – zusätzlich zum Startguthaben. Dafür benötigen wir alle Angaben auf dieser Seite.</p> }
+            <div class="mt-7 space-y-5">
+              <label class="block text-sm font-semibold">Telefon<input formControlName="phone" type="tel" autocomplete="tel" maxlength="40" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label>
+              <label class="block text-sm font-semibold">Straße und Hausnummer<input formControlName="streetAddress" autocomplete="street-address" maxlength="160" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label>
+              <div class="grid grid-cols-[7rem_1fr] gap-3"><label class="block text-sm font-semibold">PLZ<input formControlName="postalCode" autocomplete="postal-code" maxlength="20" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label><label class="block text-sm font-semibold">Ort<input formControlName="city" autocomplete="address-level2" maxlength="120" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label></div>
+              <label class="block text-sm font-semibold">Geburtsdatum<input formControlName="birthDate" type="date" autocomplete="bday" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label>
+            </div>
+          </section>
+          <section #stepPanel class="w-full shrink-0 p-5 sm:p-8" [attr.aria-hidden]="step() !== 2" [attr.inert]="step() !== 2 ? '' : null" aria-labelledby="setup-interests-title">
+            <p class="text-sm font-bold text-primary">03 · INTERESSEN</p><h2 #stepHeading id="setup-interests-title" tabindex="-1" class="mt-2 text-2xl font-bold outline-none">Was interessiert Sie?</h2>
+            <p class="mt-2 text-sm leading-6 text-muted">Wählen Sie Ihre Nachrichtenkategorien und Benachrichtigungen. Alles kann später im Profil geändert werden.</p>
+            <fieldset class="mt-6"><legend class="font-bold">Nachrichtenkategorien</legend>
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                @for (category of categories(); track category.id) {
+                  <label class="flex min-h-12 items-center gap-3 rounded-xl border border-border bg-background px-4 py-2"><input type="checkbox" class="size-5 accent-primary" [checked]="selectedCategoryIds().includes(category.id)" (change)="toggleCategory(category.id, $any($event.target).checked)" />{{ category.name }}</label>
+                } @empty { <p class="text-sm text-muted">Ihre Apotheke hat noch keine Kategorien angelegt.</p> }
+              </div>
+            </fieldset>
+            <fieldset class="mt-6"><legend class="font-bold">Benachrichtigungen</legend>
+              <p class="mt-1 text-sm text-muted">Push benötigt zusätzlich Ihre Gerätefreigabe. Diese können Sie später im Profil aktivieren.</p>
+              <div class="mt-3 space-y-2">
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Newsletter per E-Mail (derzeit noch nicht versendet)<input type="checkbox" formControlName="newsletterEnabled" class="size-5 accent-primary" /></label>
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Chatantworten<input type="checkbox" formControlName="chatPushEnabled" class="size-5 accent-primary" /></label>
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Neue Prämien<input type="checkbox" formControlName="rewardPushEnabled" class="size-5 accent-primary" /></label>
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Neue Apotheken-News<input type="checkbox" formControlName="newsPushEnabled" class="size-5 accent-primary" /></label>
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Medikamentenerinnerungen<input type="checkbox" formControlName="medicationPushEnabled" class="size-5 accent-primary" /></label>
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Termine<input type="checkbox" formControlName="appointmentPushEnabled" class="size-5 accent-primary" /></label>
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Familienzugang<input type="checkbox" formControlName="familyPushEnabled" class="size-5 accent-primary" /></label>
+              </div>
+              <p class="mt-3 text-xs leading-5 text-muted">News-Push erhalten Sie nur, wenn Sie mindestens eine Nachrichtenkategorie wählen.</p>
+            </fieldset>
+          </section>
+          </div>
+        </div>
+        @if (error()) { <p class="mx-5 mb-3 text-sm text-danger sm:mx-8" role="alert">{{ error() }}</p> }
+        <div class="flex flex-wrap items-center gap-3 border-t border-border p-5 sm:p-8">
+          @if (step() > 0) { <button type="button" class="min-h-12 rounded-xl border border-border px-5 font-bold" (click)="back()" [disabled]="saving()">Zurück</button> }
+          <button type="submit" class="min-h-12 flex-1 rounded-xl bg-primary px-5 font-bold text-on-primary disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Wird gespeichert …' : step() === 2 ? 'Einrichtung abschließen' : 'Weiter' }}</button>
+          <button type="button" class="min-h-11 w-full text-sm font-semibold text-muted underline underline-offset-4" (click)="skip()" [disabled]="saving()">Jetzt nicht · später im Profil ergänzen</button>
+        </div>
+      </form>
+    }
+  </div>
+</main>

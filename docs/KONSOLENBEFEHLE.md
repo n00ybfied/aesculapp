@@ -90,6 +90,7 @@ php tests/receipt-integration.php
 php tests/chat-integration.php
 php tests/authorization-integration.php
 php tests/web-push.php
+php tests/profile-completion-bonus.php
 ```
 
 ## Grund- und Demo-Daten
@@ -135,11 +136,13 @@ Terminerinnerungen für alle am folgenden Tag stattfindenden reservierten Termin
 php bin/console app:appointments:send-reminders
 ```
 
-Ausstehende Chat-Push-Benachrichtigungen erneut zustellen:
+Ausstehende Chat-Push-Benachrichtigungen und neue Apotheken-News verarbeiten:
 
 ```powershell
 php bin/console app:push:send
 ```
+
+Der Befehl verarbeitet neben ausstehenden Chat-Push-Nachrichten auch neue, sichtbare Apotheken-News und deren ausstehende Empfängerzustellungen. Für geplante News muss er regelmäßig laufen. Die Auswahl wird beim ersten Versandlauf pro Beitrag fixiert; Bearbeiten verschickt nicht erneut.
 
 Für die Demo auf dem VPS und die Apotheken-Testinstallation gemeinsam liegt das Linux-Skript
 [`ops/scheduler/run-maintenance.sh`](../ops/scheduler/run-maintenance.sh) vor.

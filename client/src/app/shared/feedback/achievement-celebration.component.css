@@ -1,0 +1,28 @@
+.celebration-backdrop { position: fixed; inset: 0; z-index: 250; display: grid; place-items: center; overflow-y: auto; padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); background: rgb(11 25 37 / 0.68); backdrop-filter: blur(8px); }
+.celebration-card { position: relative; width: min(100%, 27rem); overflow: hidden; border: 1px solid var(--color-border); border-radius: 2rem; padding: 2.2rem 1.5rem 1.5rem; background: radial-gradient(circle at 15% 3%, color-mix(in srgb, var(--color-accent) 90%, transparent), transparent 42%), radial-gradient(circle at 90% 25%, color-mix(in srgb, var(--color-primary) 20%, transparent), transparent 44%), var(--color-surface); box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.28); color: var(--color-foreground); text-align: center; animation: celebration-enter 420ms cubic-bezier(.2, 1.35, .4, 1) both; }
+.close-button { position: absolute; z-index: 2; top: .85rem; right: .85rem; display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid var(--color-border); border-radius: 50%; background: var(--color-surface); color: var(--color-foreground); cursor: pointer; }
+.trophy-glow { position: relative; display: grid; width: 6rem; height: 6rem; margin: .35rem auto 1rem; place-items: center; border: 2px solid color-mix(in srgb, var(--color-primary) 25%, transparent); border-radius: 1.8rem; background: linear-gradient(145deg, var(--color-accent), var(--color-surface)); color: var(--color-primary); box-shadow: 0 .75rem 2rem color-mix(in srgb, var(--color-primary) 25%, transparent); transform: rotate(-7deg); animation: trophy-rise 600ms 120ms both; }
+.trophy-glow ng-icon { transform: rotate(7deg); }
+.spark { position: absolute; color: var(--color-primary); font-size: 1.6rem; animation: sparkle 2.8s ease-in-out infinite; }
+.spark-one { top: 3rem; left: 14%; }
+.spark-two { top: 5.3rem; right: 12%; font-size: 2.1rem; animation-delay: .7s; }
+.spark-three { top: 8.2rem; left: 22%; font-size: 1rem; animation-delay: 1.4s; }
+.eyebrow { display: inline-flex; align-items: center; gap: .4rem; color: var(--color-primary); font-size: .8rem; font-weight: 800; letter-spacing: .16em; }
+h2 { margin: .55rem 0 .3rem; font-family: var(--font-heading, inherit); font-size: clamp(1.7rem, 6vw, 2.2rem); font-weight: 800; line-height: 1.15; }
+.intro { margin: 0; color: var(--color-muted); line-height: 1.5; }
+.unlock-card { display: grid; gap: .25rem; margin: 1.4rem 0 1rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border)); border-radius: 1.2rem; background: var(--color-surface); }
+.unlock-label { color: var(--color-primary); font-size: .72rem; font-weight: 800; letter-spacing: .14em; }
+.unlock-card strong { font-size: 1.2rem; }
+.unlock-type { color: var(--color-muted); font-size: .85rem; }
+.points-card { display: inline-flex; align-items: center; gap: .45rem; border-radius: 999px; padding: .55rem 1.1rem; background: var(--color-primary); color: var(--color-on-primary); box-shadow: 0 .5rem 1.2rem color-mix(in srgb, var(--color-primary) 30%, transparent); }
+.points-card strong { font-size: 1.5rem; line-height: 1; }
+.points-note { margin: .7rem 0 1.3rem; color: var(--color-muted); font-size: .85rem; line-height: 1.4; }
+.actions { display: grid; gap: .7rem; }
+.actions a, .actions button { display: inline-flex; min-height: 3rem; align-items: center; justify-content: center; gap: .25rem; border-radius: .9rem; font: inherit; font-weight: 700; cursor: pointer; }
+.continue-button { border: 0; background: var(--color-primary); color: var(--color-on-primary); }
+.trophies-link { border: 1px solid var(--color-border); color: var(--color-foreground); text-decoration: none; }
+.actions :is(a, button):focus-visible, .close-button:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+@keyframes celebration-enter { from { opacity: 0; transform: translateY(1.5rem) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes trophy-rise { from { opacity: 0; transform: translateY(1rem) rotate(-18deg) scale(.7); } to { opacity: 1; transform: translateY(0) rotate(-7deg) scale(1); } }
+@keyframes sparkle { 0%, 100% { opacity: .45; transform: scale(.8) rotate(-15deg); } 50% { opacity: 1; transform: scale(1.2) rotate(12deg); } }
+@media (prefers-reduced-motion: reduce) { .celebration-card, .trophy-glow, .spark { animation: none; } }

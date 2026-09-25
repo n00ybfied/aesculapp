@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/auth.guards';
+import { authGuard, authenticatedGuard, customerSetupGuard, guestGuard } from './core/auth/auth.guards';
 import { AppShellComponent } from './shared/layout/app-shell.component';
 
 export const routes: Routes = [
@@ -49,9 +49,15 @@ export const routes: Routes = [
     title: 'Passwort zurücksetzen | Aesculapp',
   },
   {
+    path: 'einrichtung',
+    canActivate: [authenticatedGuard],
+    loadComponent: () => import('./features/setup/customer-setup.page').then((module) => module.CustomerSetupPage),
+    title: 'App einrichten | Aesculapp',
+  },
+  {
     path: '',
     component: AppShellComponent,
-    canActivateChild: [authGuard],
+    canActivateChild: [authGuard, customerSetupGuard],
     children: [
       { path: 'chat', loadComponent: () => import('./features/chat/chat.page').then(m => m.ChatPage), title: 'Chat | Aesculapp' },
       {
@@ -109,6 +115,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/profile/profile.page').then((module) => module.ProfilePage),
         title: 'Mein Profil | Aesculapp',
+      },
+      {
+        path: 'trophaeen',
+        loadComponent: () => import('./features/achievements/achievements.page').then((module) => module.AchievementsPage),
+        title: 'Trophäen | Aesculapp',
       },
       {
         path: 'medikamente',

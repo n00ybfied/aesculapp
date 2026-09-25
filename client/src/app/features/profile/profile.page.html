@@ -3,6 +3,19 @@
 } @else {
   <main class="px-5 pb-7 pt-6">
     <p class="text-sm font-semibold text-primary">MEIN KONTO</p><h1 class="mt-1 text-3xl font-bold tracking-tight">Mein Profil</h1><p class="mt-2 text-base text-muted">Halten Sie Ihre Kontaktdaten aktuell.</p>
+    @if (profile(); as customer) {
+      @if (customer.profileCompletionBonusPoints > 0) {
+        <section class="mt-6 rounded-2xl border border-primary/30 bg-accent p-4" aria-label="Profilbonus">
+          @if (customer.profileCompletionBonusAwarded) {
+            <p class="font-semibold">Profilbonus erhalten: {{ customer.profileCompletionBonusPoints }} Punkte</p>
+            <p class="mt-1 text-sm text-muted">Die Gutschrift finden Sie in Ihrer Punktehistorie.</p>
+          } @else {
+            <p class="font-semibold">{{ customer.profileCompletionBonusPoints }} Punkte für Ihr vollständiges Profil</p>
+            <p class="mt-1 text-sm text-muted">Ergänzen Sie Anrede, Vor- und Nachname, Telefon, Geburtsdatum und vollständige Adresse. Interessen, Benachrichtigungen und Profilbild bleiben freiwillig.</p>
+          }
+        </section>
+      }
+    }
     <section class="mt-7 rounded-3xl border border-border bg-surface p-5 shadow-card" aria-labelledby="profile-photo-title">
       <h2 id="profile-photo-title" class="text-lg font-bold">Profilbild</h2>
       <div class="mt-5 flex items-center gap-5">
@@ -13,7 +26,16 @@
     <form class="mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card" (ngSubmit)="save()" novalidate>
       <h2 class="text-lg font-bold">Kontaktdaten</h2>
       <div class="mt-5 space-y-4">
-        <label class="block text-sm font-medium">Name<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="displayName" [(ngModel)]="form.displayName" required minlength="2" maxlength="160" [attr.aria-invalid]="formError() !== null" aria-describedby="profile-name-error" /></label>
+        @if (!profile()?.firstName && !profile()?.lastName) { <p class="text-sm text-muted">Bisheriger Name: {{ profile()?.displayName }}. Sie können ihn jetzt in Vor- und Nachname aufteilen.</p> }
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-sm font-medium">Vorname<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="firstName" [(ngModel)]="form.firstName" maxlength="80" autocomplete="given-name" /></label>
+          <label class="block text-sm font-medium">Nachname<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="lastName" [(ngModel)]="form.lastName" maxlength="80" autocomplete="family-name" /></label>
+        </div>
+        <label class="block text-sm font-medium">Anrede
+          <select class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="salutation" [(ngModel)]="form.salutation">
+            <option [ngValue]="null">Keine Angabe</option><option value="frau">Frau</option><option value="herr">Herr</option><option value="divers">Divers</option>
+          </select>
+        </label>
         @if (formError(); as message) { <p id="profile-name-error" class="text-sm text-danger" role="alert">{{ message }}</p> }
         <label class="block text-sm font-medium">Benutzername<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="username" [(ngModel)]="form.username" required minlength="3" maxlength="100" autocomplete="username" /></label>
         @if (form.username.trim().toLowerCase() !== profile()?.username) {
@@ -52,6 +74,20 @@
             <span><span class="block font-semibold">News aus der Apotheke</span><span class="mt-1 block text-sm leading-5 text-muted">Wenn ein neuer Beitrag veröffentlicht wird.</span></span>
             <input class="size-6 shrink-0 accent-primary" name="newsPushEnabled" type="checkbox" [(ngModel)]="form.newsPushEnabled" />
           </label>
+          @if (newsCategories().length) {
+            <fieldset class="rounded-2xl border border-border bg-background p-4">
+              <legend class="px-1 font-semibold">Interessante Nachrichtenkategorien</legend>
+              <p class="mb-3 text-sm text-muted">Push-Mitteilungen erhalten Sie nur zu ausgewählten Kategorien. Ohne Auswahl kommen keine News-Mitteilungen.</p>
+              <div class="grid gap-2 sm:grid-cols-2">
+                @for (category of newsCategories(); track category.id) {
+                  <label class="flex min-h-11 items-center gap-3 rounded-xl border border-border px-3 py-2">
+                    <input class="size-5 accent-primary" type="checkbox" [name]="'news-category-' + category.id" [checked]="form.newsCategoryIds.includes(category.id)" (change)="toggleNewsCategory(category.id, $any($event.target).checked)" />
+                    <span>{{ category.name }}</span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+          }
           <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
             <span><span class="block font-semibold">Medikamentenerinnerungen</span><span class="mt-1 block text-sm leading-5 text-muted">Erinnerungen zu den Einnahmezeiten aus Ihrem Medikamentenplan.</span></span>
             <input class="size-6 shrink-0 accent-primary" name="medicationPushEnabled" type="checkbox" [(ngModel)]="form.medicationPushEnabled" />

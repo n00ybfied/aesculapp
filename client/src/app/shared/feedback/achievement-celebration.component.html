@@ -1,0 +1,29 @@
+@if (celebrations.current(); as achievement) {
+  <div class="celebration-backdrop" (click)="dismiss()">
+    <section class="celebration-card" role="dialog" aria-modal="true" aria-labelledby="celebration-title" aria-describedby="celebration-description" (click)="$event.stopPropagation()" (keydown.escape)="dismiss()" (keydown.tab)="keepFocus($event)">
+      <button #closeButton type="button" class="close-button" aria-label="Gratulation schließen" (click)="dismiss()"><ng-icon name="lucideX" size="1.3rem" aria-hidden="true" /></button>
+      <div class="spark spark-one" aria-hidden="true">✦</div>
+      <div class="spark spark-two" aria-hidden="true">✧</div>
+      <div class="spark spark-three" aria-hidden="true">✦</div>
+      <div class="trophy-glow" aria-hidden="true"><ng-icon name="lucideTrophy" size="3.25rem" /></div>
+      <div class="eyebrow"><ng-icon name="lucidePartyPopper" size="1.1rem" aria-hidden="true" /> GESCHAFFT!</div>
+      <h2 id="celebration-title">Das ist Ihr Moment.</h2>
+      <p id="celebration-description" class="intro">Eine neue Trophäe gehört Ihnen!</p>
+      <div class="unlock-card">
+        <span class="unlock-label">FREIGESCHALTET</span>
+        <strong>{{ achievement.title }}</strong>
+        <span class="unlock-type">Neue Trophäe</span>
+      </div>
+      <div class="points-card" aria-label="{{ achievement.points }} Punkte erhalten">
+        <ng-icon name="lucideGem" size="1.4rem" aria-hidden="true" />
+        <strong>+{{ achievement.points }}</strong>
+        <span>{{ achievement.points === 1 ? 'Punkt' : 'Punkte' }}</span>
+      </div>
+      <p class="points-note">{{ achievement.points > 0 ? 'Die Punkte wurden Ihrem Konto gutgeschrieben.' : 'Für diese Aufgabe sind derzeit keine Punkte hinterlegt.' }}</p>
+      <div class="actions">
+        <a routerLink="/trophaeen" class="trophies-link" (click)="dismiss()">Meine Trophäen ansehen</a>
+        <button #continueButton type="button" class="continue-button" (click)="dismiss()">Weiter geht’s <ng-icon name="lucideChevronRight" size="1.1rem" aria-hidden="true" /></button>
+      </div>
+    </section>
+  </div>
+}

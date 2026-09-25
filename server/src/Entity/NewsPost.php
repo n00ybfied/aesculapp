@@ -43,6 +43,17 @@ class NewsPost
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $showUntil;
 
+    /** @var list<int> */
+    #[ORM\Column]
+    private array $categoryIds = [];
+
+    /** @var list<string> Empty means all salutations. */
+    #[ORM\Column]
+    private array $notificationSalutations = [];
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $newsPushQueuedAt = null;
+
     public function __construct(Tenant $tenant, string $title, string $subtitle, string $bodyHtml, ?string $imagePath, bool $isVisible, \DateTimeImmutable $publishedAt, ?\DateTimeImmutable $showFrom, ?\DateTimeImmutable $showUntil)
     {
         $this->tenant = $tenant;
@@ -66,6 +77,16 @@ class NewsPost
     public function getPublishedAt(): \DateTimeImmutable { return $this->publishedAt; }
     public function getShowFrom(): ?\DateTimeImmutable { return $this->showFrom; }
     public function getShowUntil(): ?\DateTimeImmutable { return $this->showUntil; }
+    /** @return list<int> */
+    public function getCategoryIds(): array { return $this->categoryIds; }
+    /** @param list<int> $ids */
+    public function setCategoryIds(array $ids): void { $this->categoryIds = array_values(array_unique($ids)); }
+    /** @return list<string> */
+    public function getNotificationSalutations(): array { return $this->notificationSalutations; }
+    /** @param list<string> $salutations */
+    public function setNotificationSalutations(array $salutations): void { $this->notificationSalutations = array_values(array_unique($salutations)); }
+    public function getNewsPushQueuedAt(): ?\DateTimeImmutable { return $this->newsPushQueuedAt; }
+    public function markNewsPushQueued(): void { $this->newsPushQueuedAt = new \DateTimeImmutable(); }
 
     public function update(string $title, string $subtitle, string $bodyHtml, ?string $imagePath, bool $isVisible, \DateTimeImmutable $publishedAt, ?\DateTimeImmutable $showFrom, ?\DateTimeImmutable $showUntil): void
     {

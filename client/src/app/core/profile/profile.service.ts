@@ -9,16 +9,24 @@ export interface CustomerProfile {
   readonly username: string;
   readonly email: string;
   readonly displayName: string;
+  readonly firstName: string | null;
+  readonly lastName: string | null;
+  readonly setupCompleted: boolean;
+  readonly profileCompletionBonusPoints: number;
+  readonly profileCompletionBonusAwarded: boolean;
+  readonly profileComplete: boolean;
   readonly phone: string | null;
   readonly streetAddress: string | null;
   readonly postalCode: string | null;
   readonly city: string | null;
   readonly profileImageUrl: string | null;
   readonly birthDate: string | null;
+  readonly salutation: 'frau' | 'herr' | 'divers' | null;
   readonly newsletterEnabled: boolean;
   readonly chatPushEnabled: boolean;
   readonly rewardPushEnabled: boolean;
   readonly newsPushEnabled: boolean;
+  readonly newsCategoryIds: readonly number[];
   readonly medicationPushEnabled: boolean;
   readonly appointmentPushEnabled: boolean;
   readonly familyPushEnabled: boolean;
@@ -29,7 +37,26 @@ export interface CustomerProfile {
   readonly footerNavigationItems: readonly FooterNavigationItem[];
 }
 
-export type FooterNavigationItem = 'home' | 'chat' | 'rewards' | 'coupons' | 'news' | 'appointments' | 'my-appointments' | 'medications' | 'family' | 'contact' | 'website';
+export type FooterNavigationItem = 'home' | 'chat' | 'rewards' | 'coupons' | 'news' | 'appointments' | 'my-appointments' | 'medications' | 'family' | 'contact' | 'website' | 'achievements';
+
+export interface CustomerSetupDetails {
+  readonly firstName: string | null;
+  readonly lastName: string | null;
+  readonly salutation: 'frau' | 'herr' | 'divers' | null;
+  readonly phone: string | null;
+  readonly streetAddress: string | null;
+  readonly postalCode: string | null;
+  readonly city: string | null;
+  readonly birthDate: string | null;
+  readonly newsCategoryIds: readonly number[];
+  readonly newsletterEnabled: boolean;
+  readonly chatPushEnabled: boolean;
+  readonly rewardPushEnabled: boolean;
+  readonly newsPushEnabled: boolean;
+  readonly medicationPushEnabled: boolean;
+  readonly appointmentPushEnabled: boolean;
+  readonly familyPushEnabled: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
@@ -44,8 +71,25 @@ export class ProfileService {
     return response.profile;
   }
 
-  async save(profile: Pick<CustomerProfile, 'username' | 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerNavigationItems'> & { usernamePassword?: string }): Promise<CustomerProfile> {
+  async loadNewsCategories(): Promise<readonly { id: number; name: string }[]> {
+    const response = await firstValueFrom(this.http.get<{ categories: readonly { id: number; name: string }[] }>(this.apiBaseUrl + '/news/categories', { headers: this.headers() }));
+    return response.categories;
+  }
+
+  async save(profile: Pick<CustomerProfile, 'username' | 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'salutation' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'newsCategoryIds' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerNavigationItems'> & { firstName?: string; lastName?: string; usernamePassword?: string }): Promise<CustomerProfile> {
     const response = await firstValueFrom(this.http.patch<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile', profile, { headers: this.headers() }));
+    this.profile.set(response.profile);
+    return response.profile;
+  }
+
+  async completeSetup(details: CustomerSetupDetails): Promise<CustomerProfile> {
+    const response = await firstValueFrom(this.http.post<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile/setup', details, { headers: this.headers() }));
+    this.profile.set(response.profile);
+    return response.profile;
+  }
+
+  async skipSetup(): Promise<CustomerProfile> {
+    const response = await firstValueFrom(this.http.post<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile/setup/skip', {}, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;
   }

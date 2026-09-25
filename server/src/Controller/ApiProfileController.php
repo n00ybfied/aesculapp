@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\{User, TenantMembership};
+use App\Entity\{User, TenantMembership, NewsCategory};
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
 use App\Service\ChatPushService;
 use App\Service\ImageProcessor;
+use App\Service\ProfileCompletionBonusService;
 use App\Service\UsernameReservation;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -25,7 +26,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class ApiProfileController
 {
     /** @var list<string> */
-    private const FOOTER_NAVIGATION_ITEMS = ['home', 'chat', 'rewards', 'coupons', 'news', 'appointments', 'my-appointments', 'medications', 'family', 'contact', 'website'];
+    private const FOOTER_NAVIGATION_ITEMS = ['home', 'chat', 'rewards', 'coupons', 'news', 'appointments', 'my-appointments', 'medications', 'family', 'contact', 'website', 'achievements'];
 
     public function __construct(
         private readonly Security $security,
@@ -37,6 +38,7 @@ final class ApiProfileController
         private readonly UsernameReservation $usernameReservation,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly RevokeRefreshTokenManagerInterface $refreshTokens,
+        private readonly ProfileCompletionBonusService $profileBonus,
     ) {
     }
 
@@ -47,6 +49,70 @@ final class ApiProfileController
         return $membership instanceof TenantMembership
             ? new JsonResponse(['profile' => $this->serialize($membership->getUser(), $membership, $request)])
             : new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+    }
+
+    #[Route('/api/v1/profile/setup', name: 'api_v1_profile_setup', methods: ['POST'])]
+    public function completeSetup(Request $request): JsonResponse
+    {
+        $membership = $this->currentTenantMembership();
+        if (!$membership instanceof TenantMembership) return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        if ($membership->isCustomerSetupCompleted()) return new JsonResponse(['message' => 'Die Einrichtung ist bereits abgeschlossen.'], Response::HTTP_CONFLICT);
+
+        try { $data = $request->toArray(); } catch (JsonException) { return $this->invalidProfile(); }
+        $firstName = $this->text($data['firstName'] ?? '', 0, 80, true);
+        $lastName = $this->text($data['lastName'] ?? '', 0, 80, true);
+        $salutation = $data['salutation'] ?? null;
+        $phone = $this->text($data['phone'] ?? '', 0, 40, true);
+        $streetAddress = $this->text($data['streetAddress'] ?? '', 0, 160, true);
+        $postalCode = $this->text($data['postalCode'] ?? '', 0, 20, true);
+        $city = $this->text($data['city'] ?? '', 0, 120, true);
+        $birthDate = $this->birthDate($data['birthDate'] ?? null);
+        $categoryIds = $data['newsCategoryIds'] ?? null;
+        $preferences = [];
+        foreach (['newsletterEnabled', 'chatPushEnabled', 'rewardPushEnabled', 'newsPushEnabled', 'medicationPushEnabled', 'appointmentPushEnabled', 'familyPushEnabled'] as $key) {
+            $preferences[$key] = $this->boolean($data[$key] ?? null);
+        }
+        if ($firstName === false || $lastName === false || mb_strlen(($firstName ?? '').' '.($lastName ?? '')) > 160
+            || !in_array($salutation, [null, 'frau', 'herr', 'divers'], true)
+            || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false
+            || !is_array($categoryIds) || !array_is_list($categoryIds) || count($categoryIds) > 100
+            || in_array(null, $preferences, true)) return $this->invalidProfile();
+
+        foreach ($categoryIds as $categoryId) {
+            if (!is_int($categoryId) || $categoryId < 1 || !$this->entityManager->getRepository(NewsCategory::class)->findOneBy(['id' => $categoryId, 'tenant' => $this->activeTenant->get()])) return $this->invalidProfile();
+        }
+
+        $user = $membership->getUser();
+        $user->setNames($firstName, $lastName);
+        $user->setSalutation($salutation);
+        $user->setPhone($phone);
+        $user->setStreetAddress($streetAddress);
+        $user->setPostalCode($postalCode);
+        $user->setCity($city);
+        $user->setBirthDate($birthDate);
+        $membership->setNewsCategoryIds($categoryIds);
+        $membership->setNewsletterEnabled($preferences['newsletterEnabled']);
+        $membership->setChatPushEnabled($preferences['chatPushEnabled']);
+        $membership->setRewardPushEnabled($preferences['rewardPushEnabled']);
+        $membership->setNewsPushEnabled($preferences['newsPushEnabled']);
+        $membership->setMedicationPushEnabled($preferences['medicationPushEnabled']);
+        $membership->setAppointmentPushEnabled($preferences['appointmentPushEnabled']);
+        $membership->setFamilyPushEnabled($preferences['familyPushEnabled']);
+        $membership->completeCustomerSetup();
+        $this->entityManager->wrapInTransaction(fn (): int => $this->profileBonus->awardIfEligible($membership));
+        return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
+    }
+
+    #[Route('/api/v1/profile/setup/skip', name: 'api_v1_profile_setup_skip', methods: ['POST'])]
+    public function skipSetup(Request $request): JsonResponse
+    {
+        $membership = $this->currentTenantMembership();
+        if (!$membership instanceof TenantMembership) return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        if (!$membership->isCustomerSetupCompleted()) {
+            $membership->completeCustomerSetup();
+            $this->entityManager->wrapInTransaction(fn (): int => $this->profileBonus->awardIfEligible($membership));
+        }
+        return new JsonResponse(['profile' => $this->serialize($membership->getUser(), $membership, $request)]);
     }
 
     #[Route('/api/v1/profile', name: 'api_v1_profile_update', methods: ['PATCH'])]
@@ -65,12 +131,16 @@ final class ApiProfileController
         }
 
         $username = $data['username'] ?? $user->getUsername();
-        $displayName = $this->text($data['displayName'] ?? null, 2, 160, false);
+        $displayName = $this->text($data['displayName'] ?? $user->getDisplayName(), 2, 160, false);
+        $firstName = $data['firstName'] ?? null;
+        $lastName = $data['lastName'] ?? null;
         $phone = $this->text($data['phone'] ?? null, 0, 40, true);
         $streetAddress = $this->text($data['streetAddress'] ?? null, 0, 160, true);
         $postalCode = $this->text($data['postalCode'] ?? null, 0, 20, true);
         $city = $this->text($data['city'] ?? null, 0, 120, true);
         $birthDate = $this->birthDate($data['birthDate'] ?? null);
+        $salutation = array_key_exists('salutation', $data) ? $data['salutation'] : $user->getSalutation();
+        $newsCategoryIds = $data['newsCategoryIds'] ?? $membership->getNewsCategoryIds();
         $newsletterEnabled = $this->boolean($data['newsletterEnabled'] ?? null);
         $chatPushEnabled = $this->boolean($data['chatPushEnabled'] ?? null);
         $rewardPushEnabled = $this->boolean($data['rewardPushEnabled'] ?? null);
@@ -84,8 +154,16 @@ final class ApiProfileController
         $nightReminderTime = $this->time($data['nightReminderTime'] ?? null);
         $footerNavigationItems = $this->footerNavigationItems($data['footerNavigationItems'] ?? null);
 
-        if (!is_string($username) || !is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerNavigationItems === false) {
+        if (!is_string($username) || !is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || !in_array($salutation, [null, 'frau', 'herr', 'divers'], true) || !is_array($newsCategoryIds) || !array_is_list($newsCategoryIds) || count($newsCategoryIds) > 100 || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerNavigationItems === false) {
             return $this->invalidProfile();
+        }
+        if ($firstName !== null || $lastName !== null) {
+            $firstName = $this->text($firstName, 0, 80, true);
+            $lastName = $this->text($lastName, 0, 80, true);
+            if ($firstName === false || $lastName === false || mb_strlen(($firstName ?? '').' '.($lastName ?? '')) > 160) return $this->invalidProfile();
+        }
+        foreach ($newsCategoryIds as $categoryId) {
+            if (!is_int($categoryId) || $categoryId < 1 || !$this->entityManager->getRepository(NewsCategory::class)->findOneBy(['id' => $categoryId, 'tenant' => $this->activeTenant->get()])) return $this->invalidProfile();
         }
 
         $username = mb_strtolower(trim($username));
@@ -106,16 +184,19 @@ final class ApiProfileController
             $this->refreshTokens->revokeAllForUser($user);
             $user->setUsername($username);
         }
-        $user->setDisplayName($displayName);
+        if (array_key_exists('firstName', $data) || array_key_exists('lastName', $data)) $user->setNames($firstName, $lastName);
+        else $user->setDisplayName($displayName);
         $user->setPhone($phone);
         $user->setStreetAddress($streetAddress);
         $user->setPostalCode($postalCode);
         $user->setCity($city);
         $user->setBirthDate($birthDate);
+        $user->setSalutation($salutation);
         $membership->setNewsletterEnabled($newsletterEnabled);
         $membership->setChatPushEnabled($chatPushEnabled);
         $membership->setRewardPushEnabled($rewardPushEnabled);
         $membership->setNewsPushEnabled($newsPushEnabled);
+        $membership->setNewsCategoryIds($newsCategoryIds);
         $membership->setMedicationPushEnabled($medicationPushEnabled);
         $membership->setAppointmentPushEnabled($appointmentPushEnabled);
         $membership->setFamilyPushEnabled($familyPushEnabled);
@@ -125,7 +206,7 @@ final class ApiProfileController
         $membership->setNightReminderTime($nightReminderTime);
         $membership->setFooterNavigationItems($footerNavigationItems);
         try {
-            $this->entityManager->flush();
+            $this->entityManager->wrapInTransaction(fn (): int => $this->profileBonus->awardIfEligible($membership));
         } catch (UniqueConstraintViolationException) {
             return new JsonResponse(['message' => 'Dieser Benutzername ist bereits vergeben.'], Response::HTTP_CONFLICT);
         }
@@ -235,7 +316,7 @@ final class ApiProfileController
         return $items;
     }
 
-    /** @return array{id:int,username:string,email:string,displayName:string,phone:?string,streetAddress:?string,postalCode:?string,city:?string,profileImageUrl:?string} */
+    /** @return array<string, int|string|bool|array<array-key, mixed>|null> */
     private function serialize(User $user, TenantMembership $membership, Request $request): array
     {
         return [
@@ -243,16 +324,24 @@ final class ApiProfileController
             'username' => $user->getUsername(),
             'email' => $user->getEmail(),
             'displayName' => $user->getDisplayName(),
+            'firstName' => $user->getFirstName(),
+            'lastName' => $user->getLastName(),
+            'setupCompleted' => $membership->isCustomerSetupCompleted(),
+            'profileCompletionBonusPoints' => $this->profileBonus->awardedPoints($membership) ?? $membership->getTenant()->getProfileCompletionBonusPoints(),
+            'profileCompletionBonusAwarded' => $membership->hasProfileCompletionBonus(),
+            'profileComplete' => $this->profileBonus->isComplete($membership),
             'phone' => $user->getPhone(),
             'streetAddress' => $user->getStreetAddress(),
             'postalCode' => $user->getPostalCode(),
             'city' => $user->getCity(),
             'birthDate' => $user->getBirthDate()?->format('Y-m-d'),
+            'salutation' => $user->getSalutation(),
             'profileImageUrl' => $user->getProfileImagePath() === null ? null : $request->getSchemeAndHttpHost().$user->getProfileImagePath(),
             'newsletterEnabled' => $membership->isNewsletterEnabled(),
             'chatPushEnabled' => $membership->isChatPushEnabled(),
             'rewardPushEnabled' => $membership->isRewardPushEnabled(),
             'newsPushEnabled' => $membership->isNewsPushEnabled(),
+            'newsCategoryIds' => $membership->getNewsCategoryIds(),
             'medicationPushEnabled' => $membership->isMedicationPushEnabled(),
             'appointmentPushEnabled' => $membership->isAppointmentPushEnabled(),
             'familyPushEnabled' => $membership->isFamilyPushEnabled(),
