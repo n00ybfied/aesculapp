@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { MediaPickerComponent, type PickedMedia } from '../../shared/media-picker.component';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
 
 interface DashboardSlide {
   readonly id: number;
@@ -21,7 +22,7 @@ interface DashboardSliderSettings {
 
 @Component({
   selector: 'app-dashboard-slides',
-  imports: [FormsModule, MediaPickerComponent],
+  imports: [FormsModule, MediaPickerComponent, AdminChangeHistoryComponent],
   templateUrl: './dashboard-slides.component.html',
   styleUrl: './dashboard-slides.component.css',
 })
@@ -36,6 +37,7 @@ export class DashboardSlidesComponent {
   protected readonly error = signal('');
   protected readonly saving = signal(false);
   protected readonly settingsSaving = signal(false);
+  protected readonly auditRefresh = signal(0);
   protected linkUrl = '';
   protected readonly transition: 'slide' = 'slide';
   protected animationDurationMs = 400;
@@ -93,6 +95,7 @@ export class DashboardSlidesComponent {
     try {
       const settings: DashboardSliderSettings = { transition: this.transition, animationDurationMs: Number(this.animationDurationMs), delayMs: Number(this.delayMs), autoplay: this.autoplay };
       await firstValueFrom(this.http.put(this.api() + '/settings', settings, { headers: this.headers() }));
+      this.auditRefresh.update((value) => value + 1);
     } catch { this.error.set('Slider-Einstellungen konnten nicht gespeichert werden. Die Animationsdauer muss zwischen 100 und 3.000 ms, der Wechselabstand zwischen 1.000 und 60.000 ms liegen.'); }
     finally { this.settingsSaving.set(false); }
   }

@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { AdminAuthService } from '../auth/admin-auth.service';
 
 export interface Conversation { id:number; subject:string; unreadCount:number; status:'open'|'closed'; customerName:string; createdAt:string; updatedAt:string; appointments:{id:number;startsAt:string}[]; }
-export interface ChatMessage { id:number; role:'staff'|'customer'; text:string; hasImage:boolean; createdAt:string; }
+export interface ChatMessage { id:number; role:'staff'|'customer'; text:string; hasImage:boolean; createdAt:string; answeredBy:{id:number;name:string}|null; }
 export interface ChatList { activeConversationId:number|null; conversations:Conversation[]; total:number; page:number; consentVersion:string; consentText:string; notice:string; consented:boolean; }
 export interface ChatDetail { conversation:Conversation; messages:ChatMessage[]; hasOlder:boolean; }
 @Injectable({providedIn:'root'})

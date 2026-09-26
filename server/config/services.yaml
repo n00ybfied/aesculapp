@@ -28,6 +28,10 @@ services:
         arguments:
             $tenantSlug: '%app.auth.tenant_slug%'
 
+    App\EventListener\AdminChangeLogListener:
+        arguments:
+            $tenantSlug: '%app.auth.tenant_slug%'
+
     App\Controller\ApiPasswordResetController:
         arguments:
             $clientUrl: '%app.auth.client_url%'

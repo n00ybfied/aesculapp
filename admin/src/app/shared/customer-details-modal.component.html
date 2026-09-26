@@ -27,6 +27,7 @@
             <label class="reason"><span>Grund</span><input name="creditReason" maxlength="180" [(ngModel)]="creditReason" placeholder="z. B. Kulanz" [disabled]="isSaving()" /></label>
             <button type="submit" [disabled]="isSaving()">Aufladen</button>
           </form>
+          <app-admin-change-history entityType="PointTransaction" [requestPath]="'/api/v1/admin/customers/' + customer.id + '/point-transactions'" [refreshKey]="auditRefresh()" />
           @if (actionError()) { <p class="action-error" role="alert">{{ actionError() }}</p> }
           <h3 class="history-title">Buchungen</h3>
           <div class="transactions">

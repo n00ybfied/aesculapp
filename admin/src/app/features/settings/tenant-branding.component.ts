@@ -5,19 +5,23 @@ import { RichTextEditorComponent } from '../../shared/rich-text-editor.component
 import { PasswordVisibilityToggleComponent } from '../../shared/password-visibility-toggle.component';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
 import { TenantBrandingService, type ContactDay, type OpeningHours, type TenantBranding, type TenantContact } from '../../core/settings/tenant-branding.service';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
+import { AdminAuthService } from '../../core/auth/admin-auth.service';
 
 type BrandingAsset = 'logo' | 'squareLogo' | 'favicon' | 'birthdayGreetingImage';
 type ImageFiles = Partial<Record<BrandingAsset, File>>;
 type ImageUrls = Record<BrandingAsset, string | null>;
 
-@Component({ selector: 'app-tenant-branding', imports: [FormsModule, RichTextEditorComponent, PasswordVisibilityToggleComponent], templateUrl: './tenant-branding.component.html', styleUrl: './tenant-branding.component.css' })
+@Component({ selector: 'app-tenant-branding', imports: [FormsModule, RichTextEditorComponent, PasswordVisibilityToggleComponent, AdminChangeHistoryComponent], templateUrl: './tenant-branding.component.html', styleUrl: './tenant-branding.component.css' })
 export class TenantBrandingComponent implements OnDestroy {
+  protected readonly auth = inject(AdminAuthService);
   private readonly brandingService = inject(TenantBrandingService);
   private readonly dialogs = inject(ConfirmDialogService);
   private files: ImageFiles = {};
   private readonly removedAssets = new Set<BrandingAsset>();
   protected readonly isLoading = signal(true);
   protected readonly isSaving = signal(false);
+  protected readonly auditRefresh = signal(0);
   protected readonly error = signal('');
   protected readonly success = signal('');
   protected readonly previews = signal<ImageUrls>({ logo: null, squareLogo: null, favicon: null, birthdayGreetingImage: null });
@@ -69,7 +73,7 @@ export class TenantBrandingComponent implements OnDestroy {
     data.set('birthdayGreetingEnabled', String(this.birthdayGreetingEnabled)); data.set('birthdayGreetingTitle', this.birthdayGreetingTitle.trim()); data.set('birthdayGreetingText', this.birthdayGreetingText.trim());
     data.set('smtpHost', this.smtpHost); data.set('smtpPort', String(this.smtpPort)); data.set('smtpEncryption', this.smtpEncryption); data.set('smtpUsername', this.smtpUsername); data.set('smtpPassword', this.smtpPassword); data.set('smtpFrom', this.smtpFrom); data.set('removeSmtpPassword', String(this.removeSmtpPassword));
     this.isSaving.set(true); this.error.set('');
-    try { this.apply(await this.brandingService.update(data)); await this.saveContact(); this.files = {}; this.removedAssets.clear(); this.isPointsPerEuroEditingEnabled.set(false); this.showSuccess('Ihre Einstellungen wurden gespeichert.'); } catch (error: unknown) { this.error.set(this.errorMessage(error)); } finally { this.isSaving.set(false); }
+    try { this.apply(await this.brandingService.update(data)); await this.saveContact(); this.files = {}; this.removedAssets.clear(); this.isPointsPerEuroEditingEnabled.set(false); this.auditRefresh.update((value) => value + 1); this.showSuccess('Ihre Einstellungen wurden gespeichert.'); } catch (error: unknown) { this.error.set(this.errorMessage(error)); } finally { this.isSaving.set(false); }
   }
   protected async clearSmtp(): Promise<void> {
     if (this.isSaving() || !this.smtpSettingsConfigured()) return;

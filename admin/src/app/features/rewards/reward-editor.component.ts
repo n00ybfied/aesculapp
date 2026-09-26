@@ -4,8 +4,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AdminRewardService } from '../../core/rewards/admin-reward.service';
 import { RichTextEditorComponent } from '../../shared/rich-text-editor.component';
 import { MediaPickerComponent, PickedMedia } from '../../shared/media-picker.component';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
 @Component({
- selector:'app-reward-editor', imports:[ReactiveFormsModule,RouterLink,RichTextEditorComponent,MediaPickerComponent],
+ selector:'app-reward-editor', imports:[ReactiveFormsModule,RouterLink,RichTextEditorComponent,MediaPickerComponent,AdminChangeHistoryComponent],
  template:`
  <a routerLink="/praemien">← Zu allen Prämien</a>
  <h2>{{id===null?'Prämie anlegen':'Prämie bearbeiten'}}</h2>
@@ -26,6 +27,7 @@ import { MediaPickerComponent, PickedMedia } from '../../shared/media-picker.com
  <p>Prämienbild (optional)</p><app-media-picker (selected)="selectImage($event)" />
  @if(imageUrl()){<div class="preview"><img [src]="imageUrl()" alt="Prämienbild" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}
  @if(error()){<p role="alert">{{error()}}</p>}
+ @if(id!==null){<app-admin-change-history entityType="Reward" [entityId]="id" />}
  <div class="actions"><button type="submit">{{saving()?'Speichert …':'Prämie speichern'}}</button><a routerLink="/praemien">Abbrechen</a></div>
  </fieldset>
  </form>}

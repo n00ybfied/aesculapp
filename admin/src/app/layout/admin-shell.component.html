@@ -26,6 +26,7 @@
       @if (canAccess('settings')) { <a routerLink="/nachrichtenvorlagen" routerLinkActive="active" (click)="closeNavigation()">Nachrichtenvorlagen</a> }
       @if (canAccess('settings')) { <a routerLink="/einstellungen" routerLinkActive="active" (click)="closeNavigation()">Einstellungen</a> }
     </nav>
+    <button type="button" class="sidebar-logout" (click)="logout()">Abmelden</button>
   </aside>
 
   <div class="main-area">

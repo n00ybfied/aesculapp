@@ -31,6 +31,7 @@
     <div class="editor-field"><div class="editor-label">Detailtext</div><app-rich-text-editor [(value)]="bodyHtml" /></div>
     <div class="upload"><span>Beitragsbild <small>(optional)</small></span><app-media-picker (selected)="selectCoverMedia($event)" />@if(imagePreviewUrl();as preview){<div class="preview"><img [src]="preview" alt="Vorschau des Beitragsbilds" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}</div>
     @if(error()){<p class="error" role="alert">{{error()}}</p>}
+    @if (postId !== null) { <app-admin-change-history entityType="NewsPost" [entityId]="postId" /> }
     <button class="save" [disabled]="isSaving()">Beitrag speichern</button>
   </form>
 </section>

@@ -2,10 +2,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NotificationTemplateService, type NotificationTemplate } from '../../core/settings/notification-template.service';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
 
 @Component({
   selector: 'app-notification-templates',
-  imports: [FormsModule],
+  imports: [FormsModule, AdminChangeHistoryComponent],
   templateUrl: './notification-templates.component.html',
   styleUrl: './notification-templates.component.css',
 })
@@ -18,6 +19,7 @@ export class NotificationTemplatesComponent {
   protected readonly success = signal('');
   protected readonly channel = signal<'email' | 'push'>('email');
   protected readonly selectedKey = signal('');
+  protected readonly auditRefresh = signal(0);
   protected readonly selected = computed(() => this.templates().find((item) => item.key === this.selectedKey()));
   protected readonly filtered = computed(() => this.templates().filter((item) => item.channel === this.channel()));
   protected title = '';
@@ -72,6 +74,7 @@ export class NotificationTemplatesComponent {
     this.success.set('');
     try {
       this.templates.set(await this.service.save(template.key, this.title, this.body));
+      this.auditRefresh.update((value) => value + 1);
       this.success.set('Vorlage gespeichert. Neue Nachrichten verwenden ab jetzt diesen Text.');
     } catch (error: unknown) {
       this.error.set(error instanceof HttpErrorResponse && typeof error.error?.message === 'string'
@@ -88,6 +91,7 @@ export class NotificationTemplatesComponent {
     this.error.set('');
     try {
       this.templates.set(await this.service.reset(template.key));
+      this.auditRefresh.update((value) => value + 1);
       this.select(template.key);
       this.success.set('Der bisherige Standardtext wird wieder verwendet.');
     } catch {

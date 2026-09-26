@@ -3,10 +3,11 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminCustomerService } from '../core/customers/admin-customer.service';
 import { ConfirmDialogService } from './confirm-dialog.service';
+import { AdminChangeHistoryComponent } from './admin-change-history.component';
 
 @Component({
   selector: 'app-customer-details-modal',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, AdminChangeHistoryComponent],
   templateUrl: './customer-details-modal.component.html',
   styleUrl: './customer-details-modal.component.css',
 })
@@ -15,6 +16,7 @@ export class CustomerDetailsModalComponent {
   private readonly dialogs = inject(ConfirmDialogService);
   protected readonly actionError = signal('');
   protected readonly isSaving = signal(false);
+  protected readonly auditRefresh = signal(0);
   protected pointsToCredit: number | null = null;
   protected creditReason = '';
 
@@ -32,6 +34,7 @@ export class CustomerDetailsModalComponent {
       this.pointsToCredit = null;
       this.creditReason = '';
       await this.customers.reload();
+      this.auditRefresh.update((value) => value + 1);
     } catch {
       this.actionError.set('Die Aufladung konnte nicht gespeichert werden.');
     } finally {
