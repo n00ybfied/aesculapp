@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 
 import {
   AppointmentService,
@@ -18,7 +18,7 @@ interface CalendarDay {
 
 @Component({
   selector: 'app-appointments-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule],
   templateUrl: './appointments.page.html',
 })
 export class AppointmentsPage {

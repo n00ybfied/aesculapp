@@ -1,18 +1,18 @@
 <div class="shell" [class.navigation-open]="navigationOpen()">
   <button type="button" class="menu-backdrop" (click)="closeNavigation()" aria-label="Menü schließen"></button>
   <aside class="sidebar">
-    <a class="brand" routerLink="/dashboard">
+    <a class="brand" [class.brand-with-logo]="branding().logoUrl" routerLink="/dashboard">
       @if (branding().logoUrl; as logoUrl) {
         <img [src]="logoUrl" alt="Logo der Stadtapotheke Trofaiach" />
       } @else {
         <span aria-label="Logo-Platzhalter">LOGO</span>
       }
     </a>
-    <p class="tenant">Stadtapotheke Trofaiach</p>
+    @if (!branding().logoUrl) { <p class="tenant">Stadtapotheke Trofaiach</p> }
     <nav aria-label="Hauptnavigation">
       @if (canAccess('dashboard')) { <a routerLink="/dashboard" routerLinkActive="active" (click)="closeNavigation()">Übersicht</a> }
-      @if (canAccess('slider')) { <a routerLink="/slider" routerLinkActive="active" (click)="closeNavigation()">Dashboard-Slider</a> }
       @if (canAccess('statistics')) { <a routerLink="/statistik" routerLinkActive="active" (click)="closeNavigation()">Statistik</a> }
+      @if (canAccess('slider')) { <a routerLink="/slider" routerLinkActive="active" (click)="closeNavigation()">Dashboard-Slider</a> }
       @if (canAccess('chat')) { <a class="chat-link" routerLink="/chat" routerLinkActive="active" (click)="closeNavigation()">Anfragen <app-open-chat-badge /></a> }
       @if (canAccess('news')) { <a routerLink="/inhalte" routerLinkActive="active" (click)="closeNavigation()">Inhalte</a> }
       @if (canAccess('media')) { <a routerLink="/medien" routerLinkActive="active" (click)="closeNavigation()">Medien</a> }
@@ -23,8 +23,8 @@
       @if (canAccess('redemptions')) { <a class="redemptions-link" routerLink="/einloesungen" routerLinkActive="active" (click)="closeNavigation()">Einlösungen <app-active-redemptions-badge /></a> }
       @if (canAccess('customers')) { <a routerLink="/kunden" routerLinkActive="active" (click)="closeNavigation()">Kunden</a> }
       @if (canAccess('users')) { <a routerLink="/benutzer" routerLinkActive="active" (click)="closeNavigation()">Benutzer</a> }
-      @if (canAccess('settings')) { <a routerLink="/einstellungen" routerLinkActive="active" (click)="closeNavigation()">Einstellungen</a> }
       @if (canAccess('settings')) { <a routerLink="/nachrichtenvorlagen" routerLinkActive="active" (click)="closeNavigation()">Nachrichtenvorlagen</a> }
+      @if (canAccess('settings')) { <a routerLink="/einstellungen" routerLinkActive="active" (click)="closeNavigation()">Einstellungen</a> }
     </nav>
   </aside>
 

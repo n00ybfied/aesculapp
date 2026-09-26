@@ -1,11 +1,9 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { AppointmentService, type CustomerAppointment } from '../../core/appointments/appointment.service';
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 
 @Component({
   selector: 'app-my-appointments-page',
-  imports: [RouterLink],
   templateUrl: './my-appointments.page.html',
 })
 export class MyAppointmentsPage implements OnInit {

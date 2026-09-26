@@ -77,8 +77,7 @@ export class ProfilePage {
     { id: 'rewards', label: 'Prämien' },
     { id: 'coupons', label: 'Gutscheine' },
     { id: 'news', label: 'Nachrichten' },
-    { id: 'appointments', label: 'Termine buchen' },
-    { id: 'my-appointments', label: 'Meine Termine' },
+    { id: 'appointments', label: 'Termine' },
     { id: 'medications', label: 'Medikamentenplan' },
     { id: 'family', label: 'Familie' },
     { id: 'contact', label: 'Kontakt' },
@@ -247,7 +246,7 @@ export class ProfilePage {
     }
   }
   protected initials(): string { return this.form.displayName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'K'; }
-  private applyProfile(profile: CustomerProfile): void { this.form.username = profile.username; this.form.displayName = profile.displayName; this.form.firstName = profile.firstName ?? ''; this.form.lastName = profile.lastName ?? ''; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.salutation = profile.salutation; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; this.form.newsCategoryIds = [...profile.newsCategoryIds]; this.form.medicationPushEnabled = profile.medicationPushEnabled; this.form.appointmentPushEnabled = profile.appointmentPushEnabled; this.form.familyPushEnabled = profile.familyPushEnabled; this.form.morningReminderTime = profile.morningReminderTime; this.form.noonReminderTime = profile.noonReminderTime; this.form.eveningReminderTime = profile.eveningReminderTime; this.form.nightReminderTime = profile.nightReminderTime; this.form.footerNavigationItems = [...profile.footerNavigationItems]; }
+  private applyProfile(profile: CustomerProfile): void { this.form.username = profile.username; this.form.displayName = profile.displayName; this.form.firstName = profile.firstName ?? ''; this.form.lastName = profile.lastName ?? ''; this.form.phone = profile.phone ?? ''; this.form.streetAddress = profile.streetAddress ?? ''; this.form.postalCode = profile.postalCode ?? ''; this.form.city = profile.city ?? ''; this.form.birthDate = profile.birthDate ?? ''; this.form.salutation = profile.salutation; this.form.newsletterEnabled = profile.newsletterEnabled; this.form.chatPushEnabled = profile.chatPushEnabled; this.form.rewardPushEnabled = profile.rewardPushEnabled; this.form.newsPushEnabled = profile.newsPushEnabled; this.form.newsCategoryIds = [...profile.newsCategoryIds]; this.form.medicationPushEnabled = profile.medicationPushEnabled; this.form.appointmentPushEnabled = profile.appointmentPushEnabled; this.form.familyPushEnabled = profile.familyPushEnabled; this.form.morningReminderTime = profile.morningReminderTime; this.form.noonReminderTime = profile.noonReminderTime; this.form.eveningReminderTime = profile.eveningReminderTime; this.form.nightReminderTime = profile.nightReminderTime; this.form.footerNavigationItems = [...new Set(profile.footerNavigationItems.map((item) => item === 'my-appointments' ? 'appointments' : item))]; }
   private drawCropCanvas(): void {
     const canvas = this.cropCanvas()?.nativeElement;
     const image = this.cropImage();

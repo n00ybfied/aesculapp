@@ -97,8 +97,14 @@ export const routes: Routes = [
       { path: 'gutscheine/einloesung', loadComponent: () => import('./features/coupons/active-coupon-redemption.page').then(m => m.ActiveCouponRedemptionPage), title: 'Gutscheine vorzeigen | Aesculapp' },
       { path: 'gutscheine/:id', loadComponent: () => import('./features/coupons/coupon-detail.page').then(m => m.CouponDetailPage), title: 'Gutschein | Aesculapp' },
       { path: 'gutscheine', loadComponent: () => import('./features/coupons/coupons.page').then(m => m.CouponsPage), title: 'Gutscheinheft | Aesculapp' },
-      { path: 'termine/meine', loadComponent: () => import('./features/appointments/my-appointments.page').then(m => m.MyAppointmentsPage), title: 'Meine Termine | Aesculapp' },
-      { path: 'termine', loadComponent: () => import('./features/appointments/appointments.page').then(m => m.AppointmentsPage), title: 'Termine | Aesculapp' },
+      {
+        path: 'termine',
+        loadComponent: () => import('./features/appointments/appointment-tabs.page').then(m => m.AppointmentTabsPage),
+        children: [
+          { path: '', loadComponent: () => import('./features/appointments/appointments.page').then(m => m.AppointmentsPage), title: 'Termine | Aesculapp' },
+          { path: 'meine', loadComponent: () => import('./features/appointments/my-appointments.page').then(m => m.MyAppointmentsPage), title: 'Meine Termine | Aesculapp' },
+        ],
+      },
       {
         path: 'punkte/praemien/:id',
         loadComponent: () => import('./features/rewards/reward-detail.page').then(module => module.RewardDetailPage),
