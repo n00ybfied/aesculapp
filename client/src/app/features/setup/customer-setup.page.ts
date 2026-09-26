@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ElementRef, inject, signal, viewChildren } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild, viewChildren } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -23,6 +23,7 @@ export class CustomerSetupPage {
   private achievementCompletedBeforeSetup = false;
   private readonly headings = viewChildren<ElementRef<HTMLElement>>('stepHeading');
   private readonly panels = viewChildren<ElementRef<HTMLElement>>('stepPanel');
+  private readonly viewport = viewChild<ElementRef<HTMLElement>>('stepViewport');
   protected readonly theme = inject(ThemeService).activeTheme;
   protected readonly step = signal(0);
   protected readonly loading = signal(true);
@@ -82,7 +83,7 @@ export class CustomerSetupPage {
         appointmentPushEnabled: profile.appointmentPushEnabled,
         familyPushEnabled: profile.familyPushEnabled,
       });
-      setTimeout(() => { this.headings()[0]?.nativeElement.focus(); this.updatePanelHeight(); });
+      this.focusStep(0);
     } catch {
       this.loadFailed.set(true);
       this.error.set('Die Einrichtung konnte nicht geladen werden. Bitte versuchen Sie es erneut.');
@@ -170,7 +171,18 @@ export class CustomerSetupPage {
 
   private goTo(nextStep: number): void {
     this.step.set(nextStep);
-    setTimeout(() => { this.headings()[nextStep]?.nativeElement.focus(); this.updatePanelHeight(); });
+    this.focusStep(nextStep);
+  }
+
+  private focusStep(targetStep: number): void {
+    setTimeout(() => {
+      if (this.step() !== targetStep) return;
+      // Focusing a panel during its slide must not scroll the clipped viewport horizontally.
+      const viewport = this.viewport()?.nativeElement;
+      if (viewport) viewport.scrollLeft = 0;
+      this.headings()[targetStep]?.nativeElement.focus({ preventScroll: true });
+      this.updatePanelHeight();
+    });
   }
 
   protected updatePanelHeight(): void {

@@ -13,7 +13,7 @@
       <div class="mb-4 flex items-center justify-between gap-3"><p class="text-sm font-semibold text-primary" aria-live="polite">Schritt {{ step() + 1 }} von 3</p><p class="text-sm text-muted">Nur einmal nötig</p></div>
       <div class="mb-6 flex gap-2" aria-hidden="true"><span class="h-1.5 flex-1 rounded-full" [class.bg-primary]="step() >= 0" [class.bg-border]="step() < 0"></span><span class="h-1.5 flex-1 rounded-full" [class.bg-primary]="step() >= 1" [class.bg-border]="step() < 1"></span><span class="h-1.5 flex-1 rounded-full" [class.bg-primary]="step() >= 2" [class.bg-border]="step() < 2"></span></div>
       <form class="overflow-hidden rounded-3xl border border-border bg-surface shadow-card" [formGroup]="form" (ngSubmit)="next()" novalidate>
-        <div class="overflow-hidden transition-[height] duration-300 motion-reduce:transition-none" [style.height.px]="panelHeight()">
+        <div #stepViewport class="overflow-hidden transition-[height] duration-300 motion-reduce:transition-none" [style.height.px]="panelHeight()">
           <div class="flex transition-transform duration-[350ms] ease-in-out motion-reduce:transition-none" [style.transform]="'translateX(-' + (step() * 100) + '%)'">
           <section #stepPanel class="w-full shrink-0 p-5 sm:p-8" [attr.aria-hidden]="step() !== 0" [attr.inert]="step() !== 0 ? '' : null" aria-labelledby="setup-person-title">
             <p class="text-sm font-bold text-primary">01 · ÜBER SIE</p><h1 #stepHeading id="setup-person-title" tabindex="-1" class="mt-2 text-2xl font-bold outline-none">Wie dürfen wir Sie ansprechen?</h1>
