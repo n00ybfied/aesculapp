@@ -2,6 +2,7 @@
 .chat-link,.appointments-link,.redemptions-link{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 .sidebar { display: flex; flex-direction: column; padding: 1.75rem 1rem; background: #223645; color: white; }
 .brand { display: block; color: white; text-decoration: none; }
+.brand-with-logo { margin-bottom: 2rem; }
 .brand img { display: block; width: 100%; max-width: 12.5rem; max-height: 4rem; object-fit: contain; object-position: left center; }
 .brand span { display: grid; width: 8rem; height: 3rem; place-items: center; border-radius: .7rem; background: var(--admin-primary); font-size: .85rem; font-weight: 700; letter-spacing: .08em; }
 .tenant { margin: .75rem .5rem 2rem; color: #bdd4e3; font-size: .85rem; }

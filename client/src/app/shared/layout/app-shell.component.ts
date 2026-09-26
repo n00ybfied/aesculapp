@@ -24,7 +24,6 @@ const FOOTER_NAVIGATION_LINKS: readonly FooterNavigationLink[] = [
   { id: 'coupons', label: 'Gutscheine', route: '/gutscheine', icon: 'lucideTicket' },
   { id: 'news', label: 'News', route: '/news', icon: 'lucideNewspaper' },
   { id: 'appointments', label: 'Termine', route: '/termine', icon: 'lucideCalendarDays' },
-  { id: 'my-appointments', label: 'Meine Termine', route: '/termine/meine', icon: 'lucideCalendarCheck' },
   { id: 'medications', label: 'Medikamente', route: '/medikamente', icon: 'lucidePill' },
   { id: 'family', label: 'Familie', route: '/familie', icon: 'lucideUsers' },
   { id: 'contact', label: 'Kontakt', route: '/kontakt', icon: 'lucideMapPin' },
@@ -53,7 +52,7 @@ export class AppShellComponent implements OnInit,OnDestroy {
   protected readonly profile = this.profiles.profile;
   protected readonly footerNavigationItems = computed(() => {
     const selected = this.profile()?.footerNavigationItems ?? ['home', 'chat', 'rewards', 'website'];
-    return selected
+    return [...new Set(selected.map((item) => item === 'my-appointments' ? 'appointments' : item))]
       .filter((item) => item !== 'website' || this.theme.websiteUrl !== null)
       .map((item) => FOOTER_NAVIGATION_LINKS.find((link) => link.id === item))
       .filter((item): item is FooterNavigationLink => item !== undefined);

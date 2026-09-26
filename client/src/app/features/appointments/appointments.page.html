@@ -3,10 +3,8 @@
     <span class="size-9 animate-spin rounded-full border-4 border-border border-t-primary" aria-hidden="true"></span>
   </section>
 } @else {
-  <section class="mx-auto max-w-xl px-5 py-6">
-    <p class="text-sm font-semibold text-primary">IHRE APOTHEKE</p>
-    <h1 class="mt-1 text-2xl font-bold">Termine</h1>
-    <div class="mt-2 flex items-center justify-between gap-3"><p class="text-sm leading-6 text-muted">Reservieren Sie Ihren persönlichen Beratungstermin bequem in der App.</p><a routerLink="/termine/meine" class="shrink-0 text-sm font-bold text-primary underline">Meine Termine</a></div>
+  <div class="mt-6">
+    <p class="text-sm leading-6 text-muted">Reservieren Sie Ihren persönlichen Beratungstermin bequem in der App.</p>
 
     @if (message()) {
       <p class="mt-5 rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-primary" role="status">{{ message() }}</p>
@@ -67,7 +65,7 @@
       }
     </section>
 
-  </section>
+  </div>
 }
 
 @if (isConfirmationOpen() && selectedType() && selectedSlot()) {
