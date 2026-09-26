@@ -2,6 +2,8 @@
   <p class="eyebrow">Einstellungen</p>
   <h2>Apotheken-Einstellungen</h2>
   <p class="intro">Markenauftritt und Punkteprogramm für Stadtapotheke Trofaiach.</p>
+  <app-admin-change-history entityType="Tenant" [refreshKey]="auditRefresh()" />
+  @if (auth.isTenantAdmin()) { <app-admin-change-history entityType="all" [refreshKey]="auditRefresh()" /> }
 
   @if (isLoading()) {
     <p class="loading">Einstellungen werden geladen …</p>

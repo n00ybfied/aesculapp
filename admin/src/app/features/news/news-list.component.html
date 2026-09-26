@@ -7,7 +7,7 @@
     <div class="category-list">
       @for (category of categories(); track category.id) {
         @if (editingCategoryId() === category.id) {
-          <form class="category-chip" (ngSubmit)="renameCategory(category)"><input [name]="'rename-' + category.id" [(ngModel)]="editingCategoryName" maxlength="100" [attr.aria-label]="category.name + ' umbenennen'" /><button type="submit">Speichern</button><button type="button" (click)="editingCategoryId.set(null)">Abbrechen</button></form>
+          <form class="category-chip" (ngSubmit)="renameCategory(category)"><input [name]="'rename-' + category.id" [(ngModel)]="editingCategoryName" maxlength="100" [attr.aria-label]="category.name + ' umbenennen'" /><app-admin-change-history entityType="NewsCategory" [entityId]="category.id" /><button type="submit">Speichern</button><button type="button" (click)="editingCategoryId.set(null)">Abbrechen</button></form>
         } @else {
           <span class="category-chip">{{ category.name }} <button type="button" (click)="startCategoryRename(category)" [attr.aria-label]="category.name + ' umbenennen'">Umbenennen</button><button type="button" (click)="removeCategory(category)" [attr.aria-label]="category.name + ' löschen'">Löschen</button></span>
         }

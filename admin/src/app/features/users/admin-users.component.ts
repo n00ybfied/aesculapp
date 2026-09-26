@@ -6,10 +6,11 @@ import { Router } from '@angular/router';
 import { AdminUserService, type AdminUsersOverview, type PendingInvitation, type StaffRole } from '../../core/users/admin-user.service';
 import { AdminAuthService } from '../../core/auth/admin-auth.service';
 import { PasswordVisibilityToggleComponent } from '../../shared/password-visibility-toggle.component';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
 
 @Component({
   selector: 'app-admin-users',
-  imports: [DatePipe, ReactiveFormsModule, PasswordVisibilityToggleComponent],
+  imports: [DatePipe, ReactiveFormsModule, PasswordVisibilityToggleComponent, AdminChangeHistoryComponent],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin-users.component.css',
 })

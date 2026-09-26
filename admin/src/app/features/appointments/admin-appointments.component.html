@@ -96,6 +96,7 @@
         <div><dt>Person</dt><dd>{{ appointment.resource }}</dd></div>
         <div><dt>Anmerkungen</dt><dd class="detail-note">{{ appointment.note || 'Keine Anmerkungen' }}</dd></div>
       </dl>
+      <app-admin-change-history entityType="Appointment" [entityId]="appointment.id" />
       @if (appointment.customerId !== null && appointment.chatConversationId === null && canAccessChat()) {
         <div class="appointment-chat-link">
           <label>Bestehendes Gespräch verknüpfen
@@ -139,6 +140,7 @@
 
       @if (activeModal === 'type') {
         <form (ngSubmit)="saveType()" novalidate>
+          @if (editingTypeId !== null) { <app-admin-change-history entityType="AppointmentType" [entityId]="editingTypeId" /> }
           <label>Bezeichnung *<input [(ngModel)]="typeTitle" name="typeTitle" required /></label>
           <label>Dauer in Minuten *<input [(ngModel)]="typeDuration" name="typeDuration" type="number" min="5" required /></label>
           <label>Puffer in Minuten<input [(ngModel)]="typeBuffer" name="typeBuffer" type="number" min="0" /></label>
@@ -148,6 +150,7 @@
 
       @if (activeModal === 'resource') {
         <form (ngSubmit)="saveResource()" novalidate>
+          @if (editingResourceId !== null) { <app-admin-change-history entityType="AppointmentResource" [entityId]="editingResourceId" /> }
           <label>Mitarbeiterkonto (optional)
             <select [(ngModel)]="resourceUserId" name="resourceUserId" (ngModelChange)="onResourceUserChange()">
               <option value="">Kein Konto – Namen manuell eingeben</option>
@@ -163,6 +166,7 @@
 
       @if (activeModal === 'availability') {
         <form (ngSubmit)="saveAvailability()" novalidate>
+          @if (editingAvailabilityId !== null) { <app-admin-change-history entityType="AppointmentAvailability" [entityId]="editingAvailabilityId" /> }
           <label>Person *<select [(ngModel)]="availabilityResourceId" name="resource" required><option value="">Bitte wählen</option>@for (resource of resources(); track resource.id) { <option [value]="resource.id">{{ resource.name }}</option> }</select></label>
           <label>Terminart *<select [(ngModel)]="availabilityTypeId" name="type" required><option value="">Bitte wählen</option>@for (type of types(); track type.id) { <option [value]="type.id">{{ type.title }}</option> }</select></label>
           <fieldset><legend>Wochentage *</legend><div class="weekdays">@for (day of weekdays; track day.id) { <label><input [(ngModel)]="weekdaySelected[day.id]" [name]="'weekday-' + day.id" type="checkbox" />{{ day.label }}</label> }</div></fieldset>
@@ -173,6 +177,7 @@
 
       @if (activeModal === 'block') {
         <form (ngSubmit)="saveBlock()" novalidate>
+          @if (editingBlockId !== null) { <app-admin-change-history entityType="AppointmentBlock" [entityId]="editingBlockId" /> }
           <label>Gültigkeit<select [(ngModel)]="blockTypeId" name="blockType" (change)="onBlockScopeChange()"><option value="">Gesamter Kalender</option>@for (type of types(); track type.id) { <option [value]="type.id">Nur: {{ type.title }}</option> }</select></label>
           <fieldset><legend>Sperrtage *</legend><p class="hint">Starttag, dann Endtag wählen. Ein erneuter Klick auf den Endtag setzt ihn zurück; ein Klick auf den Starttag löscht die Auswahl.</p><div class="calendar-header"><button type="button" class="secondary" [disabled]="!canGoToPreviousBlockMonth()" aria-label="Vorheriger Monat" (click)="previousBlockMonth()">‹</button><strong>{{ blockCalendarLabel() }}</strong><button type="button" class="secondary" aria-label="Nächster Monat" (click)="nextBlockMonth()">›</button></div><div class="calendar-weekdays"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="block-calendar">@for (day of blockCalendarDays(); track $index) { @if (day) { <button type="button" class="secondary" [class.selected-day]="day.value >= blockStartsOn && day.value <= blockEndsOn" [disabled]="!isBlockDayAvailable(day.value)" (click)="selectBlockDay(day.value)">{{ day.day }}</button> } @else { <span aria-hidden="true"></span> } }</div></fieldset>
           <label class="checkbox-label"><input [(ngModel)]="blockHasTime" name="blockHasTime" type="checkbox" />Zeit hinzufügen</label>
