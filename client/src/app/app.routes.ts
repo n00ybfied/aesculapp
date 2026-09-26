@@ -136,7 +136,7 @@ export const routes: Routes = [
       { path: 'kontakt', loadComponent: () => import('./features/contact/contact.page').then((module) => module.ContactPage), title: 'Kontakt | Aesculapp' },
       {
         path: 'webseite',
-        loadComponent: () => import('./features/website/website.page').then((module) => module.WebsitePage),
+        loadComponent: () => import('./features/website/website.page').then((module) => module.WebsiteRoutePlaceholder),
         title: 'Webseite | Aesculapp',
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
