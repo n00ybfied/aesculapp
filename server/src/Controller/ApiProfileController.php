@@ -278,6 +278,29 @@ final class ApiProfileController
         return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
     }
 
+    #[Route('/api/v1/profile/photo', name: 'api_v1_profile_photo_delete', methods: ['DELETE'])]
+    public function deletePhoto(Request $request): JsonResponse
+    {
+        $membership = $this->currentTenantMembership();
+        $user = $membership?->getUser();
+        if (!$user instanceof User) {
+            return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $previousPath = $user->getProfileImagePath();
+        $user->setProfileImagePath(null);
+        $this->entityManager->flush();
+
+        if ($previousPath !== null && str_starts_with($previousPath, '/uploads/profiles/')) {
+            $previousFile = dirname(__DIR__, 2).'/public'.$previousPath;
+            if (is_file($previousFile)) {
+                unlink($previousFile);
+            }
+        }
+
+        return new JsonResponse(['profile' => $this->serialize($user, $membership, $request)]);
+    }
+
     private function currentTenantMembership(): ?TenantMembership
     {
         $user = $this->security->getUser();

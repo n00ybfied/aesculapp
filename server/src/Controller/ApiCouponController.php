@@ -174,7 +174,7 @@ final class ApiCouponController
             $title,
             $subtitle,
             $description,
-            $request->request->has('mediaPath') ? $image : $coupon->getImagePath(),
+            $request->request->get('removeImage') === 'true' ? '' : ($request->request->has('mediaPath') ? $image : $coupon->getImagePath()),
             'true' === $request->request->get('isVisible', 'true'),
             $from,
             $until,

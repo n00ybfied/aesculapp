@@ -16,7 +16,7 @@
             <input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('logo', $event)" />
             <span>Datei hier ablegen oder auswählen</span>
           </label>
-          @if (previews().logo; as preview) { <img class="wide-preview" [src]="preview" alt="Logo" /> } @else { <div class="wide-placeholder">LOGO</div> }
+          @if (previews().logo; as preview) { <img class="wide-preview" [src]="preview" alt="Logo" /><button type="button" class="asset-remove" (click)="removeImage('logo')">Logo entfernen</button> } @else { <div class="wide-placeholder">LOGO</div> }
         </article>
         <article>
           <h3>Quadratisches Logo</h3>
@@ -25,7 +25,7 @@
             <input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('squareLogo', $event)" />
             <span>Datei hier ablegen oder auswählen</span>
           </label>
-          @if (previews().squareLogo; as preview) { <img class="square-preview" [src]="preview" alt="Quadratisches Logo" /> } @else { <div class="square-placeholder">L</div> }
+          @if (previews().squareLogo; as preview) { <img class="square-preview" [src]="preview" alt="Quadratisches Logo" /><button type="button" class="asset-remove" (click)="removeImage('squareLogo')">Quadratisches Logo entfernen</button> } @else { <div class="square-placeholder">L</div> }
         </article>
         <article>
           <h3>Favicon</h3>
@@ -34,7 +34,7 @@
             <input type="file" accept="image/jpeg,image/png,image/webp,image/x-icon" (change)="selectImage('favicon', $event)" />
             <span>Datei hier ablegen oder auswählen</span>
           </label>
-          @if (previews().favicon; as preview) { <img class="square-preview" [src]="preview" alt="Favicon" /> } @else { <div class="square-placeholder">L</div> }
+          @if (previews().favicon; as preview) { <img class="square-preview" [src]="preview" alt="Favicon" /><button type="button" class="asset-remove" (click)="removeImage('favicon')">Favicon entfernen</button> } @else { <div class="square-placeholder">L</div> }
         </article>
       </div>
     </details>
@@ -69,7 +69,7 @@
           <input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage('birthdayGreetingImage', $event)" />
           <span>Bild für den Geburtstagsgruß ablegen oder auswählen</span>
         </label>
-        @if (previews().birthdayGreetingImage; as preview) { <img class="wide-preview" [src]="preview" alt="Vorschau des Geburtstagsbilds" /> }
+        @if (previews().birthdayGreetingImage; as preview) { <img class="wide-preview" [src]="preview" alt="Vorschau des Geburtstagsbilds" /><button type="button" class="asset-remove" (click)="removeImage('birthdayGreetingImage')">Geburtstagsbild entfernen</button> }
       </div>
     </details>
 
@@ -164,9 +164,16 @@
             <input #smtpPasswordInput id="smtp-password" name="smtpPassword" type="password" [(ngModel)]="smtpPassword" [placeholder]="smtpPasswordConfigured ? 'Gespeichertes Passwort beibehalten' : ''" autocomplete="new-password" />
             <app-password-visibility-toggle [field]="smtpPasswordInput" />
           </span>
-          <small>Wird verschlüsselt gespeichert.</small>
+          <small>Wird verschlüsselt gespeichert. Leer lassen behält das bisherige Passwort.</small>
+          @if (smtpPasswordConfigured) { <label class="confirmation"><input type="checkbox" name="removeSmtpPassword" [(ngModel)]="removeSmtpPassword" /><span>Gespeichertes SMTP-Passwort beim Speichern entfernen</span></label> }
         </div>
         <label>Absenderadresse<input name="smtpFrom" type="email" [(ngModel)]="smtpFrom" placeholder="office@apotheke.at" /></label>
+        @if (smtpSettingsConfigured()) {
+          <div class="smtp-remove-action">
+            <button type="button" [disabled]="isSaving()" (click)="clearSmtp()">SMTP-Einstellungen entfernen</button>
+            <small>Entfernt auch das gespeicherte Passwort. Danach gilt wieder der Server-Standardversand.</small>
+          </div>
+        }
       </div>
     </details>
 
