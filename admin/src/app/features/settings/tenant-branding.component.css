@@ -260,7 +260,6 @@ h3 {
   color: var(--admin-muted);
   font-size: .86rem;
 }
-
 .ratio-setting {
   display: grid;
   min-width: 0;

@@ -72,4 +72,27 @@ describe('ProfileService account deletion', () => {
     expect(service.profile()?.id).toBe(123);
     expect(localStorage.getItem('aesculapp.mock-rewards.v1')).toBe('private history');
   });
+
+  it('removes an optional profile photo and updates local profile state', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        ProfileService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_BASE_URL, useValue: '/api/v1' },
+        { provide: AuthService, useValue: { accessToken: signal('test-token') } },
+      ],
+    });
+    const service = TestBed.inject(ProfileService);
+    service.profile.set({ id: 123, profileImageUrl: '/uploads/profiles/old.jpg' } as CustomerProfile);
+
+    const deletion = service.deletePhoto();
+    const request = TestBed.inject(HttpTestingController).expectOne('/api/v1/profile/photo');
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer test-token');
+    request.flush({ profile: { id: 123, profileImageUrl: null } });
+
+    expect((await deletion).profileImageUrl).toBeNull();
+    expect(service.profile()?.profileImageUrl).toBeNull();
+  });
 });

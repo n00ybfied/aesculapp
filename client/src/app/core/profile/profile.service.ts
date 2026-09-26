@@ -102,6 +102,12 @@ export class ProfileService {
     return response.profile;
   }
 
+  async deletePhoto(): Promise<CustomerProfile> {
+    const response = await firstValueFrom(this.http.delete<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile/photo', { headers: this.headers() }));
+    this.profile.set(response.profile);
+    return response.profile;
+  }
+
   async requestEmailChange(email: string, password: string): Promise<string> {
     const response = await firstValueFrom(this.http.post<{ message: string }>(
       this.apiBaseUrl + '/profile/email-change/request',
