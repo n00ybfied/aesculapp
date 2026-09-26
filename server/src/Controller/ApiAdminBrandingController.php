@@ -42,6 +42,20 @@ final class ApiAdminBrandingController
         return new JsonResponse(['branding' => $this->serialize($this->activeTenant->get(), $request)]);
     }
 
+    #[Route('/api/v1/admin/settings/branding/smtp', name: 'api_v1_admin_branding_smtp_delete', methods: ['DELETE'])]
+    public function deleteSmtp(Request $request): JsonResponse
+    {
+        if (!$this->isAdmin()) {
+            return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $tenant = $this->activeTenant->get();
+        $this->clearSmtp($tenant);
+        $this->entityManager->flush();
+
+        return new JsonResponse(['branding' => $this->serialize($tenant, $request, true)]);
+    }
+
     #[Route('/api/v1/admin/settings/branding', name: 'api_v1_admin_branding_update', methods: ['POST'])]
     public function update(Request $request): JsonResponse
     {
@@ -96,16 +110,44 @@ final class ApiAdminBrandingController
         $tenant->setBirthdayGreetingEnabled($birthdayGreetingEnabled);
         $tenant->setBirthdayGreetingTitle($birthdayGreetingTitle === '' ? null : $birthdayGreetingTitle);
         $tenant->setBirthdayGreetingText($birthdayGreetingText === '' ? null : $birthdayGreetingText);
-        $smtpHost = trim((string) $request->request->get('smtpHost', '')); $smtpFrom = trim((string) $request->request->get('smtpFrom', '')); $smtpPort = $request->request->get('smtpPort'); $smtpEncryption = $request->request->get('smtpEncryption');
-        if ($smtpHost !== '' || $smtpFrom !== '') { if ($smtpHost === '' || false === filter_var($smtpFrom, FILTER_VALIDATE_EMAIL) || !is_string($smtpPort) || !ctype_digit($smtpPort) || (int) $smtpPort < 1 || (int) $smtpPort > 65535 || !is_string($smtpEncryption) || !in_array($smtpEncryption, ['tls','ssl','none'], true)) { return new JsonResponse(['message' => 'Bitte prüfen Sie die SMTP-Einstellungen.'], 422); } $tenant->setSmtpHost($smtpHost); $tenant->setSmtpPort((int) $smtpPort); $tenant->setSmtpEncryption($smtpEncryption); $tenant->setSmtpUsername(trim((string) $request->request->get('smtpUsername', '')) ?: null); $tenant->setSmtpFrom($smtpFrom); $password = $request->request->get('smtpPassword'); if (is_string($password) && $password !== '') { $tenant->setSmtpPasswordEncrypted(base64_encode(sodium_crypto_secretbox($password, $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES), hash('sha256', $this->appSecret, true))) . ':' . base64_encode($nonce)); } }
+        $smtpHost = trim((string) $request->request->get('smtpHost', ''));
+        $smtpFrom = trim((string) $request->request->get('smtpFrom', ''));
+        $smtpPort = $request->request->get('smtpPort');
+        $smtpEncryption = $request->request->get('smtpEncryption');
+        if ($request->request->has('smtpHost') && $request->request->has('smtpFrom') && $smtpHost === '' && $smtpFrom === '') {
+            $this->clearSmtp($tenant);
+        } elseif ($smtpHost !== '' || $smtpFrom !== '') {
+            if ($smtpHost === '' || false === filter_var($smtpFrom, FILTER_VALIDATE_EMAIL) || !is_string($smtpPort) || !ctype_digit($smtpPort) || (int) $smtpPort < 1 || (int) $smtpPort > 65535 || !is_string($smtpEncryption) || !in_array($smtpEncryption, ['tls', 'ssl', 'none'], true)) {
+                return new JsonResponse(['message' => 'Bitte prüfen Sie die SMTP-Einstellungen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            $tenant->setSmtpHost($smtpHost);
+            $tenant->setSmtpPort((int) $smtpPort);
+            $tenant->setSmtpEncryption($smtpEncryption);
+            $tenant->setSmtpUsername(trim((string) $request->request->get('smtpUsername', '')) ?: null);
+            $tenant->setSmtpFrom($smtpFrom);
+            $password = $request->request->get('smtpPassword');
+            if (is_string($password) && $password !== '') {
+                $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+                $tenant->setSmtpPasswordEncrypted(base64_encode(sodium_crypto_secretbox($password, $nonce, hash('sha256', $this->appSecret, true))) . ':' . base64_encode($nonce));
+            } elseif ($request->request->get('removeSmtpPassword') === 'true') {
+                $tenant->setSmtpPasswordEncrypted(null);
+            }
+        }
         foreach (['logo' => 'LogoPath', 'squareLogo' => 'SquareLogoPath', 'favicon' => 'FaviconPath', 'birthdayGreetingImage' => 'BirthdayGreetingImagePath'] as $field => $property) {
             $image = $request->files->get($field);
-            if (!$image instanceof UploadedFile) { continue; }
+            $getter = 'get'.$property;
+            $setter = 'set'.$property;
+            if (!$image instanceof UploadedFile) {
+                if ($request->request->get('remove'.ucfirst($field)) === 'true') {
+                    $previous = $tenant->$getter();
+                    $tenant->$setter(null);
+                    $this->deleteFile($previous);
+                }
+                continue;
+            }
             $path = $this->storeImage($image, $tenant, $field === 'favicon');
             if ($path === null) { return new JsonResponse(['message' => 'Bitte verwenden Sie PNG, JPEG oder WebP; für das Favicon ist zusätzlich ICO erlaubt. Maximale Dateigröße: 5 MB.'], Response::HTTP_UNPROCESSABLE_ENTITY); }
-            $getter = 'get'.$property;
             $previous = $tenant->$getter();
-            $setter = 'set'.$property;
             $tenant->$setter($path);
             $this->deleteFile($previous);
         }
@@ -119,6 +161,16 @@ final class ApiAdminBrandingController
         if (!$user instanceof User) { return false; }
         $membership = $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
         return $membership !== null && [] !== array_intersect(self::ADMIN_ROLES, $membership->getRoles());
+    }
+
+    private function clearSmtp(Tenant $tenant): void
+    {
+        $tenant->setSmtpHost(null);
+        $tenant->setSmtpPort(null);
+        $tenant->setSmtpEncryption(null);
+        $tenant->setSmtpUsername(null);
+        $tenant->setSmtpPasswordEncrypted(null);
+        $tenant->setSmtpFrom(null);
     }
 
     private function storeImage(UploadedFile $image, Tenant $tenant, bool $favicon): ?string

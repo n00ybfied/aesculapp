@@ -39,6 +39,10 @@ export class TenantBrandingService {
     return this.store(await firstValueFrom(this.http.post<{ branding: TenantBranding }>(this.api() + '/admin/settings/branding', data, { headers: this.headers() })));
   }
 
+  async clearSmtp(): Promise<TenantBranding> {
+    return this.store(await firstValueFrom(this.http.delete<{ branding: TenantBranding }>(this.api() + '/admin/settings/branding/smtp', { headers: this.headers() })));
+  }
+
   async getContact(): Promise<TenantContact> { return (await firstValueFrom(this.http.get<{ contact: TenantContact }>(this.api() + '/admin/settings/contact', { headers: this.headers() }))).contact; }
   async updateContact(contact: TenantContact): Promise<TenantContact> { return (await firstValueFrom(this.http.put<{ contact: TenantContact }>(this.api() + '/admin/settings/contact', contact, { headers: this.headers() }))).contact; }
 
@@ -50,11 +54,7 @@ export class TenantBrandingService {
   }
 
   private applyFavicon(faviconUrl: string | null): void {
-    if (faviconUrl === null) {
-      return;
-    }
-
-    this.document.querySelector<HTMLLinkElement>('#app-favicon')?.setAttribute('href', faviconUrl);
+    this.document.querySelector<HTMLLinkElement>('#app-favicon')?.setAttribute('href', faviconUrl ?? 'data:,');
   }
 
   private api(): string { return location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? 'http://localhost:6080/api/v1' : 'https://api.aesculapp.floatbox.at/api/v1'; }

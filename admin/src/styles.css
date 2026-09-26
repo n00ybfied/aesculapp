@@ -38,6 +38,12 @@ button:not(:disabled) { cursor: pointer; }
 .password-field > input { width: 100%; padding-right: 3.25rem !important; }
 .smtp-password-entry { display: grid; gap: .45rem; color: var(--admin-text); font-size: .96rem; }
 .smtp-password-entry small { color: var(--admin-muted); font-size: .86rem; }
+.smtp-remove-action { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
+.smtp-remove-action button { min-height: 2.75rem; padding: .55rem .9rem; border: 1px solid var(--admin-danger); border-radius: .6rem; background: var(--admin-surface); color: var(--admin-danger); font-weight: 700; }
+.smtp-remove-action button:hover:not(:disabled) { background: color-mix(in srgb, var(--admin-danger) 8%, var(--admin-surface)); }
+.smtp-remove-action button:focus-visible { outline: 3px solid color-mix(in srgb, var(--admin-danger) 35%, transparent); outline-offset: 2px; }
+.smtp-remove-action button:disabled { opacity: .6; }
+.smtp-remove-action small { color: var(--admin-muted); line-height: 1.4; }
 
 input[type="checkbox"] {
   appearance: none;
@@ -74,3 +80,4 @@ input[type="checkbox"]:disabled { opacity: .45; cursor: not-allowed; }
     font-size: .9rem;
   }
 }
+.asset-remove { align-self: center; margin-top: .6rem; border: 0; background: transparent; color: var(--admin-primary); cursor: pointer; font: inherit; font-size: .85rem; text-decoration: underline; }

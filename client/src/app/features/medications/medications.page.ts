@@ -6,14 +6,15 @@ import { StatusMessageService } from '../../core/feedback/status-message.service
 import { FamilyService } from '../../core/family/family.service';
 import { Medication, MedicationDraft, MedicationService } from '../../core/medications/medication.service';
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
+import { parseMedicationDose } from './medication-dose';
 
 interface MedicationForm {
   name: string;
   dosage: string;
-  morningDose: string;
-  noonDose: string;
-  eveningDose: string;
-  nightDose: string;
+  morningDose: string | number | null;
+  noonDose: string | number | null;
+  eveningDose: string | number | null;
+  nightDose: string | number | null;
   notes: string;
   refillDate: string;
   image: File | null;
@@ -64,13 +65,14 @@ export class MedicationsPage implements OnDestroy {
       this.formError.set('Bitte geben Sie einen Medikamentennamen mit mindestens 2 Zeichen ein.');
       return;
     }
-    const doses = [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose];
-    if (doses.some((dose) => dose.trim() === '' || !Number.isFinite(Number(dose)) || Number(dose) < 0 || Number(dose) > 99 || Number(dose) * 2 % 1 !== 0)) {
+    const doses = [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose].map(parseMedicationDose);
+    if (doses.some((dose) => dose === null)) {
       this.formError.set('Bitte geben Sie für jede Einnahme eine Zahl zwischen 0 und 99 in 0,5er-Schritten ein.');
       return;
     }
     this.saving.set(true);
-    try { const saved = this.editingId() === null ? await this.medicationsApi.create(this.draft()) : await this.medicationsApi.update(this.editingId()!, this.draft()); this.closeEditor(); await this.reload(); this.messages.show(`„${saved.name}“ wurde gespeichert.`, { kind: 'success' }); }
+    const draft = this.draft(doses.filter((dose): dose is number => dose !== null));
+    try { const saved = this.editingId() === null ? await this.medicationsApi.create(draft) : await this.medicationsApi.update(this.editingId()!, draft); this.closeEditor(); await this.reload(); this.messages.show(`„${saved.name}“ wurde gespeichert.`, { kind: 'success' }); }
     catch { this.messages.error('Das Medikament konnte nicht gespeichert werden.'); } finally { this.saving.set(false); }
   }
   protected async remove(item: Medication): Promise<void> { if (!this.canManage() || !await this.dialogs.confirm(`„${item.name}“ wirklich entfernen?`, { title: 'Medikament entfernen', confirmLabel: 'Entfernen', destructive: true })) return; try { await this.medicationsApi.remove(item.id); await this.reload(); this.messages.show('Das Medikament wurde entfernt.', { kind: 'success' }); } catch { this.messages.error('Das Medikament konnte nicht entfernt werden.'); } }
@@ -81,11 +83,11 @@ export class MedicationsPage implements OnDestroy {
     try { const response = await this.medicationsApi.load(this.selectedOwnerId() ?? undefined); const medications = response.medications; this.canManage.set(response.access.canManage); this.medications.set(medications); await Promise.all(medications.filter((item) => item.hasImage).map(async (item) => { try { const image = URL.createObjectURL(await this.medicationsApi.image(item.id)); this.imageUrls.update((urls) => ({ ...urls, [item.id]: image })); } catch { /* A missing private image does not block the plan. */ } })); }
     catch { this.messages.error('Der Medikamentenplan konnte nicht geladen werden.'); } finally { this.loading.set(false); }
   }
-  private draft(): MedicationDraft {
+  private draft(doses: readonly number[]): MedicationDraft {
     return {
       name: this.form.name,
       dosage: this.form.dosage,
-      schedule: [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose].join('-'),
+      schedule: doses.join('-'),
       notes: this.form.notes,
       refillDate: this.form.refillDate,
       image: this.form.image,

@@ -161,6 +161,51 @@ try {
     expectsStatus(fn () => $customersA->get($customerB->getId() ?? 0, new Symfony\Component\HttpFoundation\Request()), 404);
     expectsStatus(fn () => $rewardsB->adminList(new Symfony\Component\HttpFoundation\Request()), 403);
 
+    // Blank SMTP fields and the dedicated delete action must both remove the
+    // encrypted secret; unrelated partial updates must leave it untouched.
+    $activeTenant->setSmtpHost('smtp.example.invalid');
+    $activeTenant->setSmtpPort(587);
+    $activeTenant->setSmtpEncryption('tls');
+    $activeTenant->setSmtpUsername('test-user');
+    $activeTenant->setSmtpPasswordEncrypted('encrypted-test-value');
+    $activeTenant->setSmtpFrom('office@example.invalid');
+    $entityManager->flush();
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 200);
+    authorizationCheck($activeTenant->getSmtpPasswordEncrypted() === 'encrypted-test-value', 'An unrelated update must retain SMTP credentials.');
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['smtpHost' => '', 'smtpFrom' => '', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 200);
+    authorizationCheck($activeTenant->getSmtpHost() === null && $activeTenant->getSmtpPort() === null && $activeTenant->getSmtpEncryption() === null && $activeTenant->getSmtpUsername() === null && $activeTenant->getSmtpPasswordEncrypted() === null && $activeTenant->getSmtpFrom() === null, 'Clearing SMTP fields must also remove the encrypted password.');
+
+    $activeTenant->setSmtpHost('smtp.example.invalid');
+    $activeTenant->setSmtpPasswordEncrypted('encrypted-test-value');
+    $entityManager->flush();
+    authenticate($storage, $ownerA, ['ROLE_TENANT_ADMIN']);
+    expectsStatus(fn () => $brandingA->deleteSmtp(new Symfony\Component\HttpFoundation\Request()), 403);
+    authenticate($storage, $staffA, ['ROLE_TENANT_STAFF']);
+    expectsStatus(fn () => $brandingA->deleteSmtp(new Symfony\Component\HttpFoundation\Request()), 200);
+    authorizationCheck($activeTenant->getSmtpHost() === null && $activeTenant->getSmtpPasswordEncrypted() === null, 'The authorized delete action must clear saved SMTP credentials.');
+
+    $activeTenant->setLogoPath('/uploads/tenant-branding/test-logo.png');
+    $activeTenant->setBirthdayGreetingImagePath('/uploads/tenant-branding/test-birthday.png');
+    $entityManager->flush();
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['removeLogo' => 'true', 'removeBirthdayGreetingImage' => 'true', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 200);
+    authorizationCheck($activeTenant->getLogoPath() === null && $activeTenant->getBirthdayGreetingImagePath() === null, 'Optional branding images must be removable without replacement.');
+
+    $activeTenant->setSmtpHost('smtp.example.invalid');
+    $activeTenant->setSmtpPort(587);
+    $activeTenant->setSmtpEncryption('tls');
+    $activeTenant->setSmtpFrom('office@example.invalid');
+    $activeTenant->setSmtpPasswordEncrypted('encrypted-test-value');
+    $entityManager->flush();
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['smtpHost' => 'smtp.example.invalid', 'smtpPort' => '587', 'smtpEncryption' => 'tls', 'smtpFrom' => 'office@example.invalid', 'removeSmtpPassword' => 'true', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 200);
+    authorizationCheck($activeTenant->getSmtpHost() === 'smtp.example.invalid' && $activeTenant->getSmtpPasswordEncrypted() === null, 'The optional SMTP password must be removable on its own.');
+
+    $coupon = new App\Entity\Coupon($activeTenant, 'Test-Gutschein', 'Test', '<p>Beschreibung</p>', '/uploads/media/test.jpg', true, null, null);
+    $entityManager->persist($coupon);
+    $entityManager->flush();
+    $couponsA = new App\Controller\ApiCouponController($entityManager, $tenantA, $memberships, $security, new App\Service\RichTextSanitizer());
+    expectsStatus(fn () => $couponsA->update($coupon->getId(), new Symfony\Component\HttpFoundation\Request([], ['title' => 'Test-Gutschein', 'subtitle' => 'Test', 'description' => '<p>Beschreibung</p>', 'removeImage' => 'true'])), 200);
+    authorizationCheck($coupon->getImagePath() === '', 'A removed optional coupon image must stay empty after saving.');
+
     // A tenant may enable family point sharing before any pool exists. Once a
     // pool has been created, the server must refuse to disable that feature.
     expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['familyPointSharingEnabled' => 'true', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 200);
