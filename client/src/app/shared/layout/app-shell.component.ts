@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { ChatService } from '../../core/chat/chat.service';
 import { ChatPushService } from '../../core/chat/chat-push.service';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { NgIcon } from '@ng-icons/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { FooterNavigationItem, ProfileService } from '../../core/profile/profile.service';
@@ -9,6 +10,7 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { SnackbarComponent } from '../feedback/snackbar.component';
 import { AnalyticsService } from '../../core/analytics/analytics.service';
 import { ConfirmDialogComponent } from '../feedback/confirm-dialog.component';
+import { WebsitePage } from '../../features/website/website.page';
 
 interface FooterNavigationLink {
   readonly id: FooterNavigationItem;
@@ -33,7 +35,7 @@ const FOOTER_NAVIGATION_LINKS: readonly FooterNavigationLink[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [NgIcon, RouterLink, RouterLinkActive, RouterOutlet, SnackbarComponent, ConfirmDialogComponent],
+  imports: [NgIcon, RouterLink, RouterLinkActive, RouterOutlet, SnackbarComponent, ConfirmDialogComponent, WebsitePage],
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent implements OnInit,OnDestroy {
@@ -41,14 +43,17 @@ export class AppShellComponent implements OnInit,OnDestroy {
   private readonly push=inject(ChatPushService);
   protected readonly unreadReplies=this.chats.unreadCount;
   private countTimer:ReturnType<typeof setInterval>|undefined;
+  private websiteNavigation: Subscription | undefined;
   private readonly refreshChatBadge=()=>{if(!document.hidden)void this.chats.refreshUnreadCount();};
-  ngOnDestroy():void{if(this.countTimer)clearInterval(this.countTimer);document.removeEventListener('visibilitychange',this.refreshChatBadge);this.analytics.stopSession();this.chats.unreadCount.set(null);this.clearNavigationTimers();}
+  ngOnDestroy():void{if(this.countTimer)clearInterval(this.countTimer);this.websiteNavigation?.unsubscribe();document.removeEventListener('visibilitychange',this.refreshChatBadge);this.analytics.stopSession();this.chats.unreadCount.set(null);this.clearNavigationTimers();}
   private readonly navigationTransitionMs = 220;
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly analytics = inject(AnalyticsService);
   private readonly profiles = inject(ProfileService);
   protected readonly theme = inject(ThemeService).activeTheme;
+  protected readonly websiteActive = signal(false);
+  protected readonly websiteMounted = signal(false);
   protected readonly profile = this.profiles.profile;
   protected readonly footerNavigationItems = computed(() => {
     const selected = this.profile()?.footerNavigationItems ?? ['home', 'chat', 'rewards', 'website'];
@@ -69,6 +74,9 @@ export class AppShellComponent implements OnInit,OnDestroy {
   private navigationEnterTimer: ReturnType<typeof setTimeout> | undefined;
 
   async ngOnInit(): Promise<void> {
+    this.updateWebsiteVisibility(this.router.url);
+    this.websiteNavigation = this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event) => this.updateWebsiteVisibility(event.urlAfterRedirects));
     this.analytics.startSession();
     void this.initializePushPrompt();
     this.refreshChatBadge();
@@ -80,6 +88,12 @@ export class AppShellComponent implements OnInit,OnDestroy {
       // The profile page presents a detailed retry message; the shell keeps its initials fallback.
     }
     this.initializeAppNotice();
+  }
+
+  private updateWebsiteVisibility(url: string): void {
+    const active = url.split(/[?#]/, 1)[0] === '/webseite' && this.theme.websiteUrl !== null;
+    this.websiteActive.set(active);
+    if (active) this.websiteMounted.set(true);
   }
 
   protected openNavigation(): void {

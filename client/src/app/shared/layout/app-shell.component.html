@@ -52,6 +52,9 @@
 
   <div class="min-h-[calc(100dvh-8.5rem)] pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
     <router-outlet />
+    @if (websiteMounted()) {
+      <app-website-page [style.display]="websiteActive() ? 'block' : 'none'" />
+    }
   </div>
 
   <app-snackbar />

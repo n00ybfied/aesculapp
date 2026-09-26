@@ -30,3 +30,7 @@ export class WebsitePage {
   protected readonly websiteUrl = this.theme.websiteUrl;
   protected readonly safeWebsiteUrl: SafeResourceUrl | null = this.websiteUrl === null ? null : this.sanitizer.bypassSecurityTrustResourceUrl(this.websiteUrl);
 }
+
+// The iframe itself stays mounted in AppShellComponent while this route is active.
+@Component({ template: '' })
+export class WebsiteRoutePlaceholder {}
