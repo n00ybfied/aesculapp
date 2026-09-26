@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AdminNewsService, type NewsCategory } from '../../core/news/admin-news.service';
 import { MediaPickerComponent, type PickedMedia } from '../../shared/media-picker.component';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
 
-@Component({ selector: 'app-news-editor', imports: [FormsModule, RouterLink, MediaPickerComponent, RichTextEditorComponent], templateUrl: './news-editor.component.html', styleUrl: './news-editor.component.css' })
+@Component({ selector: 'app-news-editor', imports: [FormsModule, RouterLink, MediaPickerComponent, RichTextEditorComponent, AdminChangeHistoryComponent], templateUrl: './news-editor.component.html', styleUrl: './news-editor.component.css' })
 export class NewsEditorComponent {
   private readonly news = inject(AdminNewsService); private readonly route = inject(ActivatedRoute); private readonly router = inject(Router);
-  private postId: number | null = null; private image: File | null = null; protected bodyHtml = '';
+  protected postId: number | null = null; private image: File | null = null; protected bodyHtml = '';
   private selectedMediaPath: string | null = null;
   protected readonly isLoading = signal(false); protected readonly isSaving = signal(false); protected readonly error = signal(''); protected readonly imagePreviewUrl = signal<string | null>(null); protected readonly removeExistingImage = signal(false); protected readonly editorState = signal(0);
   protected readonly categories = signal<readonly NewsCategory[]>([]);

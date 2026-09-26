@@ -24,6 +24,7 @@ final class AdminAreaPermissions
 
     public function areaForPath(string $path): ?string
     {
+        if ($path === '/api/v1/admin/audit') return null; // The audit endpoint checks the requested entity's area itself.
         if (preg_match('~^/api/v1/admin/(auth(?:/|$)|invitations/accept$|appointments/mine(?:/|$))~', $path)) {
             return null;
         }

@@ -17,6 +17,7 @@ import {
 import { AppointmentCalendarComponent } from './appointment-calendar.component';
 import { AppointmentCreateComponent } from './appointment-create.component';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
 
 type AppointmentModal = 'type' | 'resource' | 'availability' | 'block' | null;
 
@@ -27,7 +28,7 @@ interface BlockCalendarDay {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, AppointmentCalendarComponent, AppointmentCreateComponent],
+  imports: [FormsModule, AppointmentCalendarComponent, AppointmentCreateComponent, AdminChangeHistoryComponent],
   templateUrl: './admin-appointments.component.html',
   styleUrl: './admin-appointments.component.css',
 })

@@ -42,6 +42,7 @@
           </div>
           @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
           @if (success()) { <p class="feedback success" role="status">{{ success() }}</p> }
+          <app-admin-change-history entityType="NotificationTemplate" [requestPath]="'/api/v1/admin/settings/notification-templates/' + template.key" [refreshKey]="auditRefresh()" />
           <div class="actions">
             <button type="submit" [disabled]="saving()">{{ saving() ? 'Speichern …' : 'Vorlage speichern' }}</button>
             @if (template.customized) { <button type="button" class="secondary" [disabled]="saving()" (click)="reset()">Standard wiederherstellen</button> }

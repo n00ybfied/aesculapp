@@ -817,6 +817,10 @@ Die Terminmenü-Badge und Hinweise auf vom Kunden stornierte Termine sind für M
 
 Die ebenfalls mandantenbezogene Option „Kunden Mitarbeiternamen bei Terminen anzeigen“ ist standardmäßig aus. Nur bei aktivierter Option liefern Kundentermin-API und Termin-E-Mails den Namen der durchführenden Person aus. Adminansichten bleiben davon unberührt.
 
+### Nachvollziehbarkeit von Adminänderungen
+
+Änderungen durch angemeldete Backendbenutzer werden mandantenbezogen serverseitig in `admin_change_log` festgehalten. Ein Eintrag enthält die Benutzer-ID, den damaligen Anzeigenamen, Zeitpunkt, Aktion (Anlage, Bearbeitung oder Löschung), Entitätstyp und Datensatz-ID sowie den Admin-API-Pfad. Formulareingaben, Passwörter, Chattexte und andere Inhaltswerte werden im Audit-Log nicht dupliziert. Die Historie ist append-only; der Name bleibt auch nach späterer Umbenennung des Mitarbeiterkontos nachvollziehbar. Die Erfassung erfolgt bei Doctrine-Entitätsänderungen im Admin-Request während des Flushs. Direkte SQL-/DQL-Schreiboperationen oder Änderungen außerhalb des Admin-Request-Pfades erfordern eine explizite Audit-Erfassung, wenn sie als Backendaktion gelten sollen. Die Admin-API liefert nur den aktuellen Mandanten und prüft die Berechtigung für den betroffenen Bereich; Formulare zeigen die letzte Änderung und die zugehörige Historie. Administratoren können in den Einstellungen den bereichsübergreifenden Verlauf inklusive Löschungen seitenweise einsehen. Ältere, vor dieser Migration angelegte Änderungen sind nicht rekonstruierbar. Chatantworten zeigen zusätzlich direkt an der Nachricht den zugehörigen Backendabsender.
+
 ### Statistik und Ereignisse
 
 Das Adminportal zeigt eine mandantenbezogene Statistik zu Kundenwachstum, Inhaltsbestand, Einlösungen, Inhaltsinteresse und App-Nutzung. Historische Registrierungen und Einlösungen werden aus ihren Fachdatensätzen berechnet. Neue Nutzungsdaten werden nur über den zentralen Kunden-Service `AnalyticsService` als schlanke Ereignisse gespeichert; Fachkomponenten senden keine technischen Tracking-Requests direkt.

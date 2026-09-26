@@ -3,8 +3,9 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AdminNewsService, type NewsCategory, type NewsPage } from '../../core/news/admin-news.service';
 import { ConfirmDialogService } from '../../shared/confirm-dialog.service';
+import { AdminChangeHistoryComponent } from '../../shared/admin-change-history.component';
 
-@Component({ selector: 'app-news-list', imports: [FormsModule, RouterLink], templateUrl: './news-list.component.html', styleUrl: './news-list.component.css' })
+@Component({ selector: 'app-news-list', imports: [FormsModule, RouterLink, AdminChangeHistoryComponent], templateUrl: './news-list.component.html', styleUrl: './news-list.component.css' })
 export class NewsListComponent {
   private readonly newsService = inject(AdminNewsService);
   private readonly dialogs = inject(ConfirmDialogService);

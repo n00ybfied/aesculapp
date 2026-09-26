@@ -81,6 +81,7 @@
           @if (editingUserId() === user.id) {
             <div class="permission-editor">
               <strong>Rechte für {{ user.displayName }}</strong>
+              <app-admin-change-history entityType="TenantMembership" [requestPath]="'/api/v1/admin/users/' + user.id + '/permissions'" />
               <div class="permission-grid">
                 @for (area of areas; track area[0]) {
                   <label><input type="checkbox" [checked]="editingPermissions().includes(area[0])" (change)="togglePermission(area[0], $any($event.target).checked, true)" /> {{ area[1] }}</label>
@@ -93,6 +94,7 @@
           @if (editingPasswordUserId() === user.id) {
             <form class="password-editor" [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate>
               <strong>Passwort für {{ user.displayName }} ändern</strong>
+              <app-admin-change-history entityType="User" [entityId]="user.id" />
               <div class="password-fields">
                 <div class="password-entry">
                   <label for="staff-new-password">Neues Passwort</label>

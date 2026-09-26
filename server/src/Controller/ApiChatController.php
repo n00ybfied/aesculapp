@@ -132,7 +132,7 @@ final class ApiChatController {
     #[Route('/api/v1/admin/chat/{id}', methods:['GET'], requirements:['id'=>'\d+'], defaults:['admin'=>true])]
     public function read(int $id, Request $request, bool $admin): JsonResponse {
         $chat = $this->conversation($id, $this->user($admin), $admin);
-        $query = $this->em->createQueryBuilder()->select('m.id, m.senderRole, m.encryptedText, m.createdAt, CASE WHEN m.encryptedImage IS NULL THEN 0 ELSE 1 END AS hasImage')->from(ChatMessage::class,'m')->where('m.conversation = :chat')->setParameter('chat',$chat);
+        $query = $this->em->createQueryBuilder()->select('m.id, m.senderRole, m.encryptedText, m.createdAt, author.id AS senderId, author.displayName AS senderName, CASE WHEN m.encryptedImage IS NULL THEN 0 ELSE 1 END AS hasImage')->from(ChatMessage::class,'m')->join('m.sender','author')->where('m.conversation = :chat')->setParameter('chat',$chat);
         $before = $request->query->getInt('before');
         if ($before > 0) { $query->andWhere('m.id < :before')->setParameter('before',$before); }
         $messages = $query->orderBy('m.id','DESC')->setMaxResults(51)->getQuery()->getResult();
@@ -140,7 +140,8 @@ final class ApiChatController {
         $messages = array_reverse(array_slice($messages,0,50));
         return $this->json(['conversation'=>$this->summary($chat,$admin),'hasOlder'=>$more,'messages'=>array_map(fn(array $m)=>[
             'id'=>$m['id'],'role'=>$m['senderRole'],'text'=>$this->cipher->decrypt($m['encryptedText'],$this->context($chat).':text'),
-            'hasImage'=>(bool)$m['hasImage'],'createdAt'=>$m['createdAt']->format(DATE_ATOM)
+            'hasImage'=>(bool)$m['hasImage'],'createdAt'=>$m['createdAt']->format(DATE_ATOM),
+            'answeredBy'=>$admin && $m['senderRole']==='staff' ? ['id'=>(int)$m['senderId'],'name'=>$m['senderName']] : null,
         ],$messages)]);
     }
     private function context(ChatConversation $chat): string { return 'chat:'.$chat->tenant->getId().':'.$chat->id; }
