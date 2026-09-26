@@ -21,6 +21,8 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
   private readonly cameraPreview = viewChild.required<ElementRef<HTMLVideoElement>>('cameraPreview');
 
   protected readonly isScanning = signal(false);
+  protected readonly canTapFocus = signal(false);
+  protected readonly focusPoint = signal<{ x: number; y: number } | null>(null);
   protected readonly isReadingImage = signal(false);
   protected readonly receiptPreview = signal<ReceiptPreview | null>(null);
   protected readonly isImporting = signal(false);
@@ -37,9 +39,34 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
     this.qrScanner.stop();
   }
 
+  protected async focusPreview(event: MouseEvent): Promise<void> {
+    if (!this.isScanning() || !this.canTapFocus()) {
+      return;
+    }
+
+    const video = this.cameraPreview().nativeElement;
+    const bounds = video.getBoundingClientRect();
+    if (!video.videoWidth || !video.videoHeight || !bounds.width || !bounds.height) {
+      return;
+    }
+    const displayX = event.detail === 0 ? 0.5 : (event.clientX - bounds.left) / bounds.width;
+    const displayY = event.detail === 0 ? 0.5 : (event.clientY - bounds.top) / bounds.height;
+    const scale = Math.max(bounds.width / video.videoWidth, bounds.height / video.videoHeight);
+    const visibleWidth = video.videoWidth * scale;
+    const visibleHeight = video.videoHeight * scale;
+    const x = event.detail === 0 ? 0.5 : (event.clientX - bounds.left + (visibleWidth - bounds.width) / 2) / visibleWidth;
+    const y = event.detail === 0 ? 0.5 : (event.clientY - bounds.top + (visibleHeight - bounds.height) / 2) / visibleHeight;
+    if (await this.qrScanner.focusAt(x, y)) {
+      this.focusPoint.set({ x: displayX * 100, y: displayY * 100 });
+      window.setTimeout(() => this.focusPoint.set(null), 900);
+    }
+  }
+
   protected async retryCamera(): Promise<void> {
     this.qrScanner.stop();
     this.isScanning.set(false);
+    this.canTapFocus.set(false);
+    this.focusPoint.set(null);
     this.isScanPaused.set(false);
     this.errorMessage.set(null);
     await this.startCamera();
@@ -56,6 +83,7 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
 
     this.qrScanner.stop();
     this.isScanning.set(false);
+    this.canTapFocus.set(false);
     this.isReadingImage.set(true);
     this.errorMessage.set(null);
 
@@ -106,13 +134,16 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
     }
 
     this.isScanning.set(true);
+    this.canTapFocus.set(false);
+    this.focusPoint.set(null);
     this.isScanPaused.set(false);
     this.errorMessage.set(null);
 
     try {
-      await this.qrScanner.startCamera(this.cameraPreview().nativeElement, (result) => void this.showResult(result));
+      this.canTapFocus.set(await this.qrScanner.startCamera(this.cameraPreview().nativeElement, (result) => void this.showResult(result)));
     } catch {
       this.isScanning.set(false);
+      this.canTapFocus.set(false);
       this.errorMessage.set(statusMessages.cameraUnavailable);
     }
   }
@@ -124,6 +155,8 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
 
     this.qrScanner.stop();
     this.isScanning.set(false);
+    this.canTapFocus.set(false);
+    this.focusPoint.set(null);
     this.isProcessingResult.set(true);
     try {
       this.receiptPreview.set(await this.receiptRepository.createPreview(result.rawValue));
