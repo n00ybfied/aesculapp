@@ -42,6 +42,12 @@ describe('CustomerSetupPage', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
+    const viewport = root.querySelector<HTMLElement>('form > div');
+    const contactHeading = root.querySelector<HTMLElement>('#setup-contact-title');
+    expect(viewport).not.toBeNull();
+    expect(contactHeading).not.toBeNull();
+    const focusContact = vi.spyOn(contactHeading!, 'focus');
+    const activePanel = (): string | undefined => root.querySelector<HTMLElement>('section[aria-hidden="false"] > p')?.textContent?.trim();
     const setInput = (selector: string, value: string): void => {
       const input = root.querySelector<HTMLInputElement | HTMLSelectElement>(selector);
       if (!input) throw new Error(`Missing input: ${selector}`);
@@ -52,10 +58,15 @@ describe('CustomerSetupPage', () => {
       root.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       await fixture.whenStable();
       fixture.detectChanges();
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
     };
 
+    viewport!.scrollLeft = 120;
     await submit();
     expect(root.textContent).toContain('Schritt 2 von 3');
+    expect(activePanel()).toBe('02 · KONTAKT');
+    expect(viewport!.scrollLeft).toBe(0);
+    expect(focusContact).toHaveBeenCalledWith({ preventScroll: true });
     Array.from(root.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Zurück')?.click();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -78,6 +89,14 @@ describe('CustomerSetupPage', () => {
     setInput('[formControlName="birthDate"]', '1990-06-15');
     await submit();
     expect(root.textContent).toContain('Schritt 3 von 3');
+    expect(activePanel()).toBe('03 · INTERESSEN');
+
+    Array.from(root.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Zurück')?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(root.textContent).toContain('Schritt 2 von 3');
+    expect(activePanel()).toBe('02 · KONTAKT');
+    await submit();
 
     const category = root.querySelector<HTMLInputElement>('input[type="checkbox"]:not([formControlName])');
     expect(category).not.toBeNull();
