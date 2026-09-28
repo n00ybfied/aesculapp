@@ -32,6 +32,18 @@ try {
     }
     checkTemplate(str_contains($listed['email_verification']['body'], '{{action_url}}'), 'The real default text and action tag must be visible.');
     checkTemplate(!str_contains($listed['email_verification']['body'], '{{original_body}}'), 'The old generic placeholder must not be shown.');
+    checkTemplate(isset($listed['referral_success'], $listed['push_referral_success']), 'Referral success templates must be listed for email and push.');
+    checkTemplate(in_array('reward_line', $listed['referral_success']['required'], true), 'The actual referral reward must remain in the email.');
+    checkTemplate(in_array('reward_line', $listed['push_referral_success']['required'], true), 'The actual referral reward must remain in the push notification.');
+    $templates->save($tenant, 'referral_success', 'Einladung bestätigt', "{{reward_line}}\n{{action_url}}");
+    $referralEmail = $templates->render($tenant, 'referral_success', 'Old title', 'Old body', [
+        'reward_line' => 'Für diese Einladung wurden Ihnen 75 Punkte gutgeschrieben.',
+        'action_url' => 'https://example.invalid/freunde-einladen',
+    ]);
+    checkTemplate(str_contains($referralEmail['body'], '75 Punkte') && str_contains($referralEmail['body'], '/freunde-einladen'), 'Referral email tags were not rendered.');
+    $templates->save($tenant, 'push_referral_success', 'Einladung bestätigt', '{{reward_line}}');
+    $referralPush = $templates->render($tenant, 'push_referral_success', 'Old title', 'Old body', ['reward_line' => 'Es wurden keine Punkte gutgeschrieben.']);
+    checkTemplate($referralPush['body'] === 'Es wurden keine Punkte gutgeschrieben.', 'Referral push must correctly represent a zero bonus.');
 
     $templates->save($tenant, 'email_verification', 'Bitte bestätigen', "Klicken Sie hier:\n{{action_url}}");
     $rendered = $templates->render($tenant, 'email_verification', 'Old title', 'Old body', ['action_url' => 'https://example.invalid/confirm?token=abc']);

@@ -47,6 +47,7 @@
         <p>Gilt für neue Kundinnen und Kunden.</p>
         <label>Startguthaben<input name="initialPoints" type="number" min="0" [(ngModel)]="initialPoints" /><span>Punkte</span></label>
         <label>Bonus für vollständiges Profil<input name="profileCompletionBonusPoints" type="number" min="0" max="100000" [(ngModel)]="profileCompletionBonusPoints" /><span>Punkte · 0 deaktiviert den Bonus. Unabhängig vom Startguthaben, einmalig pro Kunde und Apotheke.</span></label>
+        <label>Bonus für eine erfolgreiche Freundeseinladung<input name="referralBonusPoints" type="number" min="0" max="100000" [(ngModel)]="referralBonusPoints" /><span>Punkte · Gutschrift einmal pro neuem Kunden nach dessen E-Mail-Bestätigung. 0 deaktiviert den Bonus.</span></label>
         <div class="ratio-setting">
           <label>Punkte pro Euro<input name="pointsPerEuro" type="number" min="0" [disabled]="!isPointsPerEuroEditingEnabled()" [(ngModel)]="pointsPerEuro" /><span>Punkte</span></label>
           <label class="confirmation">

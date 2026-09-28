@@ -76,7 +76,7 @@ export class ProfileService {
     return response.categories;
   }
 
-  async save(profile: Pick<CustomerProfile, 'username' | 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'salutation' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'newsCategoryIds' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerNavigationItems'> & { firstName?: string; lastName?: string; usernamePassword?: string }): Promise<CustomerProfile> {
+  async save(profile: Pick<CustomerProfile, 'displayName' | 'phone' | 'streetAddress' | 'postalCode' | 'city' | 'birthDate' | 'salutation' | 'newsletterEnabled' | 'chatPushEnabled' | 'rewardPushEnabled' | 'newsPushEnabled' | 'newsCategoryIds' | 'medicationPushEnabled' | 'appointmentPushEnabled' | 'familyPushEnabled' | 'morningReminderTime' | 'noonReminderTime' | 'eveningReminderTime' | 'nightReminderTime' | 'footerNavigationItems'> & { firstName?: string; lastName?: string }): Promise<CustomerProfile> {
     const response = await firstValueFrom(this.http.patch<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile', profile, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;
@@ -88,8 +88,8 @@ export class ProfileService {
     return response.profile;
   }
 
-  async skipSetup(): Promise<CustomerProfile> {
-    const response = await firstValueFrom(this.http.post<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile/setup/skip', {}, { headers: this.headers() }));
+  async skipSetup(details: CustomerSetupDetails): Promise<CustomerProfile> {
+    const response = await firstValueFrom(this.http.post<{ profile: CustomerProfile }>(this.apiBaseUrl + '/profile/setup/skip', details, { headers: this.headers() }));
     this.profile.set(response.profile);
     return response.profile;
   }

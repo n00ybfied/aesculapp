@@ -51,10 +51,21 @@
         <ng-icon name="lucideGift" size="1.25rem" class="text-primary" aria-hidden="true" />
       </div>
       <p class="mt-1 text-sm leading-5 text-muted">Sie können mehrere Prämien auswählen – auch dieselbe Prämie mehrmals.</p>
-      <label class="mt-4 block" for="reward-filter">
-        <span class="sr-only">Prämien nach Titel filtern</span>
-        <input id="reward-filter" type="search" class="min-h-12 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground placeholder:text-muted focus:border-primary focus:outline-3 focus:outline-primary" placeholder="Prämien suchen" [value]="filterText()" (input)="filterByTitle($event)" />
-      </label>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <label class="block" for="reward-filter">
+          <span class="sr-only">Prämien nach Titel filtern</span>
+          <input id="reward-filter" type="search" class="min-h-12 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground placeholder:text-muted focus:border-primary focus:outline-3 focus:outline-primary" placeholder="Prämien suchen" [value]="filterText()" (input)="filterByTitle($event)" />
+        </label>
+        <label class="block" for="reward-sort">
+          <span class="sr-only">Prämien sortieren</span>
+          <select id="reward-sort" class="min-h-12 w-full rounded-xl border border-border bg-surface px-4 text-base text-foreground focus:border-primary focus:outline-3 focus:outline-primary" [value]="sortOrder()" (change)="sortBy($event)">
+            <option value="newest">Neueste zuerst</option>
+            <option value="points-asc">Wenigste Punkte zuerst</option>
+            <option value="points-desc">Meiste Punkte zuerst</option>
+            <option value="title-asc">Name A–Z</option>
+          </select>
+        </label>
+      </div>
       <div class="mt-4 space-y-3">
         @for (reward of displayedRewards(); track reward.id) {
           <article class="rounded-2xl border border-border bg-surface p-4 shadow-card">

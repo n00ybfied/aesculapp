@@ -65,7 +65,7 @@
         <div class="flex flex-wrap items-center gap-3 border-t border-border p-5 sm:p-8">
           @if (step() > 0) { <button type="button" class="min-h-12 rounded-xl border border-border px-5 font-bold" (click)="back()" [disabled]="saving()">Zurück</button> }
           <button type="submit" class="min-h-12 flex-1 rounded-xl bg-primary px-5 font-bold text-on-primary disabled:opacity-50" [disabled]="saving()">{{ saving() ? 'Wird gespeichert …' : step() === 2 ? 'Einrichtung abschließen' : 'Weiter' }}</button>
-          <button type="button" class="min-h-11 w-full text-sm font-semibold text-muted underline underline-offset-4" (click)="skip()" [disabled]="saving()">Jetzt nicht · später im Profil ergänzen</button>
+          <button type="button" class="min-h-11 w-full text-sm font-semibold text-muted underline underline-offset-4" (click)="skip()" [disabled]="saving()">{{ hasEnteredData() ? 'Rest überspringen' : 'Jetzt nicht · später im Profil ergänzen' }}</button>
         </div>
       </form>
     }

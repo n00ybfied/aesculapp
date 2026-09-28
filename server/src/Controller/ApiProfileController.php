@@ -10,11 +10,8 @@ use App\Service\ActiveTenantProvider;
 use App\Service\ChatPushService;
 use App\Service\ImageProcessor;
 use App\Service\ProfileCompletionBonusService;
-use App\Service\UsernameReservation;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Gesdinet\JWTRefreshTokenBundle\Model\RevokeRefreshTokenManagerInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -35,9 +32,6 @@ final class ApiProfileController
         private readonly EntityManagerInterface $entityManager,
         private readonly ImageProcessor $imageProcessor,
         private readonly ChatPushService $push,
-        private readonly UsernameReservation $usernameReservation,
-        private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly RevokeRefreshTokenManagerInterface $refreshTokens,
         private readonly ProfileCompletionBonusService $profileBonus,
     ) {
     }
@@ -106,6 +100,10 @@ final class ApiProfileController
     #[Route('/api/v1/profile/setup/skip', name: 'api_v1_profile_setup_skip', methods: ['POST'])]
     public function skipSetup(Request $request): JsonResponse
     {
+        if (trim($request->getContent()) !== '') {
+            try { $data = $request->toArray(); } catch (JsonException) { return $this->invalidProfile(); }
+            if ($data !== []) return $this->completeSetup($request);
+        }
         $membership = $this->currentTenantMembership();
         if (!$membership instanceof TenantMembership) return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         if (!$membership->isCustomerSetupCompleted()) {
@@ -166,23 +164,8 @@ final class ApiProfileController
             if (!is_int($categoryId) || $categoryId < 1 || !$this->entityManager->getRepository(NewsCategory::class)->findOneBy(['id' => $categoryId, 'tenant' => $this->activeTenant->get()])) return $this->invalidProfile();
         }
 
-        $username = mb_strtolower(trim($username));
-        $usernameChanged = $username !== $user->getUsername();
-        if ($username !== $user->getUsername() && preg_match('/^[a-z0-9][a-z0-9._+%@-]{2,99}$/D', $username) !== 1) {
-            return new JsonResponse(['message' => 'Der Benutzername muss 3 bis 100 erlaubte Zeichen enthalten.'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-        if ($usernameChanged && (!is_string($data['usernamePassword'] ?? null) || !$this->passwordHasher->isPasswordValid($user, $data['usernamePassword']))) {
-            return new JsonResponse(['message' => 'Bitte bestätigen Sie die Änderung mit Ihrem aktuellen Passwort.'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-        $existing = $this->entityManager->getRepository(User::class)->findOneBy(['username' => $username]);
-        if (($existing instanceof User && $existing->getId() !== $user->getId()) || ($usernameChanged && $this->usernameReservation->isReserved($username))) {
-            return new JsonResponse(['message' => 'Dieser Benutzername ist bereits vergeben.'], Response::HTTP_CONFLICT);
-        }
-
-        if ($usernameChanged) {
-            $this->usernameReservation->reserve($user->getUsername());
-            $this->refreshTokens->revokeAllForUser($user);
-            $user->setUsername($username);
+        if (mb_strtolower(trim($username)) !== $user->getUsername()) {
+            return new JsonResponse(['message' => 'Benutzername und E-Mail-Adresse können nur gemeinsam über einen Bestätigungslink geändert werden.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if (array_key_exists('firstName', $data) || array_key_exists('lastName', $data)) $user->setNames($firstName, $lastName);
         else $user->setDisplayName($displayName);

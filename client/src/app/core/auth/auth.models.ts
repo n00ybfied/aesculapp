@@ -19,7 +19,8 @@ export interface LoginResponse {
 export interface RegistrationDetails {
   readonly email: string;
   readonly password: string;
+  readonly referralCode?: string;
 }
 
-export type RegistrationResult = 'verification-required' | 'conflict' | 'invalid';
+export type RegistrationResult = 'verification-required' | 'conflict' | 'invalid-referral' | 'invalid';
 export type PasswordResetResult = 'success' | 'invalid';
