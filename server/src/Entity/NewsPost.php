@@ -52,6 +52,15 @@ class NewsPost
     private array $notificationSalutations = [];
 
     #[ORM\Column(nullable: true)]
+    private ?int $notificationMinAge = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $notificationMaxAge = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $notificationIncludeMissingBirthDate = false;
+
+    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $newsPushQueuedAt = null;
 
     public function __construct(Tenant $tenant, string $title, string $subtitle, string $bodyHtml, ?string $imagePath, bool $isVisible, \DateTimeImmutable $publishedAt, ?\DateTimeImmutable $showFrom, ?\DateTimeImmutable $showUntil)
@@ -85,6 +94,15 @@ class NewsPost
     public function getNotificationSalutations(): array { return $this->notificationSalutations; }
     /** @param list<string> $salutations */
     public function setNotificationSalutations(array $salutations): void { $this->notificationSalutations = array_values(array_unique($salutations)); }
+    public function getNotificationMinAge(): ?int { return $this->notificationMinAge; }
+    public function getNotificationMaxAge(): ?int { return $this->notificationMaxAge; }
+    public function includesMissingBirthDateForNotification(): bool { return $this->notificationIncludeMissingBirthDate; }
+    public function setNotificationAgeRange(?int $minAge, ?int $maxAge, bool $includeMissingBirthDate): void
+    {
+        $this->notificationMinAge = $minAge;
+        $this->notificationMaxAge = $maxAge;
+        $this->notificationIncludeMissingBirthDate = $includeMissingBirthDate;
+    }
     public function getNewsPushQueuedAt(): ?\DateTimeImmutable { return $this->newsPushQueuedAt; }
     public function markNewsPushQueued(): void { $this->newsPushQueuedAt = new \DateTimeImmutable(); }
 

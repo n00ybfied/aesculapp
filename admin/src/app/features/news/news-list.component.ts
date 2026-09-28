@@ -57,4 +57,11 @@ export class NewsListComponent {
     try { await this.newsService.remove(id); await this.load(this.newsPage()?.page ?? 1); } catch { this.error.set('Beitrag konnte nicht gelöscht werden.'); }
   }
   protected formatDate(value: string): string { return new Intl.DateTimeFormat('de-AT', { dateStyle: 'medium' }).format(new Date(value)); }
+  protected status(post: { isVisible: boolean; publishedAt: string; showFrom: string | null; showUntil: string | null }): string {
+    if (!post.isVisible) return 'Entwurf';
+    const now = Date.now();
+    if (post.showUntil && new Date(post.showUntil).getTime() < now) return 'Abgelaufen';
+    if (new Date(post.publishedAt).getTime() > now || (post.showFrom && new Date(post.showFrom).getTime() > now)) return 'Geplant';
+    return 'Live';
+  }
 }

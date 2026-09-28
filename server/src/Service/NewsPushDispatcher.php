@@ -27,11 +27,11 @@ final class NewsPushDispatcher
 
         $queued = 0;
         foreach ($posts as $post) {
-            $this->em->wrapInTransaction(function () use ($post, &$queued): void {
+            $this->em->wrapInTransaction(function () use ($post, $now, &$queued): void {
                 $categories = $post->getCategoryIds();
                 if ($categories !== []) {
                     foreach ($this->em->getRepository(TenantMembership::class)->findBy(['tenant' => $post->getTenant()]) as $membership) {
-                        if (!self::matchesAudience($post, $membership)) continue;
+                        if (!self::matchesAudience($post, $membership, $now)) continue;
                         $this->em->persist(new NewsPushDelivery($post, $membership->getUser()));
                         ++$queued;
                     }
@@ -42,12 +42,22 @@ final class NewsPushDispatcher
 
         $sent = 0;
         $failed = 0;
-        $deliveries = $this->em->getRepository(NewsPushDelivery::class)->findBy(['sentAt' => null], ['attempts' => 'ASC', 'id' => 'ASC'], 20);
+        $deliveries = $this->em->createQueryBuilder()
+            ->select('delivery')->from(NewsPushDelivery::class, 'delivery')
+            ->join('delivery.post', 'post')
+            ->where('delivery.sentAt IS NULL')
+            ->andWhere('(post.isVisible = false OR post.showUntil < :now OR (post.publishedAt <= :now AND (post.showFrom IS NULL OR post.showFrom <= :now)))')
+            ->setParameter('now', $now)
+            ->orderBy('delivery.attempts', 'ASC')->addOrderBy('delivery.id', 'ASC')
+            ->setMaxResults(20)->getQuery()->getResult();
         foreach ($deliveries as $delivery) {
             $post = $delivery->getPost();
             if (!$post->isVisible() || ($post->getShowUntil() !== null && $post->getShowUntil() < $now)) {
                 $delivery->markSent();
                 ++$sent;
+                continue;
+            }
+            if ($post->getPublishedAt() > $now || ($post->getShowFrom() !== null && $post->getShowFrom() > $now)) {
                 continue;
             }
             if ($this->push->sendNewsNotification($delivery->getUser(), $post->getTenant(), (int) $post->getId())) {
@@ -63,12 +73,24 @@ final class NewsPushDispatcher
         return compact('queued', 'sent', 'failed');
     }
 
-    public static function matchesAudience(NewsPost $post, TenantMembership $membership): bool
+    public static function matchesAudience(NewsPost $post, TenantMembership $membership, ?\DateTimeImmutable $today = null): bool
     {
         if ($post->getTenant() !== $membership->getTenant() || !$membership->getUser()->isActive()) return false;
         if (!in_array('ROLE_CUSTOMER', $membership->getRoles(), true) || !$membership->isNewsPushEnabled()) return false;
         if ($post->getCategoryIds() === [] || array_intersect($post->getCategoryIds(), $membership->getNewsCategoryIds()) === []) return false;
         $salutations = $post->getNotificationSalutations();
-        return $salutations === [] || in_array($membership->getUser()->getSalutation(), $salutations, true);
+        if ($salutations !== [] && !in_array($membership->getUser()->getSalutation(), $salutations, true)) return false;
+        $minAge = $post->getNotificationMinAge();
+        $maxAge = $post->getNotificationMaxAge();
+        if ($minAge === null && $maxAge === null) return true;
+
+        $birthDate = $membership->getUser()->getBirthDate();
+        if ($birthDate === null) return $post->includesMissingBirthDateForNotification();
+
+        $today = ($today ?? new \DateTimeImmutable())->setTimezone(new \DateTimeZone('Europe/Vienna'));
+        $age = (int) $today->format('Y') - (int) $birthDate->format('Y');
+        if ($today->format('m-d') < $birthDate->format('m-d')) --$age;
+
+        return ($minAge === null || $age >= $minAge) && ($maxAge === null || $age <= $maxAge);
     }
 }
