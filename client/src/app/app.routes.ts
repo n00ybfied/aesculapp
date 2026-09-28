@@ -117,15 +117,23 @@ export const routes: Routes = [
         title: 'QR-Code scannen | Aesculapp',
       },
       {
-        path: 'profil',
+        path: 'profil/bearbeiten',
         loadComponent: () =>
           import('./features/profile/profile.page').then((module) => module.ProfilePage),
-        title: 'Mein Profil | Aesculapp',
+        title: 'Profil bearbeiten | Aesculapp',
       },
+      { path: 'profil/benutzername', loadComponent: () => import('./features/profile/username.page').then((module) => module.UsernamePage), title: 'Benutzernamen ändern | Aesculapp' },
+      { path: 'profil/konto-loeschen', loadComponent: () => import('./features/profile/delete-account.page').then((module) => module.DeleteAccountPage), title: 'Kundenzugang löschen | Aesculapp' },
+      { path: 'profil', loadComponent: () => import('./features/profile/profile-overview.page').then((module) => module.ProfileOverviewPage), title: 'Mein Konto | Aesculapp' },
       {
         path: 'trophaeen',
         loadComponent: () => import('./features/achievements/achievements.page').then((module) => module.AchievementsPage),
         title: 'Trophäen | Aesculapp',
+      },
+      {
+        path: 'freunde-einladen',
+        loadComponent: () => import('./features/referrals/referrals.page').then((module) => module.ReferralsPage),
+        title: 'Freunde einladen | Aesculapp',
       },
       {
         path: 'medikamente',

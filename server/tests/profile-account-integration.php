@@ -37,10 +37,10 @@ $push = new App\Service\ChatPushService(
 );
 $profiles = new App\Controller\ApiProfileController(
     $security, $tenantProvider, $memberships, $em, new App\Service\ImageProcessor(), $push,
-    $reservation, $passwordHasher, $refreshTokens,
+    new App\Service\ProfileCompletionBonusService($em, new App\Service\PointAccountProvisioner($em)),
 );
 $emailChanges = new App\Controller\ApiEmailChangeController(
-    $security, $tenantProvider, $memberships, $em, $passwordHasher, $mailer, $refreshTokens,
+    $security, $tenantProvider, $memberships, $em, $passwordHasher, $mailer, $refreshTokens, $reservation,
     'https://example.invalid', 'noreply@example.invalid',
 );
 
@@ -60,8 +60,9 @@ function accountCheck(bool $condition, string $message): void
 $em->beginTransaction();
 try {
     $suffix = bin2hex(random_bytes(6));
-    $oldUsername = 'old-'.$suffix.'@example.invalid';
-    $user = new App\Entity\User($oldUsername, $oldUsername, 'Testkunde');
+    $oldUsername = 'legacy-'.$suffix;
+    $oldEmail = 'old-'.$suffix.'@example.invalid';
+    $user = new App\Entity\User($oldUsername, $oldEmail, 'Testkunde');
     $user->setPassword($passwordHasher->hashPassword($user, 'correct-password'));
     $em->persist($user);
     $em->persist(new App\Entity\TenantMembership($tenant, $user, ['ROLE_CUSTOMER']));
@@ -73,22 +74,27 @@ try {
         $profile[$field] ??= '';
     }
     $newUsername = 'new-'.$suffix;
-    $invalid = $profiles->update(accountRequest([...$profile, 'username' => $newUsername, 'usernamePassword' => 'wrong']));
-    accountCheck($invalid->getStatusCode() === 422, 'Username change must require the current password.');
-    $updated = $profiles->update(accountRequest([...$profile, 'username' => $newUsername, 'usernamePassword' => 'correct-password']));
-    accountCheck($updated->getStatusCode() === 200 && $user->getUsername() === $newUsername, 'Username must change after password verification.');
-    accountCheck($reservation->isReserved($oldUsername), 'Former username must be reserved until old JWTs expire.');
+    $invalid = $profiles->update(accountRequest([...$profile, 'username' => $newUsername, 'usernamePassword' => 'correct-password']));
+    accountCheck($invalid->getStatusCode() === 422 && $user->getUsername() === $oldUsername, 'Direct username changes must be rejected even with the correct password.');
 
     $newEmail = 'new-'.$suffix.'@example.invalid';
+    $occupiedIdentifier = 'occupied-'.$suffix.'@example.invalid';
+    $otherUser = new App\Entity\User($occupiedIdentifier, 'other-'.$suffix.'@example.invalid', 'Bestehender Nutzer');
+    $otherUser->setPassword('not-a-login');
+    $em->persist($otherUser);
+    $em->flush();
+    accountCheck($emailChanges->requestChange(accountRequest(['email' => $occupiedIdentifier, 'password' => 'correct-password']))->getStatusCode() === 409, 'An existing username must not be reused as a new email address.');
+    accountCheck($emailChanges->requestChange(accountRequest(['email' => $newUsername, 'password' => 'correct-password']))->getStatusCode() === 422, 'A username change must use a valid email address.');
     accountCheck($emailChanges->requestChange(accountRequest(['email' => $newEmail, 'password' => 'wrong']))->getStatusCode() === 422, 'Email change must require the current password.');
     accountCheck($emailChanges->requestChange(accountRequest(['email' => $newEmail, 'password' => 'correct-password']))->getStatusCode() === 200, 'Valid email change request must be accepted.');
-    accountCheck($user->getEmail() === $oldUsername, 'Email must not change before link confirmation.');
+    accountCheck($user->getEmail() === $oldEmail && $user->getUsername() === $oldUsername, 'Existing identifiers must remain unchanged before link confirmation.');
 
     $rawToken = bin2hex(random_bytes(32));
     $em->persist(new App\Entity\EmailChangeToken($user, $tenant, $newEmail, hash('sha256', $rawToken)));
     $em->flush();
     accountCheck($emailChanges->confirmChange(accountRequest(['token' => $rawToken]))->getStatusCode() === 200, 'A valid token must confirm the new email.');
-    accountCheck($user->getEmail() === $newEmail, 'Confirmed email must be stored.');
+    accountCheck($user->getEmail() === $newEmail && $user->getUsername() === $newEmail, 'Confirmed email and username must be stored together.');
+    accountCheck($reservation->isReserved($oldUsername), 'Former username must be reserved until old JWTs expire.');
     accountCheck($emailChanges->confirmChange(accountRequest(['token' => $rawToken]))->getStatusCode() === 422, 'Email change token must be single use.');
 
     echo "Profile account integration checks passed.\n";

@@ -43,6 +43,9 @@ class Tenant
     #[ORM\Column(options: ['default' => 0])]
     private int $profileCompletionBonusPoints = 0;
 
+    #[ORM\Column(options: ['default' => 0])]
+    private int $referralBonusPoints = 0;
+
     #[ORM\Column(options: ['default' => 200])]
     private int $birthdayBonusPoints = 200;
 
@@ -129,6 +132,8 @@ class Tenant
     public function setInitialPoints(int $points): void { $this->initialPoints = $points; }
     public function getProfileCompletionBonusPoints(): int { return $this->profileCompletionBonusPoints; }
     public function setProfileCompletionBonusPoints(int $points): void { $this->profileCompletionBonusPoints = $points; }
+    public function getReferralBonusPoints(): int { return $this->referralBonusPoints; }
+    public function setReferralBonusPoints(int $points): void { $this->referralBonusPoints = $points; }
     public function getBirthdayBonusPoints(): int { return $this->birthdayBonusPoints; }
     public function setBirthdayBonusPoints(int $points): void { $this->birthdayBonusPoints = $points; }
     public function getPointsPerEuro(): int { return $this->pointsPerEuro; }

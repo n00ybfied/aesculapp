@@ -41,6 +41,9 @@ class TenantMembership
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $profileCompletionBonusAwardedAt = null;
 
+    #[ORM\Column(length: 32, nullable: true, unique: true)]
+    private ?string $referralCode = null;
+
     #[ORM\Column(options: ['default' => false])]
     private bool $newsletterEnabled = false;
 
@@ -122,6 +125,8 @@ class TenantMembership
     {
         return $this->createdAt;
     }
+
+    public function getReferralCode(): ?string { return $this->referralCode; }
 
     public function isCustomerSetupCompleted(): bool { return $this->customerSetupCompletedAt !== null; }
     public function completeCustomerSetup(): void { $this->customerSetupCompletedAt ??= new \DateTimeImmutable(); }

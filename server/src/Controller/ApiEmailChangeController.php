@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
 use App\Service\TenantMailer;
+use App\Service\UsernameReservation;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -33,6 +34,7 @@ final class ApiEmailChangeController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly TenantMailer $mailer,
         private readonly RevokeRefreshTokenManagerInterface $refreshTokens,
+        private readonly UsernameReservation $usernameReservation,
         #[Autowire('%app.auth.client_url%')]
         private readonly string $clientUrl,
         #[Autowire('%app.auth.mail_from%')]
@@ -56,13 +58,13 @@ final class ApiEmailChangeController
         $password = $data['password'] ?? null;
         if (!is_string($newEmail) || !is_string($password)) return $this->invalidRequest();
         $newEmail = mb_strtolower(trim($newEmail));
-        if (mb_strlen($newEmail) > 180 || filter_var($newEmail, FILTER_VALIDATE_EMAIL) === false || $newEmail === $user->getEmail()) {
+        if (mb_strlen($newEmail) > 100 || filter_var($newEmail, FILTER_VALIDATE_EMAIL) === false || ($newEmail === $user->getEmail() && $newEmail === $user->getUsername())) {
             return $this->invalidRequest();
         }
         if (!$this->passwordHasher->isPasswordValid($user, $password)) {
             return new JsonResponse(['message' => 'Das aktuelle Passwort ist nicht korrekt.'], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
-        if ($this->entityManager->getRepository(User::class)->findOneBy(['email' => $newEmail]) !== null) {
+        if ($this->identifierUnavailable($newEmail, $user)) {
             return new JsonResponse(['message' => 'Diese E-Mail-Adresse wird bereits verwendet.'], JsonResponse::HTTP_CONFLICT);
         }
         $tokens = $this->entityManager->getRepository(EmailChangeToken::class);
@@ -78,8 +80,8 @@ final class ApiEmailChangeController
             $this->mailer->send(
                 $this->activeTenant->get(),
                 (new Email())->from($this->mailFrom)->to($newEmail)
-                    ->subject('Neue E-Mail-Adresse für Aesculapp bestätigen')
-                    ->text("Sie haben eine Änderung Ihrer E-Mail-Adresse angefordert.\n\nBestätigen Sie die neue Adresse innerhalb von 24 Stunden:\n{$url}\n\nWenn Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail."),
+                    ->subject('Neue E-Mail-Adresse und Benutzernamen für Aesculapp bestätigen')
+                    ->text("Sie haben eine Änderung Ihrer E-Mail-Adresse und Ihres Benutzernamens angefordert.\n\nBestätigen Sie die neue Adresse innerhalb von 24 Stunden:\n{$url}\n\nWenn Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail."),
                 'email_change',
                 ['action_url' => $url],
             );
@@ -88,7 +90,7 @@ final class ApiEmailChangeController
         } catch (\Throwable) {
             return new JsonResponse(['message' => 'Die Bestätigungs-E-Mail konnte nicht versendet werden.'], JsonResponse::HTTP_SERVICE_UNAVAILABLE);
         }
-        return new JsonResponse(['message' => 'Wir haben einen Bestätigungslink an die neue E-Mail-Adresse gesendet.']);
+        return new JsonResponse(['message' => 'Wir haben einen Bestätigungslink an die neue E-Mail-Adresse gesendet. Nach der Bestätigung ändern sich E-Mail-Adresse und Benutzername gemeinsam.']);
     }
 
     #[Route('/api/v1/auth/email-change/confirm', methods: ['POST'])]
@@ -115,16 +117,18 @@ final class ApiEmailChangeController
                 if (!$this->memberships->hasCustomerMembershipFor($user, $token->getTenant())) {
                     return $this->invalidToken();
                 }
-                if ($this->entityManager->getRepository(User::class)->findOneBy(['email' => $token->getNewEmail()]) !== null) {
+                if ($this->identifierUnavailable($token->getNewEmail(), $user)) {
                     return new JsonResponse(['message' => 'Diese E-Mail-Adresse wird bereits verwendet.'], JsonResponse::HTTP_CONFLICT);
                 }
+                $this->usernameReservation->reserve($user->getUsername());
+                $user->setUsername($token->getNewEmail());
                 $user->setEmail($token->getNewEmail());
                 foreach ($this->entityManager->getRepository(EmailChangeToken::class)->findBy(['user' => $user, 'usedAt' => null]) as $pending) {
                     $pending->markUsed();
                 }
                 $this->refreshTokens->revokeAllForUser($user);
                 $this->entityManager->flush();
-                return new JsonResponse(['message' => 'Ihre E-Mail-Adresse wurde geändert. Bitte melden Sie sich neu an.']);
+                return new JsonResponse(['message' => 'Ihre E-Mail-Adresse und Ihr Benutzername wurden geändert. Bitte melden Sie sich neu an.']);
             });
         } catch (UniqueConstraintViolationException) {
             return new JsonResponse(['message' => 'Diese E-Mail-Adresse wird bereits verwendet.'], JsonResponse::HTTP_CONFLICT);
@@ -134,6 +138,17 @@ final class ApiEmailChangeController
     private function invalidRequest(): JsonResponse
     {
         return new JsonResponse(['message' => 'Bitte geben Sie eine gültige neue E-Mail-Adresse und Ihr aktuelles Passwort ein.'], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    private function identifierUnavailable(string $email, User $user): bool
+    {
+        $repository = $this->entityManager->getRepository(User::class);
+        $byEmail = $repository->findOneBy(['email' => $email]);
+        $byUsername = $repository->findOneBy(['username' => $email]);
+
+        return ($byEmail instanceof User && $byEmail->getId() !== $user->getId())
+            || ($byUsername instanceof User && $byUsername->getId() !== $user->getId())
+            || ($email !== $user->getUsername() && $this->usernameReservation->isReserved($email));
     }
 
     private function invalidToken(): JsonResponse

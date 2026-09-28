@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ElementRef, inject, signal, viewChild, viewChildren } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild, viewChildren } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -50,6 +51,18 @@ export class CustomerSetupPage {
     medicationPushEnabled: false,
     appointmentPushEnabled: true,
     familyPushEnabled: true,
+  });
+  private readonly formValues = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+  protected readonly hasEnteredData = computed(() => {
+    this.formValues();
+    const details = this.setupDetails();
+    return Boolean(
+      details.salutation || details.firstName || details.lastName || details.phone
+      || details.streetAddress || details.postalCode || details.city || details.birthDate
+      || details.newsCategoryIds.length || details.newsletterEnabled || details.chatPushEnabled
+      || details.rewardPushEnabled || details.newsPushEnabled || details.medicationPushEnabled
+      || details.appointmentPushEnabled === false || details.familyPushEnabled === false,
+    );
   });
 
   constructor() { void this.load(); }
@@ -123,46 +136,12 @@ export class CustomerSetupPage {
       return;
     }
 
-    const values = this.form.getRawValue();
-    const details: CustomerSetupDetails = {
-      ...values,
-      salutation: (values.salutation || null) as CustomerSetupDetails['salutation'],
-      firstName: values.firstName.trim() || null,
-      lastName: values.lastName.trim() || null,
-      phone: values.phone.trim() || null,
-      streetAddress: values.streetAddress.trim() || null,
-      postalCode: values.postalCode.trim() || null,
-      city: values.city.trim() || null,
-      birthDate: values.birthDate || null,
-      newsCategoryIds: this.selectedCategoryIds(),
-    };
-    this.saving.set(true);
-    try {
-      const profile = await this.profiles.completeSetup(details);
-      await this.navigateAfterSetup();
-      if (!this.achievementCompletedBeforeSetup && (profile.profileComplete || profile.profileCompletionBonusAwarded)) {
-        this.celebrations.celebrate({ title: 'Profil vervollständigen', points: profile.profileCompletionBonusAwarded ? profile.profileCompletionBonusPoints : 0 });
-      }
-    } catch (error) {
-      this.error.set(error instanceof HttpErrorResponse && typeof error.error?.message === 'string' ? error.error.message : 'Die Einrichtung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.');
-    } finally {
-      this.saving.set(false);
-    }
+    await this.finishSetup(false);
   }
 
   protected back(): void { if (this.step() > 0) this.goTo(this.step() - 1); }
   protected async skip(): Promise<void> {
-    if (this.saving()) return;
-    this.saving.set(true);
-    this.error.set('');
-    try {
-      await this.profiles.skipSetup();
-      await this.navigateAfterSetup();
-    } catch (error) {
-      this.error.set(error instanceof HttpErrorResponse && typeof error.error?.message === 'string' ? error.error.message : 'Bitte versuchen Sie es erneut.');
-    } finally {
-      this.saving.set(false);
-    }
+    await this.finishSetup(true);
   }
   protected logout(): void { this.auth.logout(); void this.router.navigateByUrl('/login'); }
   protected toggleCategory(id: number, selected: boolean): void {
@@ -188,6 +167,40 @@ export class CustomerSetupPage {
   protected updatePanelHeight(): void {
     const height = this.panels()[this.step()]?.nativeElement.offsetHeight;
     if (height) this.panelHeight.set(height);
+  }
+
+  private setupDetails(): CustomerSetupDetails {
+    const values = this.form.getRawValue();
+    return {
+      ...values,
+      salutation: (values.salutation || null) as CustomerSetupDetails['salutation'],
+      firstName: values.firstName.trim() || null,
+      lastName: values.lastName.trim() || null,
+      phone: values.phone.trim() || null,
+      streetAddress: values.streetAddress.trim() || null,
+      postalCode: values.postalCode.trim() || null,
+      city: values.city.trim() || null,
+      birthDate: values.birthDate || null,
+      newsCategoryIds: this.selectedCategoryIds(),
+    };
+  }
+
+  private async finishSetup(skipped: boolean): Promise<void> {
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.error.set('');
+    try {
+      const details = this.setupDetails();
+      const profile = skipped ? await this.profiles.skipSetup(details) : await this.profiles.completeSetup(details);
+      await this.navigateAfterSetup();
+      if (!this.achievementCompletedBeforeSetup && (profile.profileComplete || profile.profileCompletionBonusAwarded)) {
+        this.celebrations.celebrate({ title: 'Profil vervollständigen', points: profile.profileCompletionBonusAwarded ? profile.profileCompletionBonusPoints : 0 });
+      }
+    } catch (error) {
+      this.error.set(error instanceof HttpErrorResponse && typeof error.error?.message === 'string' ? error.error.message : 'Die Einrichtung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   private dateOnly(date: Date): string {
