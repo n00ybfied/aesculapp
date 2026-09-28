@@ -6,19 +6,21 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 type MobilePlatform = 'android' | 'ios' | null;
+const INSTALL_BANNER_DISMISSED_KEY = 'aesculapp.install-banner.dismissed';
 
 @Injectable({ providedIn: 'root' })
 export class PwaInstallService implements OnDestroy {
   readonly platform: MobilePlatform;
   readonly installed = signal(false);
+  readonly bannerDismissed = signal(false);
   readonly promptAvailable = signal(false);
-  readonly bannerVisible = computed(() => !this.installed()
+  readonly bannerVisible = computed(() => !this.installed() && !this.bannerDismissed()
     && (this.platform === 'ios' || (this.platform === 'android' && this.promptAvailable())));
 
   private deferredPrompt: BeforeInstallPromptEvent | null = null;
   private displayModeQuery: MediaQueryList | null = null;
   private readonly onBeforeInstallPrompt = (event: Event): void => {
-    if (this.platform !== 'android' || this.installed()) return;
+    if (this.platform !== 'android' || this.installed() || this.bannerDismissed()) return;
     event.preventDefault();
     this.deferredPrompt = event as BeforeInstallPromptEvent;
     this.promptAvailable.set(true);
@@ -27,6 +29,7 @@ export class PwaInstallService implements OnDestroy {
     this.deferredPrompt = null;
     this.promptAvailable.set(false);
     this.installed.set(true);
+    this.dismissBanner();
   };
   private readonly onDisplayModeChange = (): void => this.refreshInstalledState();
 
@@ -40,6 +43,7 @@ export class PwaInstallService implements OnDestroy {
     const isIos = /iPad|iPhone|iPod/i.test(userAgent)
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     this.platform = isIos ? 'ios' : /Android/i.test(userAgent) ? 'android' : null;
+    try { this.bannerDismissed.set(window.localStorage.getItem(INSTALL_BANNER_DISMISSED_KEY) === 'true'); } catch { /* Storage may be unavailable. */ }
     this.refreshInstalledState();
 
     window.addEventListener('beforeinstallprompt', this.onBeforeInstallPrompt);
@@ -63,6 +67,12 @@ export class PwaInstallService implements OnDestroy {
     await prompt.prompt();
     await prompt.userChoice;
     // A dismissed browser prompt cannot be reused. The browser may offer a new one later.
+  }
+
+  dismissBanner(): void {
+    this.bannerDismissed.set(true);
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem(INSTALL_BANNER_DISMISSED_KEY, 'true'); } catch { /* Keep it hidden for this session. */ }
   }
 
   private refreshInstalledState(): void {
