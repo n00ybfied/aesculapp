@@ -1,12 +1,15 @@
 <section>
   <a routerLink="/inhalte" class="back">← Zu allen Beiträgen</a>
   <p class="eyebrow">Inhalte</p><h2>{{ isEdit ? 'Beitrag bearbeiten' : 'Neuen Beitrag anlegen' }}</h2>
+  <div class="publication-state" [class.is-live]="isVisible" role="status">
+    <strong>{{ isVisible ? 'Zur Veröffentlichung freigegeben' : 'Entwurf – nicht live' }}</strong>
+    <span>{{ isVisible ? 'Der Beitrag wird frühestens ab „Anzeigen ab“ und dem Beitragsdatum sichtbar. Passende Push-Mitteilungen folgen beim nächsten Hintergrundlauf.' : 'Nur im Adminbereich sichtbar. Speichern verschickt keine Mitteilung; erst „Veröffentlichen“ gibt den Beitrag frei.' }}</span>
+  </div>
   <form (ngSubmit)="save()" novalidate>
     <div class="grid">
       <label>Titel<input name="title" [(ngModel)]="title" required /></label>
       <label>Untertitel<input name="subtitle" [(ngModel)]="subtitle" required /></label>
       <label>Beitragsdatum<input name="publishedAt" [(ngModel)]="publishedAt" type="datetime-local" required /></label>
-      <label class="check"><input name="visible" [(ngModel)]="isVisible" type="checkbox" /> Beitrag sichtbar</label>
       <label>Anzeigen ab<input name="showFrom" [(ngModel)]="showFrom" type="datetime-local" /></label>
       <label>Anzeigen bis<input name="showUntil" [(ngModel)]="showUntil" type="datetime-local" /></label>
     </div>
@@ -20,18 +23,35 @@
       </div>
     </fieldset>
     <fieldset class="audience-field">
-      <legend>Push-Zielgruppe nach Anrede</legend>
-      <p>Keine Auswahl bedeutet alle Anreden, einschließlich Kunden ohne Angabe. Die Beiträge selbst bleiben für alle sichtbar.</p>
+      <legend>Push-Zielgruppe</legend>
+      <p>Keine Anrede-Auswahl bedeutet alle Anreden, einschließlich Kunden ohne Angabe. Die Beiträge selbst bleiben für alle sichtbar.</p>
+      <span class="audience-subheading">Anrede</span>
       <div class="audience-options">
         <label><input type="checkbox" [checked]="notificationSalutations.includes('frau')" (change)="toggleSalutation('frau', $any($event.target).checked)" />Frau</label>
         <label><input type="checkbox" [checked]="notificationSalutations.includes('herr')" (change)="toggleSalutation('herr', $any($event.target).checked)" />Herr</label>
         <label><input type="checkbox" [checked]="notificationSalutations.includes('divers')" (change)="toggleSalutation('divers', $any($event.target).checked)" />Divers</label>
+      </div>
+      <div class="audience-age">
+        <span class="audience-subheading">Alter</span>
+        <p>Optional: Alter in vollendeten Jahren zum Zeitpunkt des Push-Versands. Ohne Altersgrenzen werden auch Kunden ohne Geburtsdatum berücksichtigt.</p>
+        <div class="audience-age-grid">
+          <label>Mindestalter<input name="notificationMinAge" [(ngModel)]="notificationMinAge" (ngModelChange)="onAgeRangeChanged()" type="number" min="0" max="120" step="1" placeholder="Keines" /></label>
+          <label>Höchstalter<input name="notificationMaxAge" [(ngModel)]="notificationMaxAge" (ngModelChange)="onAgeRangeChanged()" type="number" min="0" max="120" step="1" placeholder="Keines" /></label>
+        </div>
+        <label class="audience-missing-birth-date"><input name="notificationIncludeMissingBirthDate" [(ngModel)]="notificationIncludeMissingBirthDate" type="checkbox" [disabled]="!hasAgeRange()" />User ohne Geburtsdatum einschließen</label>
       </div>
     </fieldset>
     <div class="editor-field"><div class="editor-label">Detailtext</div><app-rich-text-editor [(value)]="bodyHtml" /></div>
     <div class="upload"><span>Beitragsbild <small>(optional)</small></span><app-media-picker (selected)="selectCoverMedia($event)" />@if(imagePreviewUrl();as preview){<div class="preview"><img [src]="preview" alt="Vorschau des Beitragsbilds" /><button type="button" (click)="removeImage()">Bild entfernen</button></div>}</div>
     @if(error()){<p class="error" role="alert">{{error()}}</p>}
     @if (postId !== null) { <app-admin-change-history entityType="NewsPost" [entityId]="postId" /> }
-    <button class="save" [disabled]="isSaving()">Beitrag speichern</button>
+    <div class="publication-actions">
+      <button class="save" type="submit" [disabled]="isSaving()">{{ isVisible ? 'Änderungen speichern' : 'Als Entwurf speichern' }}</button>
+      @if (!isVisible) {
+        <button class="publish" type="button" [disabled]="isSaving() || isLoading()" (click)="publish()">Veröffentlichen</button>
+      } @else {
+        <button class="withdraw" type="button" [disabled]="isSaving()" (click)="withdraw()">Veröffentlichung zurückziehen</button>
+      }
+    </div>
   </form>
 </section>

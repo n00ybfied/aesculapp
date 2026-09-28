@@ -15,6 +15,9 @@ export interface AdminNewsPost {
   readonly showUntil: string | null;
   readonly categoryIds: readonly number[];
   readonly notificationSalutations: readonly ('frau' | 'herr' | 'divers')[];
+  readonly notificationMinAge: number | null;
+  readonly notificationMaxAge: number | null;
+  readonly notificationIncludeMissingBirthDate: boolean;
 }
 
 export interface NewsCategory { readonly id: number; readonly name: string; }

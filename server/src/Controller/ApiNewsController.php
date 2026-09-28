@@ -43,6 +43,7 @@ final class ApiNewsController
         $query = $this->entityManager->createQueryBuilder()
             ->select('post')->from(NewsPost::class, 'post')
             ->where('post.tenant = :tenant')->andWhere('post.isVisible = true')
+            ->andWhere('post.publishedAt <= :now')
             ->andWhere('(post.showFrom IS NULL OR post.showFrom <= :now)')
             ->andWhere('(post.showUntil IS NULL OR post.showUntil >= :now)')
             ->setParameter('tenant', $this->activeTenant->get())->setParameter('now', $now)
@@ -110,7 +111,7 @@ final class ApiNewsController
             return new JsonResponse(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
         $audience = $this->readAudienceData($request);
-        if ($audience === null) return new JsonResponse(['message' => 'Bitte Kategorien und Anreden prüfen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        if ($audience === null) return new JsonResponse(['message' => 'Bitte Kategorien, Anreden und Altersgrenzen prüfen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         $data = $this->readPostData($request, $slugger);
         if (!is_array($data)) {
             return new JsonResponse(['message' => 'Bitte prüfen Sie Titel, Untertitel, Inhalt und Zeitangaben.'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -119,6 +120,7 @@ final class ApiNewsController
         $post = new NewsPost($this->activeTenant->get(), ...$data);
         $post->setCategoryIds($audience['categoryIds']);
         $post->setNotificationSalutations($audience['notificationSalutations']);
+        $post->setNotificationAgeRange($audience['notificationMinAge'], $audience['notificationMaxAge'], $audience['notificationIncludeMissingBirthDate']);
         $this->entityManager->persist($post);
         $this->entityManager->flush();
         return new JsonResponse(['post' => $this->serialize($post, $request)], Response::HTTP_CREATED);
@@ -152,14 +154,15 @@ final class ApiNewsController
             return new JsonResponse(['message' => 'Post not found.'], Response::HTTP_NOT_FOUND);
         }
         $audience = $this->readAudienceData($request);
-        if ($audience === null) return new JsonResponse(['message' => 'Bitte Kategorien und Anreden prüfen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
-        $data = $this->readPostData($request, $slugger, $post->getImagePath());
+        if ($audience === null) return new JsonResponse(['message' => 'Bitte Kategorien, Anreden und Altersgrenzen prüfen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        $data = $this->readPostData($request, $slugger, $post->getImagePath(), $post->isVisible());
         if (!is_array($data)) {
             return new JsonResponse(['message' => 'Bitte prüfen Sie Titel, Untertitel, Inhalt und Zeitangaben.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $post->update(...$data);
         $post->setCategoryIds($audience['categoryIds']);
         $post->setNotificationSalutations($audience['notificationSalutations']);
+        $post->setNotificationAgeRange($audience['notificationMinAge'], $audience['notificationMaxAge'], $audience['notificationIncludeMissingBirthDate']);
         $this->entityManager->flush();
         return new JsonResponse(['post' => $this->serialize($post, $request)]);
     }
@@ -210,6 +213,7 @@ final class ApiNewsController
         $post = $this->entityManager->createQueryBuilder()
             ->select('post')->from(NewsPost::class, 'post')
             ->where('post.id = :id')->andWhere('post.tenant = :tenant')->andWhere('post.isVisible = true')
+            ->andWhere('post.publishedAt <= :now')
             ->andWhere('(post.showFrom IS NULL OR post.showFrom <= :now)')->andWhere('(post.showUntil IS NULL OR post.showUntil >= :now)')
             ->setParameter('id', $id)->setParameter('tenant', $this->activeTenant->get())->setParameter('now', $now)
             ->getQuery()->getOneOrNullResult();
@@ -217,7 +221,7 @@ final class ApiNewsController
     }
 
     /** @return array{string, string, string, ?string, bool, \DateTimeImmutable, ?\DateTimeImmutable, ?\DateTimeImmutable}|null */
-    private function readPostData(Request $request, SluggerInterface $slugger, ?string $existingImagePath = null): ?array
+    private function readPostData(Request $request, SluggerInterface $slugger, ?string $existingImagePath = null, bool $defaultVisible = false): ?array
     {
         $title = trim((string) $request->request->get('title', ''));
         $subtitle = trim((string) $request->request->get('subtitle', ''));
@@ -243,7 +247,7 @@ final class ApiNewsController
             $imagePath = $newImage;
         }
 
-        return [$title, $subtitle, $bodyHtml, $imagePath, 'true' === $request->request->get('isVisible', 'true'), $publishedAt, $showFrom, $showUntil];
+        return [$title, $subtitle, $bodyHtml, $imagePath, 'true' === $request->request->get('isVisible', $defaultVisible ? 'true' : 'false'), $publishedAt, $showFrom, $showUntil];
     }
 
     private function parseDate(string $value): ?\DateTimeImmutable
@@ -251,7 +255,7 @@ final class ApiNewsController
         try { return new \DateTimeImmutable($value); } catch (\Exception) { return null; }
     }
 
-    /** @return array{categoryIds:list<int>,notificationSalutations:list<string>}|null */
+    /** @return array{categoryIds:list<int>,notificationSalutations:list<string>,notificationMinAge:?int,notificationMaxAge:?int,notificationIncludeMissingBirthDate:bool}|null */
     private function readAudienceData(Request $request): ?array
     {
         try {
@@ -265,7 +269,27 @@ final class ApiNewsController
         foreach ($salutations as $salutation) {
             if (!is_string($salutation) || !in_array($salutation, ['frau', 'herr', 'divers'], true)) return null;
         }
-        return ['categoryIds' => array_values(array_unique($categoryIds)), 'notificationSalutations' => array_values(array_unique($salutations))];
+        $minAge = $this->parseAudienceAge($request->request->get('notificationMinAge', ''));
+        $maxAge = $this->parseAudienceAge($request->request->get('notificationMaxAge', ''));
+        $includeMissing = $request->request->get('notificationIncludeMissingBirthDate', 'false');
+        if ($minAge === false || $maxAge === false || ($minAge !== null && $maxAge !== null && $minAge > $maxAge) || !in_array($includeMissing, ['true', 'false'], true)) return null;
+
+        return [
+            'categoryIds' => array_values(array_unique($categoryIds)),
+            'notificationSalutations' => array_values(array_unique($salutations)),
+            'notificationMinAge' => $minAge,
+            'notificationMaxAge' => $maxAge,
+            'notificationIncludeMissingBirthDate' => ($minAge !== null || $maxAge !== null) && $includeMissing === 'true',
+        ];
+    }
+
+    private function parseAudienceAge(mixed $value): int|false|null
+    {
+        if (!is_string($value)) return false;
+        $value = trim($value);
+        if ($value === '') return null;
+        if (!ctype_digit($value) || strlen($value) > 3 || (int) $value > 120) return false;
+        return (int) $value;
     }
     private function parseOptionalDate(mixed $value): ?\DateTimeImmutable
     {
@@ -297,6 +321,6 @@ final class ApiNewsController
     /** @return array{id:int,title:string,subtitle:string,bodyHtml:string,imageUrl:?string,isVisible:bool,publishedAt:string,showFrom:?string,showUntil:?string} */
     private function serialize(NewsPost $post, Request $request): array
     {
-        return ['id' => $post->getId(), 'title' => $post->getTitle(), 'subtitle' => $post->getSubtitle(), 'bodyHtml' => $post->getBodyHtml(), 'imageUrl' => $post->getImagePath() ? $request->getSchemeAndHttpHost().$post->getImagePath() : null, 'isVisible' => $post->isVisible(), 'publishedAt' => $post->getPublishedAt()->format(DATE_ATOM), 'showFrom' => $post->getShowFrom()?->format(DATE_ATOM), 'showUntil' => $post->getShowUntil()?->format(DATE_ATOM), 'categoryIds' => $post->getCategoryIds(), 'notificationSalutations' => $post->getNotificationSalutations()];
+        return ['id' => $post->getId(), 'title' => $post->getTitle(), 'subtitle' => $post->getSubtitle(), 'bodyHtml' => $post->getBodyHtml(), 'imageUrl' => $post->getImagePath() ? $request->getSchemeAndHttpHost().$post->getImagePath() : null, 'isVisible' => $post->isVisible(), 'publishedAt' => $post->getPublishedAt()->format(DATE_ATOM), 'showFrom' => $post->getShowFrom()?->format(DATE_ATOM), 'showUntil' => $post->getShowUntil()?->format(DATE_ATOM), 'categoryIds' => $post->getCategoryIds(), 'notificationSalutations' => $post->getNotificationSalutations(), 'notificationMinAge' => $post->getNotificationMinAge(), 'notificationMaxAge' => $post->getNotificationMaxAge(), 'notificationIncludeMissingBirthDate' => $post->includesMissingBirthDateForNotification()];
     }
 }
