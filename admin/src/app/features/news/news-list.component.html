@@ -28,7 +28,7 @@
       @for (post of page.posts; track post.id) {
         <article>
           @if (post.imageUrl) { <img [src]="post.imageUrl" alt="" /> }
-          <div class="details"><div class="title-line"><h3>{{ post.title }}</h3><span [class.hidden]="!post.isVisible">{{ post.isVisible ? 'Sichtbar' : 'Ausgeblendet' }}</span></div><p>{{ post.subtitle }}</p><small>Beitragsdatum: {{ formatDate(post.publishedAt) }}</small>@if (post.showFrom || post.showUntil) { <small>Anzeige: {{ post.showFrom ? formatDate(post.showFrom) : 'sofort' }} – {{ post.showUntil ? formatDate(post.showUntil) : 'offen' }}</small> }</div>
+          <div class="details"><div class="title-line"><h3>{{ post.title }}</h3><span [class.hidden]="!post.isVisible" [class.planned]="status(post) === 'Geplant'" [class.expired]="status(post) === 'Abgelaufen'">{{ status(post) }}</span></div><p>{{ post.subtitle }}</p><small>Beitragsdatum: {{ formatDate(post.publishedAt) }}</small>@if (post.showFrom || post.showUntil) { <small>Anzeige: {{ post.showFrom ? formatDate(post.showFrom) : 'sofort' }} – {{ post.showUntil ? formatDate(post.showUntil) : 'offen' }}</small> }</div>
           <div class="actions"><a [routerLink]="['/inhalte', post.id]">Bearbeiten</a><button type="button" (click)="remove(post.id, post.title)">Löschen</button></div>
         </article>
       } @empty { <p class="empty">Noch keine Beiträge angelegt.</p> }
