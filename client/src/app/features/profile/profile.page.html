@@ -2,7 +2,8 @@
   <main class="grid min-h-[calc(100dvh-8.5rem)] place-items-center bg-background" aria-label="Profil wird geladen"><span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary"></span></main>
 } @else {
   <main class="px-5 pb-7 pt-6">
-    <p class="text-sm font-semibold text-primary">MEIN KONTO</p><h1 class="mt-1 text-3xl font-bold tracking-tight">Mein Profil</h1><p class="mt-2 text-base text-muted">Halten Sie Ihre Kontaktdaten aktuell.</p>
+    <a routerLink="/profil" class="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4">Zur Kontoübersicht</a>
+    <p class="mt-4 text-sm font-semibold text-primary">MEIN KONTO</p><h1 class="mt-1 text-3xl font-bold tracking-tight">Mein Profil</h1><p class="mt-2 text-base text-muted">Halten Sie Ihre Kontaktdaten aktuell.</p>
     @if (profile(); as customer) {
       @if (customer.profileCompletionBonusPoints > 0) {
         <section class="mt-6 rounded-2xl border border-primary/30 bg-accent p-4" aria-label="Profilbonus">
@@ -16,15 +17,27 @@
         </section>
       }
     }
-    <section class="mt-7 rounded-3xl border border-border bg-surface p-5 shadow-card" aria-labelledby="profile-photo-title">
-      <h2 id="profile-photo-title" class="text-lg font-bold">Profilbild</h2>
+    <details name="profile-sections" class="group mt-7 rounded-3xl border border-border bg-surface p-5 shadow-card">
+      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl text-lg font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+        <span>Profilbild</span><ng-icon name="lucideChevronRight" size="1.25rem" class="shrink-0 text-primary transition-transform group-open:rotate-90" aria-hidden="true" />
+      </summary>
       <div class="mt-5 flex items-center gap-5">
         @if (profile()?.profileImageUrl; as imageUrl) { <img [src]="imageUrl" class="size-24 rounded-full border-4 border-accent object-cover" alt="Ihr Profilbild" /> } @else { <span class="grid size-24 place-items-center rounded-full border-4 border-accent bg-primary text-center text-2xl font-bold text-on-primary" aria-hidden="true">{{ initials() }}</span> }
-        <div><label for="profile-photo" class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-primary"><ng-icon name="lucideCamera" size="1.125rem" />Bild auswählen</label><input id="profile-photo" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" (change)="selectPhoto($event)" />@if (profile()?.profileImageUrl) { <button type="button" class="mt-2 min-h-11 text-sm font-semibold text-primary underline disabled:opacity-50" [disabled]="isSaving()" (click)="removePhoto()">Bild entfernen</button> }<p class="mt-2 text-xs leading-5 text-muted">Bild auswählen, Ausschnitt verschieben und zoomen.</p></div>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <label for="profile-photo" class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-on-primary transition hover:bg-primary-strong focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-primary"><ng-icon name="lucideCamera" size="1.125rem" />Bild auswählen</label>
+            <input id="profile-photo" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" (change)="selectPhoto($event)" />
+            @if (profile()?.profileImageUrl) { <button type="button" class="min-h-11 text-sm font-semibold text-primary underline disabled:opacity-50" [disabled]="isSaving()" (click)="removePhoto()">Bild entfernen</button> }
+          </div>
+          <p class="mt-2 text-xs leading-5 text-muted">Bild auswählen, Ausschnitt verschieben und zoomen.</p>
+        </div>
       </div>
-    </section>
-    <form class="mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card" (ngSubmit)="save()" novalidate>
-      <h2 class="text-lg font-bold">Kontaktdaten</h2>
+    </details>
+    <form class="mt-5" (ngSubmit)="save()" novalidate>
+      <details #contactDetails name="profile-sections" open class="group rounded-3xl border border-border bg-surface p-5 shadow-card">
+        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl text-lg font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+          <span>Kontaktdaten</span><ng-icon name="lucideChevronRight" size="1.25rem" class="shrink-0 text-primary transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
       <div class="mt-5 space-y-4">
         @if (!profile()?.firstName && !profile()?.lastName) { <p class="text-sm text-muted">Bisheriger Name: {{ profile()?.displayName }}. Sie können ihn jetzt in Vor- und Nachname aufteilen.</p> }
         <div class="grid gap-3 sm:grid-cols-2">
@@ -37,26 +50,19 @@
           </select>
         </label>
         @if (formError(); as message) { <p id="profile-name-error" class="text-sm text-danger" role="alert">{{ message }}</p> }
-        <label class="block text-sm font-medium">Benutzername<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="username" [(ngModel)]="form.username" required minlength="3" maxlength="100" autocomplete="username" /></label>
-        @if (form.username.trim().toLowerCase() !== profile()?.username) {
-          <div class="text-sm font-medium">
-            <label for="profile-username-password">Aktuelles Passwort zur Bestätigung</label>
-            <span class="password-field mt-2">
-              <input #usernamePasswordInput id="profile-username-password" class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="usernamePassword" [(ngModel)]="form.usernamePassword" type="password" autocomplete="current-password" required />
-              <app-password-visibility-toggle [field]="usernamePasswordInput" />
-            </span>
-          </div>
-          <p class="text-sm text-muted">Nach der Änderung des Benutzernamens melden Sie sich bitte erneut an.</p>
-        }
         <label class="block text-sm font-medium">E-Mail-Adresse<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-accent px-4 text-muted" [value]="profile()?.email ?? ''" readonly /></label>
         <label class="block text-sm font-medium">Telefonnummer<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="phone" [(ngModel)]="form.phone" type="tel" maxlength="40" autocomplete="tel" /></label>
         <label class="block text-sm font-medium">Geburtsdatum<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="birthDate" [(ngModel)]="form.birthDate" type="date" autocomplete="bday" /></label>
         <label class="block text-sm font-medium">Straße und Hausnummer<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="streetAddress" [(ngModel)]="form.streetAddress" maxlength="160" autocomplete="street-address" /></label>
         <div class="grid grid-cols-[7rem_1fr] gap-3"><label class="block text-sm font-medium">PLZ<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="postalCode" [(ngModel)]="form.postalCode" maxlength="20" autocomplete="postal-code" /></label><label class="block text-sm font-medium">Ort<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="city" [(ngModel)]="form.city" maxlength="120" autocomplete="address-level2" /></label></div>
       </div>
-      <section class="mt-8 border-t border-border pt-6" aria-labelledby="notifications-title">
-        <p class="text-sm font-semibold text-primary">BENACHRICHTIGUNGEN</p>
-        <h2 id="notifications-title" class="mt-1 text-lg font-bold">Was möchten Sie erhalten?</h2>
+      </details>
+      <details name="profile-sections" class="group mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card">
+        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl text-lg font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+          <span>Benachrichtigungen</span><ng-icon name="lucideChevronRight" size="1.25rem" class="shrink-0 text-primary transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
+      <section class="mt-5" aria-label="Benachrichtigungseinstellungen">
+        <p class="text-sm leading-5 text-muted">Wählen Sie aus, welche Nachrichten Sie erhalten möchten.</p>
         <div class="mt-5 space-y-3">
           <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
             <span><span class="block font-semibold">Newsletter per E-Mail</span><span class="mt-1 block text-sm leading-5 text-muted">Aktionen, Tipps und Neuigkeiten Ihrer Apotheke.</span></span>
@@ -138,10 +144,13 @@
         }
         @if (push.message()) { <p class="mt-3 text-sm text-muted" role="status">{{ push.message() }}</p> }
       </section>
-      <section class="mt-8 border-t border-border pt-6" aria-labelledby="footer-navigation-title">
-        <p class="text-sm font-semibold text-primary">NAVIGATION</p>
-        <h2 id="footer-navigation-title" class="mt-1 text-lg font-bold">Schnellzugriffe im Footer</h2>
-        <p class="mt-2 text-sm leading-5 text-muted">Wählen Sie bis zu vier Bereiche. Den Scanner behalten Sie immer fix in der Mitte.</p>
+      </details>
+      <details name="profile-sections" class="group mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card">
+        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl text-lg font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+          <span>Schnellzugriffe im Footer</span><ng-icon name="lucideChevronRight" size="1.25rem" class="shrink-0 text-primary transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
+      <section class="mt-5" aria-label="Footer-Navigation">
+        <p class="text-sm leading-5 text-muted">Wählen Sie bis zu vier Bereiche. Den Scanner behalten Sie immer fix in der Mitte.</p>
         <p class="mt-3 text-sm font-semibold text-primary">{{ form.footerNavigationItems.length }} von 4 ausgewählt</p>
         <div class="mt-5 space-y-3">
           @for (item of footerNavigationOptions; track item.id) {
@@ -154,35 +163,8 @@
           }
         </div>
       </section>
+      </details>
       <button type="submit" class="mt-6 flex min-h-12 w-full items-center justify-center rounded-xl bg-primary px-4 font-bold text-on-primary transition hover:bg-primary-strong disabled:cursor-wait disabled:opacity-60" [disabled]="isSaving()">@if (isSaving()) { Speichern … } @else { Profil &amp; Einstellungen speichern }</button>
-    </form>
-    <form class="mt-5 rounded-3xl border border-border bg-surface p-5 shadow-card" (ngSubmit)="requestEmailChange()" novalidate>
-      <h2 class="text-lg font-bold">E-Mail-Adresse ändern</h2>
-      <p class="mt-2 text-sm leading-5 text-muted">Die neue Adresse wird erst nach Bestätigung des Links gültig. Das aktuelle Passwort bleibt unverändert.</p>
-      <label class="mt-4 block text-sm font-medium">Neue E-Mail-Adresse<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="newEmail" [(ngModel)]="emailDraft" type="email" autocomplete="email" required maxlength="180" /></label>
-      <div class="mt-4 text-sm font-medium">
-        <label for="profile-email-password">Aktuelles Passwort</label>
-        <span class="password-field mt-2">
-          <input #emailPasswordInput id="profile-email-password" class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="emailPassword" [(ngModel)]="emailPassword" type="password" autocomplete="current-password" required />
-          <app-password-visibility-toggle [field]="emailPasswordInput" />
-        </span>
-      </div>
-      @if (emailChangeError(); as error) { <p class="mt-3 text-sm text-danger" role="alert">{{ error }}</p> }
-      @if (emailChangeMessage(); as message) { <p class="mt-3 text-sm text-primary" role="status">{{ message }}</p> }
-      <button type="submit" class="mt-5 min-h-12 w-full rounded-xl bg-primary px-4 font-bold text-on-primary disabled:opacity-60" [disabled]="emailChangeBusy()">{{ emailChangeBusy() ? 'Wird gesendet …' : 'Bestätigungslink senden' }}</button>
-    </form>
-    <form class="mt-5 rounded-3xl border border-danger/40 bg-surface p-5 shadow-card" (ngSubmit)="deleteAccount()" novalidate>
-      <h2 class="text-lg font-bold">Kundenzugang löschen</h2>
-      <p class="mt-2 text-sm leading-6 text-muted">Damit werden Ihr Kundenzugang bei dieser Apotheke und seine Daten dauerhaft gelöscht – auch Termine, Chats, Medikamente, Gutscheine und Punkte. Andere Apotheken- und Mitarbeiterzugänge bleiben bestehen. Diese Aktion kann nicht rückgängig gemacht werden.</p>
-      <div class="mt-4 text-sm font-medium">
-        <label for="profile-delete-password">Aktuelles Passwort</label>
-        <span class="password-field mt-2">
-          <input #deletePasswordInput id="profile-delete-password" class="min-h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground" name="deletePassword" [(ngModel)]="deletePassword" type="password" autocomplete="current-password" required />
-          <app-password-visibility-toggle [field]="deletePasswordInput" />
-        </span>
-      </div>
-      @if (deleteError(); as error) { <p class="mt-3 text-sm text-danger" role="alert">{{ error }}</p> }
-      <button type="submit" class="mt-5 min-h-12 w-full rounded-xl bg-danger px-4 font-bold text-white disabled:opacity-60" [disabled]="deleteBusy()">{{ deleteBusy() ? 'Wird gelöscht …' : 'Kundenzugang löschen' }}</button>
     </form>
   </main>
 }

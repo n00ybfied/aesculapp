@@ -7,6 +7,7 @@ import { RewardRepository, type ActiveRedemption, type Reward, type RewardsOverv
 import { ThemeService } from '../../core/theme/theme.service';
 import { FamilyService } from '../../core/family/family.service';
 import { AnalyticsService } from '../../core/analytics/analytics.service';
+import { sortRewards, type RewardSortOrder } from './reward-sort';
 
 interface RewardCartItem {
   readonly reward: Reward;
@@ -36,6 +37,7 @@ export class RewardsPage implements OnInit {
   protected readonly isRedeeming = signal(false);
   protected readonly isLoading = signal(true);
   protected readonly filterText = signal('');
+  protected readonly sortOrder = signal<RewardSortOrder>('newest');
   protected readonly visibleRewardCount = signal(RewardsPage.pageSize);
   protected readonly cartTotal = computed(() => this.cart().reduce(
     (total, item) => total + item.reward.requiredPoints * item.quantity,
@@ -61,9 +63,10 @@ export class RewardsPage implements OnInit {
   protected readonly filteredRewards = computed(() => {
     const rewards = this.overview()?.rewards ?? [];
     const query = this.filterText().trim().toLocaleLowerCase('de');
-    return query === ''
+    const filtered = query === ''
       ? rewards
       : rewards.filter((reward) => reward.title.toLocaleLowerCase('de').includes(query));
+    return sortRewards(filtered, this.sortOrder());
   });
   protected readonly displayedRewards = computed(() => this.filteredRewards().slice(0, this.visibleRewardCount()));
   protected readonly hasMoreRewards = computed(() => this.displayedRewards().length < this.filteredRewards().length);
@@ -74,6 +77,12 @@ export class RewardsPage implements OnInit {
 
   protected filterByTitle(event: Event): void {
     this.filterText.set((event.target as HTMLInputElement).value);
+    this.visibleRewardCount.set(RewardsPage.pageSize);
+    queueMicrotask(() => this.loadMoreWhenNearBottom());
+  }
+
+  protected sortBy(event: Event): void {
+    this.sortOrder.set((event.target as HTMLSelectElement).value as RewardSortOrder);
     this.visibleRewardCount.set(RewardsPage.pageSize);
     queueMicrotask(() => this.loadMoreWhenNearBottom());
   }

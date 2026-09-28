@@ -109,7 +109,7 @@ describe('CustomerSetupPage', () => {
     expect(celebrate).toHaveBeenCalledWith({ title: 'Profil vervollständigen', points: 55 });
   });
 
-  it('lets a new customer skip the setup without completing personal fields', async () => {
+  it('saves the first step when a customer skips the remaining setup', async () => {
     const navigateByUrl = vi.fn(async () => true);
     const skipSetup = vi.fn(async () => ({ id: 1, setupCompleted: true }));
     TestBed.configureTestingModule({
@@ -133,11 +133,30 @@ describe('CustomerSetupPage', () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     await fixture.whenStable();
     fixture.detectChanges();
-    const skipButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Jetzt nicht'));
+    const root = fixture.nativeElement as HTMLElement;
+    const setInput = (selector: string, value: string): void => {
+      const input = root.querySelector<HTMLInputElement | HTMLSelectElement>(selector);
+      if (!input) throw new Error(`Missing input: ${selector}`);
+      input.value = value;
+      input.dispatchEvent(new Event(input instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+    };
+    expect(root.textContent).toContain('Jetzt nicht · später im Profil ergänzen');
+    setInput('[formControlName="salutation"]', 'frau');
+    setInput('[formControlName="firstName"]', 'Erika');
+    setInput('[formControlName="lastName"]', 'Beispiel');
+    fixture.detectChanges();
+    expect(root.textContent).toContain('Rest überspringen');
+    root.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(root.textContent).toContain('Schritt 2 von 3');
+    const skipButton = Array.from(root.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Rest überspringen'));
     skipButton?.click();
     await fixture.whenStable();
-    expect(skipSetup).toHaveBeenCalledOnce();
+    expect(skipSetup).toHaveBeenCalledWith(expect.objectContaining({
+      salutation: 'frau', firstName: 'Erika', lastName: 'Beispiel', phone: null,
+    }));
     expect(navigateByUrl).toHaveBeenCalledWith('/dashboard');
   });
 });

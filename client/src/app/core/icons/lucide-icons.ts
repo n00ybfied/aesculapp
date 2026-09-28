@@ -29,6 +29,7 @@ import {
   lucideTicket,
   lucideTrophy,
   lucideUserRound,
+  lucideUserPlus,
   lucideLogOut,
   lucideX,
 } from '@ng-icons/lucide';
@@ -64,6 +65,7 @@ export const provideLucideIcons = () =>
     lucideTicket,
     lucideTrophy,
     lucideUserRound,
+    lucideUserPlus,
     lucideLogOut,
     lucideX,
   });

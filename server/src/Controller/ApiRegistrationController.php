@@ -27,6 +27,7 @@ final class ApiRegistrationController
         UserPasswordHasherInterface $passwordHasher,
         EmailVerificationService $emailVerification,
         \App\Service\UsernameReservation $usernameReservation,
+        \App\Service\CustomerReferralService $referrals,
     ): JsonResponse {
         try {
             $payload = $request->toArray();
@@ -38,8 +39,9 @@ final class ApiRegistrationController
         $displayName = $payload['displayName'] ?? 'Neuer Kunde';
         $password = $payload['password'] ?? null;
         $salutation = $payload['salutation'] ?? null;
+        $referralCode = $payload['referralCode'] ?? null;
 
-        if (!is_string($email) || !is_string($displayName) || !is_string($password) || !in_array($salutation, [null, 'frau', 'herr', 'divers'], true)) {
+        if (!is_string($email) || !is_string($displayName) || !is_string($password) || !in_array($salutation, [null, 'frau', 'herr', 'divers'], true) || ($referralCode !== null && !is_string($referralCode))) {
             return $this->validationError();
         }
 
@@ -61,12 +63,20 @@ final class ApiRegistrationController
             return new JsonResponse(['message' => 'An account with these details already exists.'], JsonResponse::HTTP_CONFLICT);
         }
 
+        $tenant = $activeTenant->get();
+        $inviter = $referralCode !== null ? $referrals->findInviter($tenant, $referralCode) : null;
+        if ($referralCode !== null && $inviter === null) {
+            return new JsonResponse(['code' => 'invalid_referral', 'message' => 'Dieser Einladungslink ist ungültig.'], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $user = new User($username, $email, $displayName);
         $user->setSalutation($salutation);
         $user->setPassword($passwordHasher->hashPassword($user, $password));
         $user->setActive(false);
-        $tenant = $activeTenant->get();
         $entityManager->persist($user);
+        if ($inviter !== null) {
+            $referrals->recordInvitation($tenant, $inviter, $user);
+        }
         try {
             $emailVerification->send($user, $tenant);
         } catch (TransportExceptionInterface|\RuntimeException) {

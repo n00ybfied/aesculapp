@@ -62,6 +62,7 @@ final class CustomerAccountDeletionService
             $this->connection->executeStatement('DELETE FROM appointment WHERE tenant_id = ? AND customer_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM coupon_redemption WHERE tenant_id = ? AND customer_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM family_connection WHERE tenant_id = ? AND (participant_one_id = ? OR participant_two_id = ? OR invited_by_id = ?)', [$tenantId, $userId, $userId, $userId]);
+            $this->connection->executeStatement('DELETE FROM customer_referral WHERE tenant_id = ? AND (invitee_id = ? OR inviter_id = ?)', [$tenantId, $userId, $membership['id']]);
             $this->connection->executeStatement('DELETE FROM medication WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM web_push_subscription WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM app_analytics_event WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
@@ -76,7 +77,7 @@ final class CustomerAccountDeletionService
                 $this->connection->executeStatement('DELETE FROM tenant_membership WHERE id = ?', [$membership['id']]);
             } else {
                 $this->connection->executeStatement(
-                    "UPDATE tenant_membership SET roles = ?, newsletter_enabled = 0, chat_push_enabled = 0, reward_push_enabled = 0, news_push_enabled = 0, medication_push_enabled = 0, appointment_push_enabled = 0, family_push_enabled = 0, morning_reminder_time = '08:00', noon_reminder_time = '12:00', evening_reminder_time = '18:00', night_reminder_time = '22:00', footer_home_enabled = 0, footer_chat_enabled = 0, footer_rewards_enabled = 0, footer_website_enabled = 0, footer_navigation_items = JSON_ARRAY() WHERE id = ?",
+                    "UPDATE tenant_membership SET roles = ?, referral_code = NULL, newsletter_enabled = 0, chat_push_enabled = 0, reward_push_enabled = 0, news_push_enabled = 0, medication_push_enabled = 0, appointment_push_enabled = 0, family_push_enabled = 0, morning_reminder_time = '08:00', noon_reminder_time = '12:00', evening_reminder_time = '18:00', night_reminder_time = '22:00', footer_home_enabled = 0, footer_chat_enabled = 0, footer_rewards_enabled = 0, footer_website_enabled = 0, footer_navigation_items = JSON_ARRAY() WHERE id = ?",
                     [json_encode($remainingRoles, JSON_THROW_ON_ERROR), $membership['id']],
                 );
             }

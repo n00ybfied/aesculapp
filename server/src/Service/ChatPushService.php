@@ -20,6 +20,9 @@ final class ChatPushService
     /** @var list<array{user: User, tenant: Tenant, title: string, body: string, url: string, tag: string, kind: string}> */
     private array $scheduledFamilyNotifications = [];
 
+    /** @var list<array{user: User, tenant: Tenant, rewardLine: string, referralId: int}> */
+    private array $scheduledReferralNotifications = [];
+
     /** @var list<int> */
     private array $scheduledAppointmentBookings = [];
 
@@ -114,6 +117,11 @@ final class ChatPushService
         $this->scheduledAppointmentBookings[] = $appointmentId;
     }
 
+    public function scheduleReferralSuccess(User $user, Tenant $tenant, string $rewardLine, int $referralId): void
+    {
+        $this->scheduledReferralNotifications[] = compact('user', 'tenant', 'rewardLine', 'referralId');
+    }
+
     public function sendAppointmentReminder(User $user, Tenant $tenant, string $body, string $appointmentTime): bool
     {
         if (!$this->memberships->findForUserAndTenant($user, $tenant)?->isAppointmentPushEnabled()) {
@@ -148,7 +156,7 @@ final class ChatPushService
                 $tenant,
                 'AesculApp-Test',
                 'Push-Benachrichtigungen funktionieren auf diesem Gerät.',
-                '/profil',
+                '/profil/bearbeiten',
                 'aesculapp-push-test',
                 $config,
                 null,
@@ -179,6 +187,8 @@ final class ChatPushService
         $this->scheduled = [];
         foreach ($this->scheduledFamilyNotifications as $notification) $this->deliverFamilyNotification(...$notification);
         $this->scheduledFamilyNotifications = [];
+        foreach ($this->scheduledReferralNotifications as $notification) $this->deliverReferralSuccess(...$notification);
+        $this->scheduledReferralNotifications = [];
         foreach ($this->scheduledAppointmentBookings as $id) $this->deliverAppointmentBooking($id);
         $this->scheduledAppointmentBookings = [];
     }
@@ -251,6 +261,36 @@ final class ChatPushService
             $this->deliverToSubscriptions($user, $tenant, $title, $body, $url, $tag, $config, null, $kind);
         } catch (\Throwable $e) {
             $this->logger->warning('family.push.failed', ['errorClass' => $e::class]);
+        }
+    }
+
+    private function deliverReferralSuccess(User $user, Tenant $tenant, string $rewardLine, int $referralId): void
+    {
+        try {
+            if (!$user->isActive() || !$this->memberships->findForUserAndTenant($user, $tenant)) {
+                return;
+            }
+            $config = $this->config();
+            if ($config === null) {
+                return;
+            }
+            $this->deliverToSubscriptions(
+                $user,
+                $tenant,
+                'Einladung erfolgreich',
+                'Ihre Einladung wurde bestätigt. '.$rewardLine,
+                '/freunde-einladen',
+                'aesculapp-referral-'.$referralId,
+                $config,
+                null,
+                'referral_success',
+                ['reward_line' => $rewardLine],
+            );
+        } catch (\Throwable $exception) {
+            $this->logger->warning('referral.success_push.failed', [
+                'referralId' => $referralId,
+                'errorClass' => $exception::class,
+            ]);
         }
     }
 

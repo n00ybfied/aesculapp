@@ -14,8 +14,8 @@ final class NotificationTemplateCatalog
             'tags' => ['action_url'], 'required' => ['action_url'],
         ],
         'email_change' => [
-            'channel' => 'email', 'label' => 'Neue E-Mail-Adresse bestätigen', 'title' => 'Neue E-Mail-Adresse für Aesculapp bestätigen',
-            'body' => "Sie haben eine Änderung Ihrer E-Mail-Adresse angefordert.\n\nBestätigen Sie die neue Adresse innerhalb von 24 Stunden:\n{{action_url}}\n\nWenn Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail.",
+            'channel' => 'email', 'label' => 'Neue E-Mail-Adresse und Benutzernamen bestätigen', 'title' => 'Neue E-Mail-Adresse und Benutzernamen für Aesculapp bestätigen',
+            'body' => "Sie haben eine Änderung Ihrer E-Mail-Adresse und Ihres Benutzernamens angefordert.\n\nBestätigen Sie die neue Adresse innerhalb von 24 Stunden:\n{{action_url}}\n\nWenn Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail.",
             'tags' => ['action_url'], 'required' => ['action_url'],
         ],
         'password_reset' => [
@@ -100,6 +100,11 @@ final class NotificationTemplateCatalog
             'body' => "{{actor_name}} hat der Punkteteilung zugestimmt.\n\n{{action_url}}",
             'tags' => ['actor_name', 'action_url'], 'required' => ['action_url'],
         ],
+        'referral_success' => [
+            'channel' => 'email', 'label' => 'Freundeseinladung erfolgreich', 'title' => 'Ihre Einladung war erfolgreich',
+            'body' => "Guten Tag {{inviter_name}},\n\neine Person hat sich über Ihren Einladungslink registriert und ihre E-Mail-Adresse bestätigt.\n\n{{reward_line}}\n\nIhre Einladungen finden Sie hier:\n{{action_url}}\n",
+            'tags' => ['inviter_name', 'reward_line', 'action_url'], 'required' => ['reward_line', 'action_url'],
+        ],
         'push_chat_reply' => [
             'channel' => 'push', 'label' => 'Neue Chatantwort', 'title' => 'Neue Antwort',
             'body' => 'Sie haben eine neue Antwort von Ihrer Apotheke.', 'tags' => [], 'required' => [],
@@ -133,6 +138,11 @@ final class NotificationTemplateCatalog
         'push_family_point_sharing_accepted' => [
             'channel' => 'push', 'label' => 'Punkteteilung angenommen', 'title' => 'Gemeinsame Punkte',
             'body' => 'Ihre Anfrage zur gemeinsamen Punkteteilung wurde angenommen.', 'tags' => [], 'required' => [],
+        ],
+        'push_referral_success' => [
+            'channel' => 'push', 'label' => 'Freundeseinladung erfolgreich', 'title' => 'Einladung erfolgreich',
+            'body' => 'Ihre Einladung wurde bestätigt. {{reward_line}}',
+            'tags' => ['reward_line'], 'required' => ['reward_line'],
         ],
         'push_test' => [
             'channel' => 'push', 'label' => 'Test-Push', 'title' => 'AesculApp-Test',

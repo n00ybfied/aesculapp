@@ -46,7 +46,7 @@ final class ApiAchievementsController
             'progress' => $completed ? 8 : 8 - count($missing),
             'target' => 8,
             'missingFields' => $missing,
-            'actionPath' => '/profil',
+            'actionPath' => '/profil/bearbeiten',
         ]]]);
     }
 }
