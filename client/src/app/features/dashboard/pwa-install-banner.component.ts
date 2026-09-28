@@ -22,4 +22,9 @@ export class PwaInstallBannerComponent {
   protected closeInstructions(): void {
     this.instructionsDialog()?.nativeElement.close();
   }
+
+  protected alreadyInstalled(): void {
+    this.closeInstructions();
+    this.install.dismissBanner();
+  }
 }
