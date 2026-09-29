@@ -1,5 +1,9 @@
 # Entwicklungsgrundlage
 
+## Versionierung
+
+Der erste gesicherte Stand der aktiven Testphase ist `v0.1.0` auf dem damaligen `dev`-Commit. Ein annotierter Git-Tag hält diesen Stand unveränderlich fest; die laufende Entwicklung bleibt auf `dev`. Kunden-App und Admin-App tragen dieselbe Produktversion in `package.json` und `package-lock.json`. Ein Versionstag allein löst keinen Deploy aus; dafür bleiben die bestehenden Branch-Workflows zuständig. Die native Capacitor-Versionierung wird erst mit den nativen Projekten eingerichtet.
+
 ## Technischer Stack
 
 Für das Projekt werden folgende grundlegende Technologieentscheidungen festgelegt:
