@@ -19,7 +19,7 @@
         <button
           type="button"
           class="absolute inset-0 z-10 cursor-crosshair focus-visible:outline-3 focus-visible:outline-inset focus-visible:outline-primary"
-          aria-label="Kamerabild antippen, um an dieser Stelle scharfzustellen"
+          aria-label="Kamerabild antippen, um erneut scharfzustellen"
           (click)="focusPreview($event)"
         ></button>
       }
@@ -38,6 +38,19 @@
       </div>
       @if (focusPoint(); as point) {
         <span class="pointer-events-none absolute z-20 size-12 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 border-on-primary shadow-soft" [style.left.%]="point.x" [style.top.%]="point.y" aria-hidden="true"></span>
+      }
+      @if (isScanning() && torchAvailable()) {
+        <button
+          type="button"
+          class="absolute right-3 top-3 z-20 flex min-h-11 items-center gap-2 rounded-xl bg-surface/95 px-3 text-sm font-semibold text-foreground shadow-card focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+          [attr.aria-pressed]="torchEnabled()"
+          [attr.aria-label]="torchEnabled() ? 'Taschenlampe ausschalten' : 'Taschenlampe einschalten'"
+          [disabled]="isTogglingTorch()"
+          (click)="toggleTorch()"
+        >
+          <ng-icon [name]="torchEnabled() ? 'lucideFlashlightOff' : 'lucideFlashlight'" size="1.2rem" aria-hidden="true" />
+          {{ torchEnabled() ? 'Licht aus' : 'Licht an' }}
+        </button>
       }
       <p class="absolute bottom-5 px-5 text-center text-sm font-semibold text-on-primary/90">
         @if (isReadingImage()) {
@@ -77,6 +90,12 @@
         <button type="button" class="mt-2 font-bold underline decoration-2 underline-offset-4" (click)="retryCamera()">Erneut scannen</button>
       </div>
     }
+    @if (theme.showCustomerDebugOutput) {
+      <details class="mt-5 rounded-xl border border-border bg-background p-4 text-sm text-muted">
+        <summary class="cursor-pointer font-semibold">Debug: Scannerdaten</summary>
+        <app-scanner-diagnostics [diagnostics]="scannerDiagnostics()" />
+      </details>
+    }
   </section>
 
   <p class="mt-5 text-center text-sm leading-6 text-muted">Die Kamera startet automatisch. Alternativ können Sie ein Bild mit QR-Code auswählen.</p>
@@ -104,8 +123,8 @@
       </div>
       @if (theme.showCustomerDebugOutput) {
         <details class="mt-4 text-sm text-muted">
-          <summary class="cursor-pointer font-semibold">Debug: QR-Code-Inhalt anzeigen</summary>
-          <code class="mt-3 block break-all rounded-xl bg-background p-3 text-xs leading-5 text-foreground">{{ receipt.rawQrValue }}</code>
+          <summary class="cursor-pointer font-semibold">Debug: Scannerdaten und QR-Code</summary>
+          <app-scanner-diagnostics [diagnostics]="lastScanDiagnostics()" [rawQrValue]="receipt.rawQrValue" />
         </details>
       }
       @if (receipt.eligibleCents === 0) {

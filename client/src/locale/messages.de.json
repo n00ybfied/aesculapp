@@ -10,6 +10,7 @@
     "status.error.receipt-qr-unsupported": "Dieser QR-Code enthält keinen unterstützten Kassenbeleg.",
     "status.error.receipt-no-eligible-amount": "Für diesen Beleg sind keine punktefähigen Posten ausgewiesen. Daher können keine Punkte gutgeschrieben werden.",
     "status.error.camera-unavailable": "Die Kamera konnte nicht geöffnet werden. Bitte erlauben Sie den Kamerazugriff.",
+    "status.warning.camera-light-unavailable": "Das Kameralicht konnte nicht umgeschaltet werden.",
     "status.error.receipt-already-imported": "Dieser Beleg wurde bereits eingelöst.",
     "status.success.receipt-imported": "{$points} Punkte wurden gutgeschrieben.",
     "status.success.reward-redeemed": "{$rewardTitle} wurde eingelöst.",
