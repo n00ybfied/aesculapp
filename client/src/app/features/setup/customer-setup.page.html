@@ -37,7 +37,7 @@
           </section>
           <section #stepPanel class="w-full shrink-0 p-5 sm:p-8" [attr.aria-hidden]="step() !== 2" [attr.inert]="step() !== 2 ? '' : null" aria-labelledby="setup-interests-title">
             <p class="text-sm font-bold text-primary">03 · INTERESSEN</p><h2 #stepHeading id="setup-interests-title" tabindex="-1" class="mt-2 text-2xl font-bold outline-none">Was interessiert Sie?</h2>
-            <p class="mt-2 text-sm leading-6 text-muted">Wählen Sie Ihre Nachrichtenkategorien und Benachrichtigungen. Alles kann später im Profil geändert werden.</p>
+            <p class="mt-2 text-sm leading-6 text-muted">Wählen Sie die Themen, die Sie interessieren, und legen Sie fest, welche Benachrichtigungen Sie erhalten möchten. Sie können später genauere Einstellungen auf Ihrer Profilseite treffen.</p>
             <fieldset class="mt-6"><legend class="font-bold">Nachrichtenkategorien</legend>
               <div class="mt-3 grid gap-2 sm:grid-cols-2">
                 @for (category of categories(); track category.id) {
@@ -45,13 +45,14 @@
                 } @empty { <p class="text-sm text-muted">Ihre Apotheke hat noch keine Kategorien angelegt.</p> }
               </div>
             </fieldset>
+            <p class="mt-3 text-sm text-muted">Die Auswahl einer Nachrichtenkategorie allein aktiviert noch keine Push-Mitteilungen. Dafür müssen Sie „Neue Apotheken-News“ gesondert einschalten.</p>
             <fieldset class="mt-6"><legend class="font-bold">Benachrichtigungen</legend>
               <p class="mt-1 text-sm text-muted">Push benötigt zusätzlich Ihre Gerätefreigabe. Diese können Sie später im Profil aktivieren.</p>
               <div class="mt-3 space-y-2">
                 <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Newsletter per E-Mail (derzeit noch nicht versendet)<input type="checkbox" formControlName="newsletterEnabled" class="size-5 accent-primary" /></label>
                 <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Chatantworten<input type="checkbox" formControlName="chatPushEnabled" class="size-5 accent-primary" /></label>
                 <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Neue Prämien<input type="checkbox" formControlName="rewardPushEnabled" class="size-5 accent-primary" /></label>
-                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Neue Apotheken-News<input type="checkbox" formControlName="newsPushEnabled" class="size-5 accent-primary" /></label>
+                <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2"><span><span class="block">Neue Apotheken-News</span><span class="mt-1 block text-xs font-normal leading-5 text-muted">{{ newsPushConsentText() }}</span></span><input type="checkbox" formControlName="newsPushEnabled" class="size-5 shrink-0 accent-primary" /></label>
                 <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Medikamentenerinnerungen<input type="checkbox" formControlName="medicationPushEnabled" class="size-5 accent-primary" /></label>
                 <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Termine<input type="checkbox" formControlName="appointmentPushEnabled" class="size-5 accent-primary" /></label>
                 <label class="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-2">Familienzugang<input type="checkbox" formControlName="familyPushEnabled" class="size-5 accent-primary" /></label>

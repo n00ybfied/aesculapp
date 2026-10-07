@@ -26,6 +26,7 @@ export interface CustomerProfile {
   readonly chatPushEnabled: boolean;
   readonly rewardPushEnabled: boolean;
   readonly newsPushEnabled: boolean;
+  readonly newsPushConsentText: string;
   readonly newsCategoryIds: readonly number[];
   readonly medicationPushEnabled: boolean;
   readonly appointmentPushEnabled: boolean;

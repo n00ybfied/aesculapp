@@ -30,6 +30,7 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
   protected readonly isScanPaused = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly unsupportedReceiptMessage = statusMessages.unsupportedReceiptQr;
+  protected readonly receiptNoEligibleAmountMessage = statusMessages.receiptNoEligibleAmount;
 
   async ngAfterViewInit(): Promise<void> {
     await this.startCamera();
@@ -119,6 +120,8 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
       this.receiptPreview.set(null);
       if (error instanceof HttpErrorResponse && error.status === 409) {
         this.statusMessages.error(statusMessages.receiptAlreadyImported);
+      } else if (error instanceof HttpErrorResponse && error.status === 422 && error.error?.code === 'receipt_no_eligible_amount') {
+        this.statusMessages.show(statusMessages.receiptNoEligibleAmount, { kind: 'warning' });
       } else {
         this.statusMessages.error(statusMessages.unsupportedReceiptQr);
       }

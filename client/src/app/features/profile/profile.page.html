@@ -77,7 +77,7 @@
             <input class="size-6 shrink-0 accent-primary" name="rewardPushEnabled" type="checkbox" [(ngModel)]="form.rewardPushEnabled" />
           </label>
           <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
-            <span><span class="block font-semibold">News aus der Apotheke</span><span class="mt-1 block text-sm leading-5 text-muted">Wenn ein neuer Beitrag veröffentlicht wird.</span></span>
+            <span><span class="block font-semibold">News aus der Apotheke</span><span class="mt-1 block text-sm leading-5 text-muted">{{ profile()?.newsPushConsentText }}</span></span>
             <input class="size-6 shrink-0 accent-primary" name="newsPushEnabled" type="checkbox" [(ngModel)]="form.newsPushEnabled" />
           </label>
           @if (newsCategories().length) {

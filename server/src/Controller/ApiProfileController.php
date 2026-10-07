@@ -9,6 +9,7 @@ use App\Repository\TenantMembershipRepository;
 use App\Service\ActiveTenantProvider;
 use App\Service\ChatPushService;
 use App\Service\ImageProcessor;
+use App\Service\NewsPushConsentRecorder;
 use App\Service\ProfileCompletionBonusService;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -32,6 +33,7 @@ final class ApiProfileController
         private readonly EntityManagerInterface $entityManager,
         private readonly ImageProcessor $imageProcessor,
         private readonly ChatPushService $push,
+        private readonly NewsPushConsentRecorder $newsPushConsent,
         private readonly ProfileCompletionBonusService $profileBonus,
     ) {
     }
@@ -88,7 +90,7 @@ final class ApiProfileController
         $membership->setNewsletterEnabled($preferences['newsletterEnabled']);
         $membership->setChatPushEnabled($preferences['chatPushEnabled']);
         $membership->setRewardPushEnabled($preferences['rewardPushEnabled']);
-        $membership->setNewsPushEnabled($preferences['newsPushEnabled']);
+        $this->newsPushConsent->update($membership, $preferences['newsPushEnabled'], 'setup');
         $membership->setMedicationPushEnabled($preferences['medicationPushEnabled']);
         $membership->setAppointmentPushEnabled($preferences['appointmentPushEnabled']);
         $membership->setFamilyPushEnabled($preferences['familyPushEnabled']);
@@ -178,7 +180,7 @@ final class ApiProfileController
         $membership->setNewsletterEnabled($newsletterEnabled);
         $membership->setChatPushEnabled($chatPushEnabled);
         $membership->setRewardPushEnabled($rewardPushEnabled);
-        $membership->setNewsPushEnabled($newsPushEnabled);
+        $this->newsPushConsent->update($membership, $newsPushEnabled, 'profile');
         $membership->setNewsCategoryIds($newsCategoryIds);
         $membership->setMedicationPushEnabled($medicationPushEnabled);
         $membership->setAppointmentPushEnabled($appointmentPushEnabled);
@@ -347,6 +349,7 @@ final class ApiProfileController
             'chatPushEnabled' => $membership->isChatPushEnabled(),
             'rewardPushEnabled' => $membership->isRewardPushEnabled(),
             'newsPushEnabled' => $membership->isNewsPushEnabled(),
+            'newsPushConsentText' => NewsPushConsentRecorder::CONSENT_TEXT,
             'newsCategoryIds' => $membership->getNewsCategoryIds(),
             'medicationPushEnabled' => $membership->isMedicationPushEnabled(),
             'appointmentPushEnabled' => $membership->isAppointmentPushEnabled(),

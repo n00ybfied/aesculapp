@@ -8,6 +8,7 @@
     "auth.error.password-reset-invalid": "Dieser Link ist ungültig oder abgelaufen. Fordern Sie bitte einen neuen an.",
     "status.error.qr-image-unreadable": "Im gewählten Bild wurde kein lesbarer QR-Code gefunden.",
     "status.error.receipt-qr-unsupported": "Dieser QR-Code enthält keinen unterstützten Kassenbeleg.",
+    "status.error.receipt-no-eligible-amount": "Für diesen Beleg sind keine punktefähigen Posten ausgewiesen. Daher können keine Punkte gutgeschrieben werden.",
     "status.error.camera-unavailable": "Die Kamera konnte nicht geöffnet werden. Bitte erlauben Sie den Kamerazugriff.",
     "status.error.receipt-already-imported": "Dieser Beleg wurde bereits eingelöst.",
     "status.success.receipt-imported": "{$points} Punkte wurden gutgeschrieben.",
