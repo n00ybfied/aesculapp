@@ -1,0 +1,22 @@
+@if (diagnostics(); as scanner) {
+  <dl class="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-xs leading-5">
+    <dt>Kamera</dt><dd class="max-w-48 break-words text-right text-foreground">{{ scanner.cameraLabel ?? 'nicht gemeldet' }}</dd>
+    <dt>Richtung</dt><dd class="text-right text-foreground">{{ scanner.facingMode ?? 'nicht gemeldet' }}</dd>
+    <dt>Videoauflösung</dt><dd class="text-right text-foreground">{{ scanner.width && scanner.height ? scanner.width + ' × ' + scanner.height : 'nicht gemeldet' }}</dd>
+    <dt>Bildrate</dt><dd class="text-right text-foreground">{{ scanner.frameRate === null ? 'nicht gemeldet' : scanner.frameRate + ' fps' }}</dd>
+    <dt>Fokusmodus</dt><dd class="text-right text-foreground">{{ scanner.focusMode ?? 'nicht gemeldet' }}</dd>
+    <dt>Fokus verfügbar</dt><dd class="max-w-48 break-words text-right text-foreground">{{ scanner.focusModes.length ? scanner.focusModes.join(', ') : 'nicht gemeldet' }}</dd>
+    <dt>Tippen zum Fokussieren</dt><dd class="text-right text-foreground">{{ scanner.tapFocusAvailable ? 'ja' : 'nein' }}</dd>
+    <dt>Taschenlampe</dt><dd class="text-right text-foreground">{{ scanner.torchAvailable ? (scanner.torchEnabled ? 'eingeschaltet' : 'ausgeschaltet') : 'nicht verfügbar' }}</dd>
+    <dt>Zoom aktuell</dt><dd class="text-right text-foreground">{{ scanner.zoomValue ?? 'nicht gemeldet' }}</dd>
+    <dt>Zoom-Bereich</dt><dd class="text-right text-foreground">{{ scanner.zoom ? scanner.zoom.min + '–' + scanner.zoom.max : 'nicht gemeldet' }}</dd>
+    <dt>Kontrast aktuell</dt><dd class="text-right text-foreground">{{ scanner.contrastValue ?? 'nicht gemeldet' }}</dd>
+    <dt>Kontrast-Bereich</dt><dd class="text-right text-foreground">{{ scanner.contrast ? scanner.contrast.min + '–' + scanner.contrast.max : 'nicht gemeldet' }}</dd>
+  </dl>
+} @else {
+  <p class="mt-3 text-xs leading-5">Keine Kameradaten verfügbar, zum Beispiel bei einem Bildimport.</p>
+}
+@if (rawQrValue(); as rawValue) {
+  <p class="mt-3 text-xs font-semibold">QR-Rohinhalt</p>
+  <code class="mt-1 block break-all rounded-xl bg-background p-3 text-xs leading-5 text-foreground">{{ rawValue }}</code>
+}
