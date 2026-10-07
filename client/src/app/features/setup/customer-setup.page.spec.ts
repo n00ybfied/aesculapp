@@ -16,7 +16,7 @@ describe('CustomerSetupPage', () => {
       id: 1, setupCompleted: false, profileCompletionBonusPoints: 55, salutation: null, firstName: null, lastName: null,
       phone: null, streetAddress: null, postalCode: null, city: null, newsCategoryIds: [],
       newsletterEnabled: false, chatPushEnabled: false, rewardPushEnabled: false,
-      newsPushEnabled: false, medicationPushEnabled: false, appointmentPushEnabled: true,
+      newsPushEnabled: false, newsPushConsentText: 'Ich möchte Push-Mitteilungen über neue Apotheken-News erhalten.', medicationPushEnabled: false, appointmentPushEnabled: true,
       familyPushEnabled: true,
     } as unknown as CustomerProfile;
     const navigateByUrl = vi.fn(async () => true);
@@ -42,6 +42,7 @@ describe('CustomerSetupPage', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
+    expect(root.textContent).toContain('Sie können später genauere Einstellungen auf Ihrer Profilseite treffen.');
     const viewport = root.querySelector<HTMLElement>('form > div');
     const contactHeading = root.querySelector<HTMLElement>('#setup-contact-title');
     expect(viewport).not.toBeNull();
@@ -90,6 +91,8 @@ describe('CustomerSetupPage', () => {
     await submit();
     expect(root.textContent).toContain('Schritt 3 von 3');
     expect(activePanel()).toBe('03 · INTERESSEN');
+    expect(root.textContent).toContain('Die Auswahl einer Nachrichtenkategorie allein aktiviert noch keine Push-Mitteilungen.');
+    expect(root.textContent).toContain(profile.newsPushConsentText);
 
     Array.from(root.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Zurück')?.click();
     await fixture.whenStable();

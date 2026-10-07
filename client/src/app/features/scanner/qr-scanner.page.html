@@ -89,7 +89,7 @@
         <ng-icon name="lucideQrCode" size="1.5rem" />
       </div>
       <p class="mt-5 text-sm font-semibold tracking-wide text-primary">BELEG ERKANNT</p>
-      <h2 id="scan-result-title" class="mt-1 text-2xl font-bold">Punkte gutschreiben?</h2>
+      <h2 id="scan-result-title" class="mt-1 text-2xl font-bold">{{ receipt.eligibleCents === 0 ? 'Keine Punkte für diesen Beleg' : 'Punkte gutschreiben?' }}</h2>
       <div class="mt-5 rounded-2xl bg-background p-4">
         <p class="font-bold">{{ receipt.pharmacyName }}</p>
         <p class="mt-1 text-sm text-muted">Einkauf vom {{ receipt.purchasedAt }}</p>
@@ -108,16 +108,21 @@
           <code class="mt-3 block break-all rounded-xl bg-background p-3 text-xs leading-5 text-foreground">{{ receipt.rawQrValue }}</code>
         </details>
       }
-      <button
-        type="button"
-        class="mt-6 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
-        (click)="importReceipt()"
-        [disabled]="isImporting()"
-        autofocus
-      >
-        {{ isImporting() ? 'Wird gutgeschrieben …' : receipt.earnedPoints + ' Punkte gutschreiben' }}
-      </button>
-      <button type="button" class="mt-3 min-h-11 w-full rounded-xl px-5 font-bold text-muted transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeResult()">Abbrechen</button>
+      @if (receipt.eligibleCents === 0) {
+        <p class="mt-5 rounded-xl border border-warning bg-warning-soft p-4 text-sm leading-6 text-foreground">{{ receiptNoEligibleAmountMessage }}</p>
+        <button type="button" class="mt-5 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeResult()" autofocus>Weiter scannen</button>
+      } @else {
+        <button
+          type="button"
+          class="mt-6 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+          (click)="importReceipt()"
+          [disabled]="isImporting()"
+          autofocus
+        >
+          {{ isImporting() ? 'Wird gutgeschrieben …' : receipt.earnedPoints + ' Punkte gutschreiben' }}
+        </button>
+        <button type="button" class="mt-3 min-h-11 w-full rounded-xl px-5 font-bold text-muted transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeResult()">Abbrechen</button>
+      }
     </section>
   </div>
 }

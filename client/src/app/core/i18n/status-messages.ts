@@ -1,6 +1,7 @@
 export const statusMessages = {
   unreadableQrImage: $localize`:@@status.error.qr-image-unreadable:Im gewählten Bild wurde kein lesbarer QR-Code gefunden.`,
   unsupportedReceiptQr: $localize`:@@status.error.receipt-qr-unsupported:Dieser QR-Code enthält keinen unterstützten Kassenbeleg.`,
+  receiptNoEligibleAmount: $localize`:@@status.error.receipt-no-eligible-amount:Für diesen Beleg sind keine punktefähigen Posten ausgewiesen. Daher können keine Punkte gutgeschrieben werden.`,
   cameraUnavailable: $localize`:@@status.error.camera-unavailable:Die Kamera konnte nicht geöffnet werden. Bitte erlauben Sie den Kamerazugriff.`,
   receiptAlreadyImported: $localize`:@@status.error.receipt-already-imported:Dieser Beleg wurde bereits eingelöst.`,
   receiptImported: (points: number) => $localize`:@@status.success.receipt-imported:${points}:points: Punkte wurden gutgeschrieben.`,

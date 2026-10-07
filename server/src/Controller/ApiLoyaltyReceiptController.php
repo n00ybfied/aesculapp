@@ -86,7 +86,10 @@ final class ApiLoyaltyReceiptController
         ];
         if ($receipt['eligibleCents'] < 1) {
             $this->qrLogger->notice('qr.import.rejected.no_eligible_amount', $context);
-            return new JsonResponse(['message' => 'Dieser Beleg enthält keinen punktefähigen Betrag.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return new JsonResponse([
+                'code' => 'receipt_no_eligible_amount',
+                'message' => 'Für diesen Beleg sind keine punktefähigen Posten ausgewiesen. Daher können keine Punkte gutgeschrieben werden.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if (!$tenant->allowsDuplicateReceiptImports() && $this->entityManager->getRepository(LoyaltyReceiptRedemption::class)->findOneBy(['tenant' => $tenant, 'qrHash' => $qrHash]) instanceof LoyaltyReceiptRedemption) {
             $this->qrLogger->notice('qr.import.rejected.duplicate', $context);

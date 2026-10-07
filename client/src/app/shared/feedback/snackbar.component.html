@@ -4,7 +4,10 @@
       class="pointer-events-auto flex touch-pan-y items-center gap-3 rounded-2xl border bg-surface p-4 shadow-card transition-[transform,opacity] duration-200 ease-out"
       [class.border-danger]="currentMessage.kind === 'error'"
       [class.text-danger]="currentMessage.kind === 'error'"
-      [class.border-primary]="currentMessage.kind !== 'error'"
+      [class.border-warning]="currentMessage.kind === 'warning'"
+      [class.bg-warning-soft]="currentMessage.kind === 'warning'"
+      [class.text-warning]="currentMessage.kind === 'warning'"
+      [class.border-primary]="currentMessage.kind !== 'error' && currentMessage.kind !== 'warning'"
       [class.opacity-0]="!isVisible()"
       [style.transform]="transform()"
       role="status"
@@ -14,7 +17,7 @@
       (pointerup)="endDrag()"
       (pointercancel)="endDrag()"
     >
-      @if (currentMessage.kind === 'error') {
+      @if (currentMessage.kind === 'error' || currentMessage.kind === 'warning') {
         <ng-icon name="lucideCircleAlert" size="1.25rem" aria-hidden="true" />
       } @else {
         <ng-icon name="lucideCircleCheck" size="1.25rem" aria-hidden="true" />

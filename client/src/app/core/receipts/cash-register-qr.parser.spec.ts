@@ -20,4 +20,10 @@ describe('parseCashRegisterQr', () => {
 
     expect(receipt.eligibleCents).toBe(300);
   });
+
+  it('does not treat a billed amount as eligible when the loyalty field is zero', () => {
+    const receipt = parseCashRegisterQr('_HA_0_K26/000500_2026-04-28T09:47:47_0,00_7,90_0,00_0,00_0,00_counter_certificate_chain_signature');
+
+    expect(receipt.eligibleCents).toBe(0);
+  });
 });

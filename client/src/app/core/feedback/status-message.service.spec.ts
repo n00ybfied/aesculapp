@@ -18,6 +18,12 @@ describe('StatusMessageService', () => {
     });
   });
 
+  it('keeps a warning distinct from an error', () => {
+    service.show('Für diesen Beleg gibt es keine Punkte.', { kind: 'warning' });
+
+    expect(service.current()).toMatchObject({ kind: 'warning' });
+  });
+
   it('dismisses the current message', () => {
     service.show('Gespeichert');
 
