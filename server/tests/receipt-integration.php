@@ -22,6 +22,12 @@ try {
  $user=new App\Entity\User($email,$email,'Receipt Test');$user->setPassword('not-a-login');
  $em->persist($user);$em->persist(new App\Entity\TenantMembership($tenant,$user,['ROLE_CUSTOMER']));$em->flush();
  $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($user,'api',['ROLE_CUSTOMER']));
+ $zeroEligibleQr = '_HA_0_K26/ZERO_2026-04-28T09:47:47_0,00_7,90_0,00_0,00_0,00_0_0_0_test-signature';
+ $zeroResponse = $api->import(receiptRequest($zeroEligibleQr));
+ receiptCheck($zeroResponse->getStatusCode()===422,'A receipt without eligible postings must be rejected');
+ $zeroError = json_decode($zeroResponse->getContent(),true);
+ receiptCheck($zeroError['code']==='receipt_no_eligible_amount','The client must receive a distinct zero-eligible error code');
+ receiptCheck(str_contains($zeroError['message'],'keine punktefähigen Posten'),'The response must explain the missing eligible postings');
  $raw='_HA_0_K26/TEST001_2026-09-12T09:00:00_0,00_0,00_0,00_0,00_26,50_0_0_0_signature';
  $response=$api->import(receiptRequest($raw));
  receiptCheck($response->getStatusCode()===200,'Receipt import must succeed');

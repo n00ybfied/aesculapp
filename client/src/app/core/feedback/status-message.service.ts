@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type StatusMessageKind = 'error' | 'success' | 'info';
+export type StatusMessageKind = 'error' | 'warning' | 'success' | 'info';
 export type StatusMessageExitDirection = 'bottom' | 'left' | 'right';
 
 export interface StatusMessage {

@@ -35,6 +35,7 @@ export class CustomerSetupPage {
   protected readonly selectedCategoryIds = signal<readonly number[]>([]);
   protected readonly panelHeight = signal<number | null>(null);
   protected readonly bonusPoints = signal(0);
+  protected readonly newsPushConsentText = signal('');
   protected readonly form = this.formBuilder.nonNullable.group({
     salutation: [''],
     firstName: ['', Validators.maxLength(80)],
@@ -78,6 +79,7 @@ export class CustomerSetupPage {
       this.achievementCompletedBeforeSetup = profile.profileComplete || profile.profileCompletionBonusAwarded;
       this.categories.set(categories);
       this.bonusPoints.set(profile.profileCompletionBonusPoints);
+      this.newsPushConsentText.set(profile.newsPushConsentText);
       this.selectedCategoryIds.set(profile.newsCategoryIds.filter((id) => categories.some((category) => category.id === id)));
       this.form.patchValue({
         salutation: profile.salutation ?? '',
