@@ -59,7 +59,21 @@ final class AuthenticationResponseFactory
         $refreshToken = $this->refreshTokens->createForUserWithTtl($user, 60 * 60 * 24 * 30);
         $this->refreshTokenManager->save($refreshToken);
         $response = new JsonResponse($data, $status);
-        $response->headers->setCookie(Cookie::create($cookieName, (string) $refreshToken, $refreshToken->getValid(), $cookiePath, null, !$this->isLocalHost($request->getHost()), true, false, Cookie::SAMESITE_LAX));
+        $nativeOrigin = $_ENV['APP_NATIVE_CLIENT_ORIGIN'] ?? '';
+        $isNativeClient = $cookieName === 'refreshToken'
+            && $nativeOrigin !== ''
+            && $request->headers->get('Origin') === $nativeOrigin;
+        $response->headers->setCookie(Cookie::create(
+            $cookieName,
+            (string) $refreshToken,
+            $refreshToken->getValid(),
+            $cookiePath,
+            null,
+            $isNativeClient || !$this->isLocalHost($request->getHost()),
+            true,
+            false,
+            $isNativeClient ? Cookie::SAMESITE_NONE : Cookie::SAMESITE_LAX,
+        ));
         return $response;
     }
 

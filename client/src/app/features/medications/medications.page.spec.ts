@@ -2,6 +2,7 @@ import { signal, type Signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FamilyService } from '../../core/family/family.service';
 import { MedicationService, type MedicationDraft } from '../../core/medications/medication.service';
+import { MedicationReminderService } from '../../core/medications/medication-reminder.service';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 import { parseMedicationDose } from './medication-dose';
@@ -25,6 +26,7 @@ describe('medication dose editing', () => {
     }));
     TestBed.configureTestingModule({ providers: [
       { provide: MedicationService, useValue: { create, load: async () => ({ medications: [], access: { ownerId: 1, canManage: true } }) } },
+      { provide: MedicationReminderService, useValue: { refresh: async () => undefined } },
       { provide: FamilyService, useValue: { connections: signal([]) } },
       { provide: StatusMessageService, useValue: { show: vi.fn(), error: vi.fn() } },
       { provide: ConfirmDialogService, useValue: {} },

@@ -7,6 +7,51 @@ import { ThemeService } from '../../core/theme/theme.service';
 import { QrScannerPage } from './qr-scanner.page';
 
 describe('QrScannerPage', () => {
+  it('opens the native scanner, allows retry after cancellation, and previews a result', async () => {
+    let finishScan: ((value: QrScanResult | null) => void) | undefined;
+    const scanNative = vi.fn(() => new Promise<QrScanResult | null>((resolve) => { finishScan = resolve; }));
+    const startCamera = vi.fn();
+    const createPreview = vi.fn(async () => ({
+      id: 'receipt-native', rawQrValue: 'native-qr', pharmacyName: 'Testapotheke',
+      purchasedAt: '08.10.2026', eligibleCents: 100, earnedPoints: 10,
+    }));
+    TestBed.configureTestingModule({
+      imports: [QrScannerPage],
+      providers: [
+        { provide: QrScannerService, useValue: {
+          presentation: 'native', scanNative, startCamera, stop: vi.fn(),
+          torchAvailable: signal(false), torchEnabled: signal(false),
+          diagnostics: signal(null), lastScanDiagnostics: signal(null),
+        } },
+        { provide: ReceiptRepository, useValue: { createPreview } },
+        { provide: StatusMessageService, useValue: { error: vi.fn(), show: vi.fn() } },
+        { provide: ThemeService, useValue: { allowDuplicateReceiptImports: false, showCustomerDebugOutput: false } },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(QrScannerPage);
+    fixture.detectChanges();
+    expect(scanNative).toHaveBeenCalledOnce();
+    expect((fixture.nativeElement as HTMLElement).querySelector('video')).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[aria-label="Rechnung scannen"]')?.classList.contains('bg-surface')).toBe(false);
+
+    finishScan?.(null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const openButton = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')]
+      .find((button) => button.textContent?.includes('QR-Code mit Kamera scannen'));
+    expect(openButton).toBeDefined();
+    openButton?.click();
+    expect(scanNative).toHaveBeenCalledTimes(2);
+
+    finishScan?.({ rawValue: 'native-qr' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(createPreview).toHaveBeenCalledWith('native-qr');
+    expect((fixture.nativeElement as HTMLElement).querySelector('[role="dialog"]')?.textContent).toContain('Testapotheke');
+    expect(startCamera).not.toHaveBeenCalled();
+  });
+
   it('explains a zero-eligible receipt without offering a points import', async () => {
     let onScan: ((result: QrScanResult) => void) | undefined;
     const importReceipt = vi.fn();
@@ -42,6 +87,7 @@ describe('QrScannerPage', () => {
     const fixture = TestBed.createComponent(QrScannerPage);
     fixture.detectChanges();
     await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[aria-label="Scanner-Vorschau"] video')).not.toBeNull();
     onScan?.({ rawValue: preview.rawQrValue });
     await fixture.whenStable();
     fixture.detectChanges();

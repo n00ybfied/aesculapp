@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "231602388375",
+    "project_id": "aesculapp-floatbox-dem",
+    "storage_bucket": "aesculapp-floatbox-dem.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231602388375:android:b5cfb48edda9f0c67098d2",
+        "android_client_info": {
+          "package_name": "at.floatbox.aesculapp.de"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuas4abFwcRWASxfQnyionMhHG2oJTxHQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -65,6 +65,7 @@ final class CustomerAccountDeletionService
             $this->connection->executeStatement('DELETE FROM customer_referral WHERE tenant_id = ? AND (invitee_id = ? OR inviter_id = ?)', [$tenantId, $userId, $membership['id']]);
             $this->connection->executeStatement('DELETE FROM medication WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM web_push_subscription WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
+            $this->connection->executeStatement('DELETE FROM native_push_device WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM app_analytics_event WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM email_verification_token WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM email_change_token WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
@@ -114,6 +115,7 @@ final class CustomerAccountDeletionService
             ['medication', 'user_id'],
             ['point_account', 'owner_id'],
             ['web_push_subscription', 'user_id'],
+            ['native_push_device', 'user_id'],
             ['app_analytics_event', 'user_id'],
             ['email_verification_token', 'user_id'],
             ['email_change_token', 'user_id'],

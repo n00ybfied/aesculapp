@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AesculApp Dev</string>
+    <string name="title_activity_main">AesculApp Dev</string>
+    <string name="package_name">at.floatbox.aesculapp.dev</string>
+    <string name="custom_url_scheme">at.floatbox.aesculapp.dev</string>
+</resources>

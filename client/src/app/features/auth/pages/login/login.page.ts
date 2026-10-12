@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { statusMessages } from '../../../../core/i18n/status-messages';
 import { ThemeService } from '../../../../core/theme/theme.service';
 import { PasswordVisibilityToggleComponent } from '../../../../shared/password-visibility-toggle.component';
 
@@ -17,7 +18,7 @@ export class LoginPage {
   private readonly route = inject(ActivatedRoute);
   protected readonly theme = inject(ThemeService).activeTheme;
 
-  protected readonly loginFailed = signal(false);
+  protected readonly loginError = signal<string | null>(null);
   protected readonly isSubmitting = signal(false);
   protected readonly loginForm = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -29,7 +30,7 @@ export class LoginPage {
       return;
     }
 
-    this.loginFailed.set(false);
+    this.loginError.set(null);
 
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
@@ -38,8 +39,13 @@ export class LoginPage {
 
     this.isSubmitting.set(true);
     try {
-      if (!await this.authService.login(this.loginForm.getRawValue())) {
-        this.loginFailed.set(true);
+      const loginResult = await this.authService.login(this.loginForm.getRawValue());
+      if (loginResult !== 'success') {
+        this.loginError.set(loginResult === 'connection-error'
+          ? statusMessages.loginConnectionError
+          : loginResult === 'invalid-credentials'
+            ? statusMessages.loginInvalidCredentials
+            : statusMessages.loginServerError);
         return;
       }
 

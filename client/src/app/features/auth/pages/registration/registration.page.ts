@@ -1,6 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { authMessages } from '../../../../core/i18n/auth-messages';
 import { ThemeService } from '../../../../core/theme/theme.service';
@@ -17,7 +19,9 @@ export class RegistrationPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   protected readonly theme = inject(ThemeService).activeTheme;
-  protected readonly referralCode = this.route.snapshot.queryParamMap.get('ref');
+  protected readonly referralCode = toSignal(this.route.queryParamMap.pipe(map((params) => params.get('ref'))), {
+    initialValue: this.route.snapshot.queryParamMap.get('ref'),
+  });
 
   protected readonly isSubmitting = signal(false);
   protected readonly submissionError = signal<string | null>(null);
@@ -41,7 +45,8 @@ export class RegistrationPage {
     this.isSubmitting.set(true);
     try {
       const { passwordConfirmation: _passwordConfirmation, ...details } = this.registrationForm.getRawValue();
-      const result = await this.authService.register(this.referralCode ? { ...details, referralCode: this.referralCode } : details);
+      const referralCode = this.referralCode();
+      const result = await this.authService.register(referralCode ? { ...details, referralCode } : details);
       if (result === 'verification-required') {
         await this.router.navigate(['/e-mail-bestaetigen'], { queryParams: { email: details.email } });
         return;

@@ -3,7 +3,7 @@ import { computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../api/api.config';
-import { AuthUser, LoginCredentials, LoginResponse, PasswordResetResult, RegistrationDetails, RegistrationResult } from './auth.models';
+import { AuthUser, LoginCredentials, LoginResponse, LoginResult, PasswordResetResult, RegistrationDetails, RegistrationResult } from './auth.models';
 
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -16,8 +16,15 @@ export class AuthService {
   readonly accessToken = this.accessTokenState.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUserState() !== null);
 
-  async login(credentials: LoginCredentials): Promise<boolean> {
-    try { this.setAuthenticatedUser(await firstValueFrom(this.http.post<LoginResponse>(this.apiBaseUrl + '/auth/login', credentials, { withCredentials: true }))); return true; } catch { return false; }
+  async login(credentials: LoginCredentials): Promise<LoginResult> {
+    try {
+      this.setAuthenticatedUser(await firstValueFrom(this.http.post<LoginResponse>(this.apiBaseUrl + '/auth/login', credentials, { withCredentials: true })));
+      return 'success';
+    } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse && error.status === 0) return 'connection-error';
+      if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) return 'invalid-credentials';
+      return 'server-error';
+    }
   }
   async register(details: RegistrationDetails): Promise<RegistrationResult> {
     try {
@@ -38,7 +45,7 @@ export class AuthService {
     try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/password-reset/request', { email })); return true; } catch { return false; }
   }
   async resetPassword(token: string, password: string): Promise<PasswordResetResult> {
-    try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/password-reset/confirm', { token, password })); return 'success'; } catch { return 'invalid'; }
+    try { await firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/password-reset/confirm', { token, password })); this.clearSession(); return 'success'; } catch { return 'invalid'; }
   }
   logout(): void {
     void firstValueFrom(this.http.post<void>(this.apiBaseUrl + '/auth/logout', {}, { withCredentials: true })).catch(() => undefined);

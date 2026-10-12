@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
@@ -10,6 +11,7 @@ import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.servi
 export class FamilyPage implements OnInit {
   private readonly familyApi = inject(FamilyService);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly messages = inject(StatusMessageService);
   private readonly dialogs = inject(ConfirmDialogService);
   protected readonly connections = this.familyApi.connections;
@@ -17,10 +19,28 @@ export class FamilyPage implements OnInit {
   protected readonly saving = signal(false);
   protected readonly inviteError = signal<string | null>(null);
   protected email = '';
+  private lastLinkedToken: string | null = null;
 
   async ngOnInit(): Promise<void> {
-    try { await this.familyApi.load(); const token = this.route.snapshot.queryParamMap.get('token'); if (token !== null) { await this.familyApi.accept(token); this.messages.show('Die Familienverbindung wurde bestätigt. Legen Sie nun Ihre Freigaben fest.', { kind: 'success' }); } }
+    try {
+      await this.familyApi.load();
+      this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+        const token = params.get('token');
+        if (token !== null && token !== this.lastLinkedToken) {
+          this.lastLinkedToken = token;
+          void this.acceptLinkedInvitation(token);
+        }
+      });
+    }
     catch { this.messages.error('Die Familienzugänge konnten nicht geladen werden.'); } finally { this.loading.set(false); }
+  }
+  private async acceptLinkedInvitation(token: string): Promise<void> {
+    try {
+      await this.familyApi.accept(token);
+      this.messages.show('Die Familienverbindung wurde bestätigt. Legen Sie nun Ihre Freigaben fest.', { kind: 'success' });
+    } catch {
+      this.messages.error('Die Einladung konnte nicht angenommen werden.');
+    }
   }
   protected async invite(): Promise<void> {
     if (this.saving()) return;

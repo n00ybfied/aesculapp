@@ -16,6 +16,8 @@ export interface LoginResponse {
   readonly user: AuthUser;
 }
 
+export type LoginResult = 'success' | 'invalid-credentials' | 'connection-error' | 'server-error';
+
 export interface RegistrationDetails {
   readonly email: string;
   readonly password: string;
