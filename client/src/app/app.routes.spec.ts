@@ -67,4 +67,39 @@ describe('App routes', () => {
 
     expect(router.url).toBe('/einrichtung?returnUrl=%2Fdashboard');
   });
+
+  it('keeps the password-reset link accessible while another session is active', async () => {
+    const login = authService.login({ email: 'kunde@stadtapotheke-trofaiach.test', password: 'trofaiach' });
+    httpTesting.expectOne('http://api.test/api/v1/auth/login').flush({
+      accessToken: 'access-token', tokenType: 'Bearer', expiresIn: 900,
+      user: { id: 1, email: 'kunde@stadtapotheke-trofaiach.test', displayName: 'Kunde' },
+    });
+    await login;
+
+    const link = `/passwort-zuruecksetzen?token=${'a'.repeat(64)}`;
+    await router.navigateByUrl(link);
+
+    expect(router.url).toBe(link);
+  });
+
+  it('preserves a customer link through login', async () => {
+    await router.navigateByUrl('/termine/meine');
+
+    expect(router.url).toBe('/login?returnUrl=%2Ftermine%2Fmeine');
+  });
+
+  it('preserves a family invitation through first-time setup', async () => {
+    const login = authService.login({ email: 'kunde@stadtapotheke-trofaiach.test', password: 'trofaiach' });
+    httpTesting.expectOne('http://api.test/api/v1/auth/login').flush({
+      accessToken: 'access-token', tokenType: 'Bearer', expiresIn: 900,
+      user: { id: 1, email: 'kunde@stadtapotheke-trofaiach.test', displayName: 'Neuer Kunde' },
+    });
+    await login;
+    profile.set({ id: 1, setupCompleted: false } as CustomerProfile);
+
+    await router.navigateByUrl(`/familie?token=${'a'.repeat(64)}`);
+
+    expect(router.parseUrl(router.url).queryParams['returnUrl']).toBe(`/familie?token=${'a'.repeat(64)}`);
+    expect(router.parseUrl(router.url).root.children['primary']?.segments[0]?.path).toBe('einrichtung');
+  });
 });

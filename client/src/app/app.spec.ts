@@ -1,12 +1,19 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { AuthService } from './core/auth/auth.service';
+import { MedicationReminderService } from './core/medications/medication-reminder.service';
 import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { currentUser: signal(null) } },
+        { provide: MedicationReminderService, useValue: { initialize: async () => undefined, setUser: async () => undefined } },
+      ],
     }).compileComponents();
   });
 

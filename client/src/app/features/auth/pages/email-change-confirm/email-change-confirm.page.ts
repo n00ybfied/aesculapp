@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { ThemeService } from '../../../../core/theme/theme.service';
@@ -30,12 +31,19 @@ import { ThemeService } from '../../../../core/theme/theme.service';
 })
 export class EmailChangeConfirmPage {
   private readonly auth = inject(AuthService);
-  private readonly token = inject(ActivatedRoute).snapshot.queryParamMap.get('token');
+  private readonly route = inject(ActivatedRoute);
+  private readonly token = signal<string | null>(null);
   protected readonly theme = inject(ThemeService).activeTheme;
   protected readonly status = signal<'checking' | 'success' | 'invalid'>('checking');
 
   constructor() {
-    if (this.token === null) this.status.set('invalid');
-    else void this.auth.confirmEmailChange(this.token).then((success) => this.status.set(success ? 'success' : 'invalid'));
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const token = params.get('token');
+      this.token.set(token);
+      this.status.set(token ? 'checking' : 'invalid');
+      if (token) void this.auth.confirmEmailChange(token).then((success) => {
+        if (this.token() === token) this.status.set(success ? 'success' : 'invalid');
+      });
+    });
   }
 }

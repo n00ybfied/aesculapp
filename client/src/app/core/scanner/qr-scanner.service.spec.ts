@@ -1,5 +1,7 @@
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
+import { TestBed } from '@angular/core/testing';
 import { enableCameraFocus, focusCameraAt, QrScannerService, readScannerDiagnostics } from './qr-scanner.service';
+import { NativeQrScannerAdapter } from './native-qr-scanner.adapter';
 
 describe('camera focus', () => {
   afterEach(() => {
@@ -96,7 +98,11 @@ describe('camera focus', () => {
     const preview = document.createElement('video');
     Object.defineProperty(preview, 'srcObject', { value: { getVideoTracks: () => [track] } });
     vi.stubGlobal('navigator', { mediaDevices: { getSupportedConstraints: () => ({ pointsOfInterest: false }) } });
-    const service = new QrScannerService();
+    TestBed.configureTestingModule({ providers: [
+      QrScannerService,
+      { provide: NativeQrScannerAdapter, useValue: { supported: false } },
+    ] });
+    const service = TestBed.inject(QrScannerService);
 
     await service.startCamera(preview, vi.fn());
     expect(service.torchAvailable()).toBe(true);
@@ -109,5 +115,26 @@ describe('camera focus', () => {
     expect(stop).toHaveBeenCalled();
     expect(service.torchEnabled()).toBe(false);
     expect(service.torchAvailable()).toBe(false);
+  });
+
+  it('uses the native adapter and ignores a result from a stopped session', async () => {
+    let finishScan: ((value: string | null) => void) | undefined;
+    const scan = vi.fn(() => new Promise<string | null>((resolve) => { finishScan = resolve; }));
+    TestBed.configureTestingModule({ providers: [
+      QrScannerService,
+      { provide: NativeQrScannerAdapter, useValue: { supported: true, scan } },
+    ] });
+    const service = TestBed.inject(QrScannerService);
+    expect(service.presentation).toBe('native');
+
+    const pending = service.scanNative();
+    service.stop();
+    finishScan?.('stale-qr');
+    expect(await pending).toBeNull();
+    expect(scan).toHaveBeenCalledOnce();
+
+    const next = service.scanNative();
+    finishScan?.('valid-qr');
+    expect(await next).toEqual({ rawValue: 'valid-qr' });
   });
 });

@@ -19,7 +19,8 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
   private readonly receiptRepository = inject(ReceiptRepository);
   private readonly statusMessages = inject(StatusMessageService);
   protected readonly theme = inject(ThemeService);
-  private readonly cameraPreview = viewChild.required<ElementRef<HTMLVideoElement>>('cameraPreview');
+  private readonly cameraPreview = viewChild<ElementRef<HTMLVideoElement>>('cameraPreview');
+  protected readonly usesNativeScanner = this.qrScanner.presentation === 'native';
 
   protected readonly isScanning = signal(false);
   protected readonly torchAvailable = this.qrScanner.torchAvailable;
@@ -51,7 +52,10 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const video = this.cameraPreview().nativeElement;
+    const video = this.cameraPreview()?.nativeElement;
+    if (!video) {
+      return;
+    }
     const bounds = video.getBoundingClientRect();
     if (!video.videoWidth || !video.videoHeight || !bounds.width || !bounds.height) {
       return;
@@ -167,7 +171,20 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
     this.errorMessage.set(null);
 
     try {
-      this.canTapFocus.set(await this.qrScanner.startCamera(this.cameraPreview().nativeElement, (result) => void this.showResult(result)));
+      if (this.usesNativeScanner) {
+        const result = await this.qrScanner.scanNative();
+        this.isScanning.set(false);
+        if (result) {
+          await this.showResult(result);
+        }
+        return;
+      }
+
+      const preview = this.cameraPreview()?.nativeElement;
+      if (!preview) {
+        throw new Error('Camera preview is unavailable.');
+      }
+      this.canTapFocus.set(await this.qrScanner.startCamera(preview, (result) => void this.showResult(result)));
     } catch {
       this.isScanning.set(false);
       this.canTapFocus.set(false);

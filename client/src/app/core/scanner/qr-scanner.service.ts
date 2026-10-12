@@ -1,5 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
+import { NativeQrScannerAdapter } from './native-qr-scanner.adapter';
 
 export interface QrScanResult {
   readonly rawValue: string;
@@ -135,6 +136,7 @@ export async function focusCameraAt(track: MediaStreamTrack, x: number, y: numbe
 
 @Injectable({ providedIn: 'root' })
 export class QrScannerService {
+  private readonly nativeScanner = inject(NativeQrScannerAdapter);
   private controls: IScannerControls | undefined;
   private cameraTrack: MediaStreamTrack | undefined;
   private cameraPreview: HTMLVideoElement | undefined;
@@ -145,6 +147,15 @@ export class QrScannerService {
   readonly lastScanDiagnostics = signal<QrScannerDiagnostics | null>(null);
   readonly torchAvailable = signal(false);
   readonly torchEnabled = signal(false);
+  readonly presentation = this.nativeScanner.supported ? 'native' : 'embedded';
+
+  async scanNative(): Promise<QrScanResult | null> {
+    this.stop();
+    this.lastScanDiagnostics.set(null);
+    const scanSession = this.session;
+    const rawValue = await this.nativeScanner.scan();
+    return rawValue && scanSession === this.session ? { rawValue } : null;
+  }
 
   async startCamera(preview: HTMLVideoElement, onResult: (result: QrScanResult) => void): Promise<boolean> {
     this.stop();

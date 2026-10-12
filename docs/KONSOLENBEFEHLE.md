@@ -4,7 +4,7 @@ Diese Befehle werden im Projektverzeichnis `G:\aesculapp` in PowerShell ausgefü
 
 ## Lokale Entwicklung mit Laragon
 
-Laragon muss für PHP und MariaDB gestartet sein. Der folgende Befehl startet Kunden-App, Adminportal und API gemeinsam. Bereits von diesem Projekt gestartete Entwicklungsprozesse werden dabei beendet und neu gestartet.
+Laragon muss für MySQL gestartet sein. Der folgende Befehl verwendet ausdrücklich Laragons PHP 8.4 und startet Kunden-App, Adminportal und API gemeinsam. Ein separat gestartetes XAMPP ist nicht nötig. Bereits von diesem Projekt gestartete Entwicklungsprozesse werden dabei beendet und neu gestartet. Falls Laragon nicht im Ordner `laragon` auf demselben Laufwerk wie das Projekt installiert ist, kann `LARAGON_ROOT` auf dessen Installationsordner gesetzt werden.
 
 ```powershell
 .\start-dev.ps1
@@ -17,6 +17,19 @@ Danach sind die Anwendungen erreichbar:
 | Kunden-App | `http://localhost:4200` |
 | Adminportal | `http://localhost:4201` |
 | API-Gesundheitscheck | `http://localhost:6080/api/health` |
+
+Für den lokalen Android-Test setzt `run-android-dev.ps1` zusätzlich zur API-Portweiterleitung (`6080`) auch `4200` für die Browser-Fallback-Seite der Bestätigungs- und Passwort-Links. Damit funktionieren die lokalen Links auf dem per USB verbundenen Gerät in der PWA beziehungsweise im Browser weiter. Nach einer USB-Trennung müssen die ADB-Portweiterleitungen erneut gesetzt werden. Für einen Test ohne laufenden Angular-Entwicklungsserver genügt die API; E-Mail-Links auf `localhost:4200` sind dann auf dem Handy allerdings nicht im Browser erreichbar.
+
+Die separate Online-Android-App verwendet HTTPS und braucht keine lokale API oder Portweiterleitung. Sie nutzt vorläufig die Floatbox-Demo-API; später kann das API-Ziel ausdrücklich auf die Apotheken-API umgestellt werden. Ein Debug-APK ohne Installation erzeugen oder sie auf dem per USB verbundenen Gerät installieren:
+
+```powershell
+.\run-android-apotheke.ps1 -BuildOnly
+.\run-android-apotheke.ps1
+# Später, nach Vorbereitung des Apotheken-Servers:
+.\run-android-apotheke.ps1 -ApiTarget Apotheke -BuildOnly
+```
+
+Die APK liegt danach unter `client\android-apotheke\app\build\outputs\apk\debug\app-debug.apk`. Der Build warnt, wenn die eigene Firebase-Datei für native Pushs noch fehlt. Vor einem Login muss die jeweils gewählte API `https://localhost` per CORS akzeptieren und das native Refresh-Cookie unterstützen; für die spätere Apotheken-API siehe `docs/APOTHEKE-DEPLOY.md`.
 
 Die relevanten lokalen Logs liegen unter `server\var\log\`:
 

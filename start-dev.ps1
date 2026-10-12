@@ -6,6 +6,19 @@ $projectRoot = Split-Path -Parent $PSCommandPath
 $runtimeDirectory = Join-Path $projectRoot '.runtime'
 $pidFile = Join-Path $runtimeDirectory 'dev-processes.json'
 $localNodeDirectory = Join-Path $runtimeDirectory 'node\node_modules\node\bin'
+$laragonRoot = if ($env:LARAGON_ROOT) { $env:LARAGON_ROOT } else { Join-Path ([IO.Path]::GetPathRoot($projectRoot)) 'laragon' }
+$laragonPhpDirectory = Join-Path $laragonRoot 'bin\php'
+$phpDirectory = Get-ChildItem -LiteralPath $laragonPhpDirectory -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match '^php-8\.4\.\d+' -and (Test-Path -LiteralPath (Join-Path $_.FullName 'php.exe')) } |
+    Sort-Object { [version]([regex]::Match($_.Name, '\d+\.\d+\.\d+').Value) } -Descending |
+    Select-Object -First 1
+
+if (-not $phpDirectory) {
+    throw "Laragon PHP 8.4 wurde unter '$laragonPhpDirectory' nicht gefunden. Bei abweichendem Installationsort LARAGON_ROOT setzen."
+}
+
+# Resolve bare `php` in the child cmd.exe to Laragon, never to another PHP on PATH.
+$env:Path = "$($phpDirectory.FullName);$env:Path"
 
 # Prefer the project-local Node runtime when one is installed for this machine.
 if (Test-Path -LiteralPath (Join-Path $localNodeDirectory 'node.exe')) {
@@ -31,7 +44,7 @@ function Stop-PreviousDevelopmentServers {
     $patterns = @(
         'ng serve.*--port 4200',
         'ng serve.*--port 4201',
-        'php.*-S localhost:6080.*public/(?:index|router)\.php'
+        'php.*-S (?:localhost|127\.0\.0\.1):6080.*public/(?:index|router)\.php'
     )
     Get-CimInstance Win32_Process | Where-Object {
         $_.CommandLine -and ($patterns | Where-Object { $_.CommandLine -match $_ })
@@ -60,13 +73,14 @@ Stop-PreviousDevelopmentServers
 
 $clientId = Start-DevelopmentServer 'customer app' 'cd /d client && npm.cmd start -- --port 4200'
 $adminId = Start-DevelopmentServer 'admin portal' 'cd /d admin && npm.cmd start -- --port 4201'
-$serverId = Start-DevelopmentServer 'Symfony API' 'cd /d server && php -S localhost:6080 -t public public/router.php >> var\log\php-server.log 2>&1'
+$serverId = Start-DevelopmentServer 'Symfony API' 'cd /d server && php -S 127.0.0.1:6080 -t public public/router.php >> var\log\php-server.log 2>&1'
 
 @{ processIds = @($clientId, $adminId, $serverId) } | ConvertTo-Json | Set-Content -LiteralPath $pidFile -Encoding utf8
 Write-Host ''
 Write-Host 'Customer app: http://localhost:4200'
 Write-Host 'Admin portal: http://localhost:4201'
 Write-Host 'API:          http://localhost:6080/api/health'
+Write-Host "PHP:          $(Join-Path $phpDirectory.FullName 'php.exe')"
 Write-Host 'PHP server log: server\var\log\php-server.log'
 Write-Host 'Symfony log:    server\var\log\dev.log'
 Write-Host 'QR audit log:   server\var\log\qr.log'

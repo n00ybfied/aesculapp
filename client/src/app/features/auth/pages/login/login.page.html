@@ -47,9 +47,9 @@
           }
         </div>
 
-        @if (loginFailed()) {
+        @if (loginError(); as error) {
           <div class="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
-            E-Mail-Adresse oder Passwort ist nicht korrekt.
+            {{ error }}
           </div>
         }
 

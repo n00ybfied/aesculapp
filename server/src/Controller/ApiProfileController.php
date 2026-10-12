@@ -131,7 +131,10 @@ final class ApiProfileController
         }
 
         $username = $data['username'] ?? $user->getUsername();
-        $displayName = $this->text($data['displayName'] ?? $user->getDisplayName(), 2, 160, false);
+        $hasNameFields = array_key_exists('firstName', $data) || array_key_exists('lastName', $data);
+        $displayName = $hasNameFields
+            ? $user->getDisplayName()
+            : $this->text($data['displayName'] ?? $user->getDisplayName(), 2, 160, false);
         $firstName = $data['firstName'] ?? null;
         $lastName = $data['lastName'] ?? null;
         $phone = $this->text($data['phone'] ?? null, 0, 40, true);
@@ -157,7 +160,7 @@ final class ApiProfileController
         if (!is_string($username) || !is_string($displayName) || $phone === false || $streetAddress === false || $postalCode === false || $city === false || $birthDate === false || !in_array($salutation, [null, 'frau', 'herr', 'divers'], true) || !is_array($newsCategoryIds) || !array_is_list($newsCategoryIds) || count($newsCategoryIds) > 100 || $newsletterEnabled === null || $chatPushEnabled === null || $rewardPushEnabled === null || $newsPushEnabled === null || $medicationPushEnabled === null || $appointmentPushEnabled === null || $familyPushEnabled === null || $morningReminderTime === false || $noonReminderTime === false || $eveningReminderTime === false || $nightReminderTime === false || $footerNavigationItems === false) {
             return $this->invalidProfile();
         }
-        if ($firstName !== null || $lastName !== null) {
+        if ($hasNameFields) {
             $firstName = $this->text($firstName, 0, 80, true);
             $lastName = $this->text($lastName, 0, 80, true);
             if ($firstName === false || $lastName === false || mb_strlen(($firstName ?? '').' '.($lastName ?? '')) > 160) return $this->invalidProfile();
@@ -169,7 +172,7 @@ final class ApiProfileController
         if (mb_strtolower(trim($username)) !== $user->getUsername()) {
             return new JsonResponse(['message' => 'Benutzername und E-Mail-Adresse können nur gemeinsam über einen Bestätigungslink geändert werden.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-        if (array_key_exists('firstName', $data) || array_key_exists('lastName', $data)) $user->setNames($firstName, $lastName);
+        if ($hasNameFields) $user->setNames($firstName, $lastName);
         else $user->setDisplayName($displayName);
         $user->setPhone($phone);
         $user->setStreetAddress($streetAddress);
@@ -298,6 +301,9 @@ final class ApiProfileController
 
     private function text(mixed $value, int $minimumLength, int $maximumLength, bool $nullable): string|false|null
     {
+        if ($nullable && $value === null) {
+            return null;
+        }
         if (!is_string($value)) {
             return false;
         }
@@ -310,7 +316,11 @@ final class ApiProfileController
 
     private function birthDate(mixed $value): \DateTimeImmutable|false|null { if ($value === null || $value === '') { return null; } if (!is_string($value)) { return false; } try { $date = new \DateTimeImmutable($value); return $date > new \DateTimeImmutable('-14 years') || $date < new \DateTimeImmutable('-120 years') ? false : $date; } catch (\Exception) { return false; } }
     private function boolean(mixed $value): ?bool { return is_bool($value) ? $value : null; }
-    private function time(mixed $value): string|false { return is_string($value) && preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D', $value) === 1 ? $value : false; }
+    private function time(mixed $value): string|false
+    {
+        if ($value === null || $value === '') return '';
+        return is_string($value) && preg_match('/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/D', $value) === 1 ? $value : false;
+    }
 
     /** @return list<string>|false */
     private function footerNavigationItems(mixed $value): array|false

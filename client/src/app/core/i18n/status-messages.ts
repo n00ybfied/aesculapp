@@ -1,4 +1,13 @@
 export const statusMessages = {
+  medicationRemindersDisabled: $localize`:@@status.info.medication-reminders-disabled:Lokale Einnahmeerinnerungen sind ausgeschaltet.`,
+  medicationRemindersEmpty: $localize`:@@status.info.medication-reminders-empty:Tragen Sie zuerst ein Medikament mit einer Einnahme größer als null ein.`,
+  medicationRemindersPermission: $localize`:@@status.warning.medication-reminders-permission:Bitte erlauben Sie Benachrichtigungen auf diesem Gerät. Bis dahin erscheinen keine Einnahmeerinnerungen.`,
+  medicationRemindersScheduled: $localize`:@@status.success.medication-reminders-scheduled:Die Einnahmeerinnerungen sind auf diesem Gerät geplant.`,
+  medicationRemindersApproximate: $localize`:@@status.warning.medication-reminders-approximate:Die Erinnerungen sind geplant, können ohne Freigabe für exakte Alarme aber verspätet erscheinen.`,
+  medicationRemindersError: $localize`:@@status.error.medication-reminders:Die Einnahmeerinnerungen konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut.`,
+  loginInvalidCredentials: $localize`:@@status.error.login-invalid-credentials:E-Mail-Adresse oder Passwort ist nicht korrekt.`,
+  loginConnectionError: $localize`:@@status.error.login-connection:Verbindungsfehler: Bitte versuchen Sie es später erneut`,
+  loginServerError: $localize`:@@status.error.login-server:Die Anmeldung ist derzeit nicht möglich. Bitte versuchen Sie es später erneut.`,
   unreadableQrImage: $localize`:@@status.error.qr-image-unreadable:Im gewählten Bild wurde kein lesbarer QR-Code gefunden.`,
   unsupportedReceiptQr: $localize`:@@status.error.receipt-qr-unsupported:Dieser QR-Code enthält keinen unterstützten Kassenbeleg.`,
   receiptNoEligibleAmount: $localize`:@@status.error.receipt-no-eligible-amount:Für diesen Beleg sind keine punktefähigen Posten ausgewiesen. Daher können keine Punkte gutgeschrieben werden.`,
