@@ -22,6 +22,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/passwort-zuruecksetzen" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/e-mail-bestaetigen" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/e-mail-aendern" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/registrierung" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/familie" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/termine/meine" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/chat" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:pathPrefix="/news/" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/freunde-einladen" />
+                <data android:scheme="https" android:host="${aesculappLinkHost}" android:path="/profil/bearbeiten" />
+            </intent-filter>
+
         </activity>
 
         <provider

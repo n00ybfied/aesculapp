@@ -9,6 +9,7 @@
     "android:sync": "npm run build && cap sync android",
     "android:run": "npm run build && cap run android",
     "build:apotheke-native": "ng build --configuration apotheke-native",
+    "build:floatbox-native": "ng build --configuration floatbox-native",
     "extract-i18n": "ng extract-i18n --format=json --output-path=src/locale --out-file=messages.de.json",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

@@ -64,6 +64,15 @@
                   "with": "src/app/core/api/api.config.apotheke-native.ts"
                 }
               ]
+            },
+            "floatbox-native": {
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/app/core/api/api.config.ts",
+                  "with": "src/app/core/api/api.config.floatbox-native.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"

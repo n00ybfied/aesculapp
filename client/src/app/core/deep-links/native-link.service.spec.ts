@@ -37,4 +37,12 @@ describe('nativeCustomerPath', () => {
     expect(nativeCustomerPath(`http://localhost:4200/passwort-zuruecksetzen?token=${token}`, 'http://localhost:4200'))
       .toBe(`/passwort-zuruecksetzen?token=${token}`);
   });
+
+  it('keeps Floatbox and pharmacy account links on their own customer origin', () => {
+    const floatboxOrigin = 'https://aesculapp.floatbox.at';
+    expect(nativeCustomerPath(`${floatboxOrigin}/passwort-zuruecksetzen?token=${token}`, floatboxOrigin))
+      .toBe(`/passwort-zuruecksetzen?token=${token}`);
+    expect(nativeCustomerPath(`${origin}/passwort-zuruecksetzen?token=${token}`, floatboxOrigin)).toBeNull();
+    expect(nativeCustomerPath(`${floatboxOrigin}/passwort-zuruecksetzen?token=${token}`, origin)).toBeNull();
+  });
 });

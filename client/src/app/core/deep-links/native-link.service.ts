@@ -2,11 +2,9 @@ import { Injectable, NgZone, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { customerLinkOrigin } from '../api/api.config';
 
-const linkOriginsByAppId: Readonly<Record<string, string>> = {
-  'at.floatbox.aesculapp.dev': 'http://localhost:4200',
-  'at.stadtapotheke.trofaiach': 'https://app.stadtapotheke-trofaiach.at',
-};
+const supportedAppIds = new Set(['at.floatbox.aesculapp.dev', 'at.stadtapotheke.trofaiach']);
 
 const tokenPaths = new Set([
   '/passwort-zuruecksetzen',
@@ -70,15 +68,14 @@ export class NativeLinkService {
     }
 
     const { id } = await CapacitorApp.getInfo();
-    const expectedOrigin = linkOriginsByAppId[id];
-    if (!expectedOrigin) {
+    if (!supportedAppIds.has(id)) {
       return;
     }
 
-    await CapacitorApp.addListener('appUrlOpen', ({ url }) => this.open(url, expectedOrigin));
+    await CapacitorApp.addListener('appUrlOpen', ({ url }) => this.open(url, customerLinkOrigin));
     const launch = await CapacitorApp.getLaunchUrl();
     if (launch?.url) {
-      this.open(launch.url, expectedOrigin);
+      this.open(launch.url, customerLinkOrigin);
     }
   }
 

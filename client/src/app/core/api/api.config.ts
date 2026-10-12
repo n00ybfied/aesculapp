@@ -7,3 +7,5 @@ const localDevelopmentHosts = new Set(['localhost', '127.0.0.1']);
 export const apiBaseUrl = localDevelopmentHosts.has(globalThis.location.hostname)
   ? 'http://localhost:6080/api/v1'
   : 'https://api.aesculapp.floatbox.at/api/v1';
+
+export const customerLinkOrigin = 'http://localhost:4200';
