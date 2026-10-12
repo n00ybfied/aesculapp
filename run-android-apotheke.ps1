@@ -73,7 +73,7 @@ Push-Location $clientRoot
 try {
     Write-Host "Online-App: at.stadtapotheke.trofaiach; API-Ziel: $apiBaseUrl"
     if ($ApiTarget -eq 'Floatbox') {
-        & npm.cmd run build:demo
+        & npm.cmd run build:floatbox-native
     } else {
         & npm.cmd run build:apotheke-native
     }
@@ -83,7 +83,8 @@ try {
     $expectedApiFound = $null -ne ($builtScripts | Select-String -SimpleMatch $apiBaseUrl -Quiet | Where-Object { $_ } | Select-Object -First 1)
     $otherApiUrl = if ($ApiTarget -eq 'Floatbox') { $apiUrls.Apotheke } else { $apiUrls.Floatbox }
     $otherApiFound = $null -ne ($builtScripts | Select-String -SimpleMatch $otherApiUrl -Quiet | Where-Object { $_ } | Select-Object -First 1)
-    if (-not $expectedApiFound -or $otherApiFound) {
+    $localApiFound = $null -ne ($builtScripts | Select-String -SimpleMatch 'http://localhost:6080/api/v1' -Quiet | Where-Object { $_ } | Select-Object -First 1)
+    if (-not $expectedApiFound -or $otherApiFound -or $localApiFound) {
         throw "API-Konfiguration für $ApiTarget ist nicht eindeutig. Installation abgebrochen."
     }
 
