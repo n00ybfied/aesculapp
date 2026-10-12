@@ -7,6 +7,7 @@ import { FamilyService } from '../../core/family/family.service';
 import { Medication, MedicationDraft, MedicationService } from '../../core/medications/medication.service';
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 import { parseMedicationDose } from './medication-dose';
+import { MedicationReminderService } from '../../core/medications/medication-reminder.service';
 
 interface MedicationForm {
   name: string;
@@ -23,6 +24,7 @@ interface MedicationForm {
 @Component({ selector: 'app-medications-page', imports: [DatePipe, FormsModule, NgIcon], templateUrl: './medications.page.html' })
 export class MedicationsPage implements OnDestroy {
   private readonly medicationsApi = inject(MedicationService);
+  private readonly reminders = inject(MedicationReminderService);
   private readonly messages = inject(StatusMessageService);
   private readonly familyApi = inject(FamilyService);
   private readonly dialogs = inject(ConfirmDialogService);
@@ -72,10 +74,10 @@ export class MedicationsPage implements OnDestroy {
     }
     this.saving.set(true);
     const draft = this.draft(doses.filter((dose): dose is number => dose !== null));
-    try { const saved = this.editingId() === null ? await this.medicationsApi.create(draft) : await this.medicationsApi.update(this.editingId()!, draft); this.closeEditor(); await this.reload(); this.messages.show(`„${saved.name}“ wurde gespeichert.`, { kind: 'success' }); }
+    try { const saved = this.editingId() === null ? await this.medicationsApi.create(draft) : await this.medicationsApi.update(this.editingId()!, draft); this.closeEditor(); await this.reload(); void this.reminders.refresh(); this.messages.show(`„${saved.name}“ wurde gespeichert.`, { kind: 'success' }); }
     catch { this.messages.error('Das Medikament konnte nicht gespeichert werden.'); } finally { this.saving.set(false); }
   }
-  protected async remove(item: Medication): Promise<void> { if (!this.canManage() || !await this.dialogs.confirm(`„${item.name}“ wirklich entfernen?`, { title: 'Medikament entfernen', confirmLabel: 'Entfernen', destructive: true })) return; try { await this.medicationsApi.remove(item.id); await this.reload(); this.messages.show('Das Medikament wurde entfernt.', { kind: 'success' }); } catch { this.messages.error('Das Medikament konnte nicht entfernt werden.'); } }
+  protected async remove(item: Medication): Promise<void> { if (!this.canManage() || !await this.dialogs.confirm(`„${item.name}“ wirklich entfernen?`, { title: 'Medikament entfernen', confirmLabel: 'Entfernen', destructive: true })) return; try { await this.medicationsApi.remove(item.id); await this.reload(); void this.reminders.refresh(); this.messages.show('Das Medikament wurde entfernt.', { kind: 'success' }); } catch { this.messages.error('Das Medikament konnte nicht entfernt werden.'); } }
   protected async selectOwner(id: number | null): Promise<void> { if (this.selectedOwnerId() === id) return; this.selectedOwnerId.set(id); await this.reload(); }
 
   private async reload(): Promise<void> {

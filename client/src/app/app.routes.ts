@@ -19,7 +19,6 @@ export const routes: Routes = [
   },
   {
     path: 'e-mail-bestaetigen',
-    canMatch: [guestGuard],
     loadComponent: () => import('./features/auth/pages/email-verification/email-verification.page').then((module) => module.EmailVerificationPage),
     title: 'E-Mail-Adresse bestätigen | Aesculapp',
   },
@@ -43,7 +42,6 @@ export const routes: Routes = [
   },
   {
     path: 'passwort-zuruecksetzen',
-    canMatch: [guestGuard],
     loadComponent: () =>
       import('./features/auth/pages/password-reset-confirm/password-reset-confirm.page').then((module) => module.PasswordResetConfirmPage),
     title: 'Passwort zurücksetzen | Aesculapp',

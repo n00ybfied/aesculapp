@@ -31,6 +31,7 @@ final class ChatPushService
         private readonly ChatCipher $cipher,
         private readonly LoggerInterface $logger,
         private readonly TenantMembershipRepository $memberships,
+        private readonly NativePushService $nativePush,
         #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
         private readonly ?NotificationTemplates $notificationTemplates = null,
     ) {
@@ -62,6 +63,11 @@ final class ChatPushService
             $this->logger->warning('push.config.invalid', ['errorClass' => $exception::class]);
             return null;
         }
+    }
+
+    public function hasAnyTransport(): bool
+    {
+        return $this->config() !== null || $this->nativePush->configured();
     }
 
     public function subscribe(User $user, Tenant $tenant, array $data): void
@@ -129,7 +135,7 @@ final class ChatPushService
         }
 
         $config = $this->config();
-        if ($config === null) {
+        if ($config === null && !$this->nativePush->configured()) {
             return false;
         }
 
@@ -146,7 +152,7 @@ final class ChatPushService
     public function sendTestNotification(User $user, Tenant $tenant): array
     {
         $config = $this->config();
-        if ($config === null) {
+        if ($config === null && !$this->nativePush->configured()) {
             return ['subscriptions' => 0, 'delivered' => 0, 'failed' => 0, 'configured' => false];
         }
 
@@ -171,7 +177,7 @@ final class ChatPushService
         $membership = $this->memberships->findForUserAndTenant($user, $tenant);
         if (!$user->isActive() || !$membership?->isNewsPushEnabled()) return true;
         $config = $this->config();
-        if ($config === null) return false;
+        if ($config === null && !$this->nativePush->configured()) return false;
         try {
             $result = $this->deliverToSubscriptions($user, $tenant, 'Neue Nachricht Ihrer Apotheke', 'In einer Ihrer gewählten Kategorien gibt es einen neuen Beitrag.', '/news/'.$postId, 'aesculapp-news-'.$postId, $config, null, 'news');
             return $result['failed'] === 0;
@@ -206,7 +212,7 @@ final class ChatPushService
                 return;
             }
             $config = $this->config();
-            if ($config === null) {
+            if ($config === null && !$this->nativePush->configured()) {
                 return;
             }
             $this->deliverToSubscriptions(
@@ -233,7 +239,7 @@ final class ChatPushService
     {
         try {
             $config = $this->config();
-            if (!$config) return;
+            if (!$config && !$this->nativePush->configured()) return;
             $connection = $this->em->getConnection();
             if (!$connection->executeStatement('UPDATE chat_message SET push_pending = 0 WHERE id = ? AND push_pending = 1', [$id])) return;
             $message = $this->em->getRepository(ChatMessage::class)->find($id);
@@ -257,7 +263,7 @@ final class ChatPushService
         try {
             if (!$this->memberships->findForUserAndTenant($user, $tenant)?->isFamilyPushEnabled()) return;
             $config = $this->config();
-            if (!$config) return;
+            if (!$config && !$this->nativePush->configured()) return;
             $this->deliverToSubscriptions($user, $tenant, $title, $body, $url, $tag, $config, null, $kind);
         } catch (\Throwable $e) {
             $this->logger->warning('family.push.failed', ['errorClass' => $e::class]);
@@ -271,7 +277,7 @@ final class ChatPushService
                 return;
             }
             $config = $this->config();
-            if ($config === null) {
+            if ($config === null && !$this->nativePush->configured()) {
                 return;
             }
             $this->deliverToSubscriptions(
@@ -296,7 +302,7 @@ final class ChatPushService
 
     /** @return array{subscriptions: int, delivered: int, failed: int} */
     /** @param array<string, string> $templateValues */
-    private function deliverToSubscriptions(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, array $config, ?int $messageId = null, string $kind = 'family', array $templateValues = []): array
+    private function deliverToSubscriptions(User $user, Tenant $tenant, string $title, string $body, string $url, string $tag, ?array $config, ?int $messageId = null, string $kind = 'family', array $templateValues = []): array
     {
         if ($this->notificationTemplates !== null) {
             $key = $messageId !== null ? 'push_chat_reply' : 'push_'.match ($kind) {
@@ -315,8 +321,8 @@ final class ChatPushService
                 $this->logger->warning('push.template.failed', ['kind' => $kind, 'errorClass' => $exception::class]);
             }
         }
-        $subs = $this->em->getRepository(WebPushSubscription::class)->findBy(['user' => $user, 'tenant' => $tenant]);
-        $push = new WebPush(
+        $subs = $config === null ? [] : $this->em->getRepository(WebPushSubscription::class)->findBy(['user' => $user, 'tenant' => $tenant]);
+        $push = $config === null ? null : new WebPush(
             ['VAPID' => $config],
             ['TTL' => 3600],
             new \GuzzleHttp\Client(['timeout' => 5, 'connect_timeout' => 3, 'allow_redirects' => false]),
@@ -348,8 +354,12 @@ final class ChatPushService
                 $this->logger->warning('push.delivery_failed', ['kind' => $messageId === null ? $kind : 'chat', 'errorClass' => $e::class]);
             }
         }
+        $native = $this->nativePush->sendToUser($user, $tenant, $messageId === null ? $kind : 'chat');
+        $delivered += $native['delivered'];
+        $failed += $native['failed'];
+        $retry = $retry || $native['failed'] > 0;
         $this->em->flush();
         if ($retry && $messageId !== null) $this->em->getConnection()->executeStatement('UPDATE chat_message SET push_pending = 1 WHERE id = ?', [$messageId]);
-        return ['subscriptions' => count($subs), 'delivered' => $delivered, 'failed' => $failed];
+        return ['subscriptions' => count($subs) + $native['subscriptions'], 'delivered' => $delivered, 'failed' => $failed];
     }
 }

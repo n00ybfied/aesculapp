@@ -162,7 +162,7 @@ export class AppShellComponent implements OnInit,OnDestroy {
     await this.push.initialize();
     await this.push.check();
     const user = this.authService.currentUser();
-    if (!this.push.supported || this.push.enabled() || Notification.permission !== 'default' || user === null) return;
+    if (!this.push.supported || this.push.enabled() || this.push.permission() !== 'default' || this.push.serverReady() === false || user === null) return;
     this.pushPromptKey = `aesculapp.push-prompt.v1.${user.id}`;
     try { if (localStorage.getItem(this.pushPromptKey) !== null) return; } catch { return; }
     this.pushPromptOpen.set(true);

@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -15,20 +16,30 @@ export class PasswordResetConfirmPage {
   private readonly authService = inject(AuthService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
-  private readonly token = inject(ActivatedRoute).snapshot.queryParamMap.get('token');
+  private readonly route = inject(ActivatedRoute);
+  private readonly token = signal<string | null>(null);
   protected readonly theme = inject(ThemeService).activeTheme;
 
   protected readonly isSubmitting = signal(false);
   protected readonly isCompleted = signal(false);
   protected readonly submissionError = signal<string | null>(null);
-  protected readonly hasToken = this.token !== null && this.token.length === 64;
+  protected readonly hasToken = computed(() => this.token() !== null && /^[a-f0-9]{64}$/i.test(this.token()!));
   protected readonly resetForm = this.formBuilder.nonNullable.group({
     password: ['', [Validators.required, Validators.minLength(10)]],
     passwordConfirmation: ['', [Validators.required]],
   });
 
+  constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      this.token.set(params.get('token'));
+      this.isCompleted.set(false);
+      this.submissionError.set(null);
+      this.resetForm.reset();
+    });
+  }
+
   protected async submit(): Promise<void> {
-    if (this.isSubmitting() || !this.hasToken) {
+    if (this.isSubmitting() || !this.hasToken()) {
       return;
     }
 
@@ -40,7 +51,7 @@ export class PasswordResetConfirmPage {
 
     this.isSubmitting.set(true);
     try {
-      const result = await this.authService.resetPassword(this.token!, this.resetForm.getRawValue().password);
+      const result = await this.authService.resetPassword(this.token()!, this.resetForm.getRawValue().password);
       if (result === 'success') {
         this.isCompleted.set(true);
         return;

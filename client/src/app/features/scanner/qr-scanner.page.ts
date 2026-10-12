@@ -7,10 +7,11 @@ import { statusMessages } from '../../core/i18n/status-messages';
 import { ReceiptRepository, type ReceiptPreview } from '../../core/receipts/receipt.repository';
 import { QrScannerService, type QrScanResult } from '../../core/scanner/qr-scanner.service';
 import { ThemeService } from '../../core/theme/theme.service';
+import { ScannerDiagnosticsComponent } from './scanner-diagnostics.component';
 
 @Component({
   selector: 'app-qr-scanner-page',
-  imports: [CurrencyPipe, NgIcon],
+  imports: [CurrencyPipe, NgIcon, ScannerDiagnosticsComponent],
   templateUrl: './qr-scanner.page.html',
 })
 export class QrScannerPage implements AfterViewInit, OnDestroy {
@@ -18,9 +19,15 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
   private readonly receiptRepository = inject(ReceiptRepository);
   private readonly statusMessages = inject(StatusMessageService);
   protected readonly theme = inject(ThemeService);
-  private readonly cameraPreview = viewChild.required<ElementRef<HTMLVideoElement>>('cameraPreview');
+  private readonly cameraPreview = viewChild<ElementRef<HTMLVideoElement>>('cameraPreview');
+  protected readonly usesNativeScanner = this.qrScanner.presentation === 'native';
 
   protected readonly isScanning = signal(false);
+  protected readonly torchAvailable = this.qrScanner.torchAvailable;
+  protected readonly torchEnabled = this.qrScanner.torchEnabled;
+  protected readonly scannerDiagnostics = this.qrScanner.diagnostics;
+  protected readonly lastScanDiagnostics = this.qrScanner.lastScanDiagnostics;
+  protected readonly isTogglingTorch = signal(false);
   protected readonly canTapFocus = signal(false);
   protected readonly focusPoint = signal<{ x: number; y: number } | null>(null);
   protected readonly isReadingImage = signal(false);
@@ -45,7 +52,10 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const video = this.cameraPreview().nativeElement;
+    const video = this.cameraPreview()?.nativeElement;
+    if (!video) {
+      return;
+    }
     const bounds = video.getBoundingClientRect();
     if (!video.videoWidth || !video.videoHeight || !bounds.width || !bounds.height) {
       return;
@@ -57,8 +67,11 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
     const visibleHeight = video.videoHeight * scale;
     const x = event.detail === 0 ? 0.5 : (event.clientX - bounds.left + (visibleWidth - bounds.width) / 2) / visibleWidth;
     const y = event.detail === 0 ? 0.5 : (event.clientY - bounds.top + (visibleHeight - bounds.height) / 2) / visibleHeight;
-    if (await this.qrScanner.focusAt(x, y)) {
-      this.focusPoint.set({ x: displayX * 100, y: displayY * 100 });
+    const focusResult = await this.qrScanner.focusAt(x, y);
+    if (focusResult) {
+      this.focusPoint.set(focusResult === 'point'
+        ? { x: displayX * 100, y: displayY * 100 }
+        : { x: 50, y: 50 });
       window.setTimeout(() => this.focusPoint.set(null), 900);
     }
   }
@@ -71,6 +84,21 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
     this.isScanPaused.set(false);
     this.errorMessage.set(null);
     await this.startCamera();
+  }
+
+  protected async toggleTorch(): Promise<void> {
+    if (!this.isScanning() || !this.torchAvailable() || this.isTogglingTorch()) {
+      return;
+    }
+
+    this.isTogglingTorch.set(true);
+    try {
+      if (!await this.qrScanner.toggleTorch()) {
+        this.statusMessages.show(statusMessages.cameraLightUnavailable, { kind: 'warning' });
+      }
+    } finally {
+      this.isTogglingTorch.set(false);
+    }
   }
 
   protected async selectImage(event: Event): Promise<void> {
@@ -143,7 +171,20 @@ export class QrScannerPage implements AfterViewInit, OnDestroy {
     this.errorMessage.set(null);
 
     try {
-      this.canTapFocus.set(await this.qrScanner.startCamera(this.cameraPreview().nativeElement, (result) => void this.showResult(result)));
+      if (this.usesNativeScanner) {
+        const result = await this.qrScanner.scanNative();
+        this.isScanning.set(false);
+        if (result) {
+          await this.showResult(result);
+        }
+        return;
+      }
+
+      const preview = this.cameraPreview()?.nativeElement;
+      if (!preview) {
+        throw new Error('Camera preview is unavailable.');
+      }
+      this.canTapFocus.set(await this.qrScanner.startCamera(preview, (result) => void this.showResult(result)));
     } catch {
       this.isScanning.set(false);
       this.canTapFocus.set(false);

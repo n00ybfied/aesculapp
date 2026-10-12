@@ -8,6 +8,8 @@ import { ChatPushService } from '../../core/chat/chat-push.service';
 import { ThemeService } from '../../core/theme/theme.service';
 import { CustomerProfile, FooterNavigationItem, ProfileService } from '../../core/profile/profile.service';
 import { AchievementCelebrationService } from '../../core/achievements/achievement-celebration.service';
+import { MedicationReminderService } from '../../core/medications/medication-reminder.service';
+import { statusMessages } from '../../core/i18n/status-messages';
 
 interface ProfileForm {
   displayName: string;
@@ -43,6 +45,8 @@ export class ProfilePage {
   private readonly profiles = inject(ProfileService);
   private readonly messages = inject(StatusMessageService);
   private readonly celebrations = inject(AchievementCelebrationService);
+  protected readonly medicationReminders = inject(MedicationReminderService);
+  protected readonly reminderTexts = statusMessages;
   protected readonly push = inject(ChatPushService);
   protected readonly theme = inject(ThemeService).activeTheme;
   private readonly cropCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cropCanvas');
@@ -94,6 +98,7 @@ export class ProfilePage {
       const achievementAlreadyCompleted = bonusAlreadyAwarded || (previousProfile?.profileComplete ?? false);
       const savedProfile = await this.profiles.save(this.form);
       this.applyProfile(savedProfile);
+      await this.medicationReminders.refresh();
       if (!achievementAlreadyCompleted && (savedProfile.profileComplete || savedProfile.profileCompletionBonusAwarded)) {
         this.celebrations.celebrate({ title: 'Profil vervollständigen', points: !bonusAlreadyAwarded && savedProfile.profileCompletionBonusAwarded ? savedProfile.profileCompletionBonusPoints : 0 });
       } else {
@@ -108,6 +113,9 @@ export class ProfilePage {
   }
 
   protected togglePush(): void { if (this.push.enabled()) void this.push.disable(); else void this.push.enable(); }
+  protected requestMedicationPermission(): void { void this.medicationReminders.requestPermission(); }
+  protected openExactTimingSettings(): void { void this.medicationReminders.openExactTimingSettings(); }
+  protected retryMedicationReminders(): void { void this.medicationReminders.refresh(); }
   protected hasSelectedPushCategory(): boolean { return this.form.chatPushEnabled || this.form.rewardPushEnabled || this.form.newsPushEnabled || this.form.medicationPushEnabled || this.form.appointmentPushEnabled || this.form.familyPushEnabled; }
   protected isFooterNavigationItemSelected(item: FooterNavigationItem): boolean { return this.form.footerNavigationItems.includes(item); }
   protected toggleNewsCategory(id: number, checked: boolean): void { this.form.newsCategoryIds = checked ? [...this.form.newsCategoryIds, id] : this.form.newsCategoryIds.filter((selected) => selected !== id); }

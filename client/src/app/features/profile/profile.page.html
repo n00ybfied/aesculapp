@@ -95,7 +95,7 @@
             </fieldset>
           }
           <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
-            <span><span class="block font-semibold">Medikamentenerinnerungen</span><span class="mt-1 block text-sm leading-5 text-muted">Erinnerungen zu den Einnahmezeiten aus Ihrem Medikamentenplan.</span></span>
+            <span><span class="block font-semibold">Medikamentenerinnerungen</span><span class="mt-1 block text-sm leading-5 text-muted">In der nativen App lokal auf diesem Gerät geplant; benötigt keine Server-Push-Registrierung.</span></span>
             <input class="size-6 shrink-0 accent-primary" name="medicationPushEnabled" type="checkbox" [(ngModel)]="form.medicationPushEnabled" />
           </label>
           <label class="flex min-h-16 cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary">
@@ -109,27 +109,48 @@
         </div>
         <section class="mt-5 rounded-2xl border border-border bg-accent p-4" aria-labelledby="medication-times-title">
           <h3 id="medication-times-title" class="font-semibold">Zeiten für Medikamentenerinnerungen</h3>
-          <p class="mt-1 text-sm leading-5 text-muted">Diese Zeiten gelten für alle Medikamente mit dem jeweiligen Morgens–Mittags–Abends–Nachts-Schema.</p>
+          <p class="mt-1 text-sm leading-5 text-muted">Diese Zeiten gelten für alle Medikamente mit dem jeweiligen Morgens–Mittags–Abends–Nachts-Schema. Leere Zeiten deaktivieren die Erinnerung für diesen Tagesabschnitt.</p>
           <div class="mt-4 grid grid-cols-2 gap-3">
-            <label class="block text-sm font-medium">Morgens<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="morningReminderTime" [(ngModel)]="form.morningReminderTime" type="time" required /></label>
-            <label class="block text-sm font-medium">Mittags<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="noonReminderTime" [(ngModel)]="form.noonReminderTime" type="time" required /></label>
-            <label class="block text-sm font-medium">Abends<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="eveningReminderTime" [(ngModel)]="form.eveningReminderTime" type="time" required /></label>
-            <label class="block text-sm font-medium">Nachts<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="nightReminderTime" [(ngModel)]="form.nightReminderTime" type="time" required /></label>
+            <label class="block text-sm font-medium">Morgens<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="morningReminderTime" [(ngModel)]="form.morningReminderTime" type="time" /></label>
+            <label class="block text-sm font-medium">Mittags<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="noonReminderTime" [(ngModel)]="form.noonReminderTime" type="time" /></label>
+            <label class="block text-sm font-medium">Abends<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="eveningReminderTime" [(ngModel)]="form.eveningReminderTime" type="time" /></label>
+            <label class="block text-sm font-medium">Nachts<input class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-3 text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" name="nightReminderTime" [(ngModel)]="form.nightReminderTime" type="time" /></label>
           </div>
         </section>
+        @if (medicationReminders.supported) {
+          <div class="mt-4 rounded-2xl border border-border bg-background px-4 py-3 text-sm" role="status" aria-live="polite">
+            @switch (medicationReminders.status()) {
+              @case ('disabled') { <p class="text-muted">{{ reminderTexts.medicationRemindersDisabled }}</p> }
+              @case ('no-medications') { <p class="text-muted">{{ reminderTexts.medicationRemindersEmpty }}</p> }
+              @case ('permission-required') {
+                <p class="text-warning">{{ reminderTexts.medicationRemindersPermission }}</p>
+                <button type="button" class="mt-2 min-h-11 rounded-xl border border-primary px-4 font-semibold text-primary" (click)="requestMedicationPermission()">Benachrichtigungen erlauben</button>
+              }
+              @case ('scheduled') { <p class="text-success">{{ reminderTexts.medicationRemindersScheduled }}</p> }
+              @case ('approximate') {
+                <p class="text-warning">{{ reminderTexts.medicationRemindersApproximate }}</p>
+                <button type="button" class="mt-2 min-h-11 rounded-xl border border-primary px-4 font-semibold text-primary" (click)="openExactTimingSettings()">Exakte Zeiten erlauben</button>
+              }
+              @case ('error') {
+                <p class="text-danger">{{ reminderTexts.medicationRemindersError }}</p>
+                <button type="button" class="mt-2 min-h-11 rounded-xl border border-primary px-4 font-semibold text-primary" (click)="retryMedicationReminders()">Erneut versuchen</button>
+              }
+            }
+          </div>
+        }
         <p class="mt-4 text-xs leading-5 text-muted">Push-Benachrichtigungen benötigen zusätzlich die Freigabe in Ihrem Browser oder auf Ihrem Gerät. Den Versand können Sie dort jederzeit blockieren.</p>
-        <div class="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent px-4 py-3">
+        <div class="mt-4 flex flex-col gap-3 rounded-2xl border border-border bg-accent px-4 py-3">
           <div>
             <p class="font-semibold">Push auf diesem Gerät</p>
             @if (push.enabled()) { <p class="mt-1 text-sm text-success">Aktiviert: Dieses Gerät ist für Ihr Konto registriert.</p> }
-            @else if (!push.supported) { <p class="mt-1 text-sm text-muted">Dieser Browser unterstützt Web-Push nicht. Auf iPhone und iPad ist die installierte App nötig.</p> }
-            @else if (push.permission() === 'denied') { <p class="mt-1 text-sm text-danger">Benachrichtigungen wurden in Ihrem Browser blockiert.</p> }
-            @else if (push.permission() === 'granted' && push.serverReady() === false) { <p class="mt-1 text-sm text-muted">Die Browserfreigabe ist erteilt, Push ist auf dem Server aber noch nicht eingerichtet.</p> }
-            @else if (push.permission() === 'granted') { <p class="mt-1 text-sm text-muted">Die Browserfreigabe ist erteilt. Dieses Gerät ist noch nicht für Ihr Konto registriert.</p> }
-            @else { <p class="mt-1 text-sm text-muted">Aktivieren Sie die Browserfreigabe für dieses Gerät.</p> }
+            @else if (!push.supported) { <p class="mt-1 text-sm text-muted">Dieses Gerät unterstützt Push derzeit nicht. Unter iOS können Sie bis zur nativen Anbindung die installierte PWA verwenden.</p> }
+            @else if (push.serverReady() === false) { <p class="mt-1 text-sm text-muted">Push ist auf dem Server noch nicht eingerichtet.</p> }
+            @else if (push.permission() === 'denied') { <p class="mt-1 text-sm text-danger">Benachrichtigungen wurden auf diesem Gerät blockiert.</p> }
+            @else if (push.permission() === 'granted') { <p class="mt-1 text-sm text-muted">Die Gerätefreigabe ist erteilt. Dieses Gerät ist noch nicht für Ihr Konto registriert.</p> }
+            @else { <p class="mt-1 text-sm text-muted">Aktivieren Sie Benachrichtigungen für dieses Gerät.</p> }
           </div>
-          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.busy() || !push.supported || !hasSelectedPushCategory() || push.permission() === 'denied'" (click)="togglePush()">
-            @if (push.busy()) { Bitte warten … } @else if (push.enabled()) { Deaktivieren } @else if (push.permission() === 'granted') { Für dieses Konto aktivieren } @else if (push.permission() === 'denied') { Im Browser blockiert } @else { Aktivieren }
+          <button type="button" class="min-h-11 w-full rounded-xl border border-primary px-4 text-sm font-bold text-primary transition hover:bg-primary hover:text-on-primary disabled:cursor-not-allowed disabled:opacity-50" [disabled]="push.busy() || !push.supported || !hasSelectedPushCategory() || push.permission() === 'denied' || (push.serverReady() === false && !push.enabled())" (click)="togglePush()">
+            @if (push.busy()) { Bitte warten … } @else if (push.enabled()) { Deaktivieren } @else if (push.permission() === 'granted') { Für dieses Konto aktivieren } @else if (push.permission() === 'denied') { Auf diesem Gerät blockiert } @else { Aktivieren }
           </button>
         </div>
         @if (!hasSelectedPushCategory()) { <p class="mt-3 text-xs leading-5 text-muted">Aktivieren und speichern Sie zuerst mindestens eine Push-Kategorie, bevor Sie Push auf diesem Gerät freigeben.</p> }

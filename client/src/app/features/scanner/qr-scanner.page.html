@@ -2,115 +2,257 @@
   <section aria-labelledby="scanner-title">
     <p class="text-sm font-semibold text-primary">RECHNUNGSSCAN</p>
     <h1 id="scanner-title" class="mt-1 text-3xl font-bold tracking-tight">QR-Code scannen</h1>
-    <p class="mt-2 text-base leading-6 text-muted">Halten Sie den QR-Code Ihrer Rechnung in den markierten Bereich.</p>
+    <p class="mt-2 text-base leading-6 text-muted">
+      {{
+        usesNativeScanner
+          ? 'Scannen Sie den QR-Code Ihrer Rechnung mit der Kamera.'
+          : 'Halten Sie den QR-Code Ihrer Rechnung in den markierten Bereich.'
+      }}
+    </p>
   </section>
 
   @if (theme.allowDuplicateReceiptImports) {
-    <div class="mt-5 rounded-2xl border border-warning bg-warning-soft px-4 py-3 text-sm leading-6 text-foreground" role="alert">
+    <div
+      class="mt-5 rounded-2xl border border-warning bg-warning-soft px-4 py-3 text-sm leading-6 text-foreground"
+      role="alert"
+    >
       <strong>Debug-Modus aktiv:</strong> Derselbe Kassen-QR-Code kann mehrfach eingelöst werden.
     </div>
   }
 
-  <section class="mt-8 overflow-hidden rounded-3xl border border-border bg-surface p-5 shadow-card" aria-label="Scanner-Vorschau">
-    <div class="relative grid aspect-square place-items-center overflow-hidden rounded-2xl bg-foreground text-on-primary">
-      <video #cameraPreview class="absolute inset-0 size-full object-cover" autoplay muted playsinline></video>
-      <div class="absolute inset-0 bg-foreground/25"></div>
-      @if (isScanning() && canTapFocus()) {
+  <section
+    [class]="
+      usesNativeScanner
+        ? 'mt-8'
+        : 'mt-8 overflow-hidden rounded-3xl border border-border bg-surface p-5 shadow-card'
+    "
+    [attr.aria-label]="usesNativeScanner ? 'Rechnung scannen' : 'Scanner-Vorschau'"
+  >
+    @if (usesNativeScanner) {
+      @if (!errorMessage() && !isScanPaused()) {
         <button
           type="button"
-          class="absolute inset-0 z-10 cursor-crosshair focus-visible:outline-3 focus-visible:outline-inset focus-visible:outline-primary"
-          aria-label="Kamerabild antippen, um an dieser Stelle scharfzustellen"
-          (click)="focusPreview($event)"
-        ></button>
+          class="flex min-h-16 w-full items-center justify-center gap-3 rounded-2xl bg-primary px-5 py-4 text-lg font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70"
+          [disabled]="isScanning() || isReadingImage() || !!receiptPreview()"
+          (click)="retryCamera()"
+        >
+          <ng-icon name="lucideQrCode" size="1.7rem" aria-hidden="true" />
+          {{ isScanning() ? 'Kamera wird geöffnet …' : 'QR-Code mit Kamera scannen' }}
+        </button>
       }
-      <div class="relative size-[68%] rounded-3xl border-2 border-on-primary/90">
-        <span class="absolute -left-1 -top-1 size-7 rounded-tl-xl border-l-4 border-t-4 border-primary"></span>
-        <span class="absolute -right-1 -top-1 size-7 rounded-tr-xl border-r-4 border-t-4 border-primary"></span>
-        <span class="absolute -bottom-1 -left-1 size-7 rounded-bl-xl border-b-4 border-l-4 border-primary"></span>
-        <span class="absolute -bottom-1 -right-1 size-7 rounded-br-xl border-b-4 border-r-4 border-primary"></span>
-        @if (isScanning()) {
-          <span class="absolute inset-x-4 top-1/2 h-0.5 bg-primary shadow-[0_0_18px_var(--color-primary)] animate-[scan-sweep_3.2s_ease-in-out_infinite]"></span>
-        } @else if (!errorMessage() && !isScanPaused()) {
-          <span class="absolute inset-0 grid place-items-center">
-            <ng-icon name="lucideQrCode" size="4rem" aria-hidden="true" />
-          </span>
+    } @else {
+      <div
+        class="relative grid aspect-square place-items-center overflow-hidden rounded-2xl bg-foreground text-on-primary"
+      >
+        <video
+          #cameraPreview
+          class="absolute inset-0 size-full object-cover"
+          autoplay
+          muted
+          playsinline
+        ></video>
+        <div class="absolute inset-0 bg-foreground/25"></div>
+        @if (isScanning() && canTapFocus()) {
+          <button
+            type="button"
+            class="absolute inset-0 z-10 cursor-crosshair focus-visible:outline-3 focus-visible:outline-inset focus-visible:outline-primary"
+            aria-label="Kamerabild antippen, um erneut scharfzustellen"
+            (click)="focusPreview($event)"
+          ></button>
         }
+        <div class="relative size-[68%] rounded-3xl border-2 border-on-primary/90">
+          <span
+            class="absolute -left-1 -top-1 size-7 rounded-tl-xl border-l-4 border-t-4 border-primary"
+          ></span>
+          <span
+            class="absolute -right-1 -top-1 size-7 rounded-tr-xl border-r-4 border-t-4 border-primary"
+          ></span>
+          <span
+            class="absolute -bottom-1 -left-1 size-7 rounded-bl-xl border-b-4 border-l-4 border-primary"
+          ></span>
+          <span
+            class="absolute -bottom-1 -right-1 size-7 rounded-br-xl border-b-4 border-r-4 border-primary"
+          ></span>
+          @if (isScanning()) {
+            <span
+              class="absolute inset-x-4 top-1/2 h-0.5 bg-primary shadow-[0_0_18px_var(--color-primary)] animate-[scan-sweep_3.2s_ease-in-out_infinite]"
+            ></span>
+          } @else if (!errorMessage() && !isScanPaused()) {
+            <span class="absolute inset-0 grid place-items-center">
+              <ng-icon name="lucideQrCode" size="4rem" aria-hidden="true" />
+            </span>
+          }
+        </div>
+        @if (focusPoint(); as point) {
+          <span
+            class="pointer-events-none absolute z-20 size-12 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 border-on-primary shadow-soft"
+            [style.left.%]="point.x"
+            [style.top.%]="point.y"
+            aria-hidden="true"
+          ></span>
+        }
+        @if (isScanning() && torchAvailable()) {
+          <button
+            type="button"
+            class="absolute right-3 top-3 z-20 flex min-h-11 items-center gap-2 rounded-xl bg-surface/95 px-3 text-sm font-semibold text-foreground shadow-card focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
+            [attr.aria-pressed]="torchEnabled()"
+            [attr.aria-label]="
+              torchEnabled() ? 'Taschenlampe ausschalten' : 'Taschenlampe einschalten'
+            "
+            [disabled]="isTogglingTorch()"
+            (click)="toggleTorch()"
+          >
+            <ng-icon
+              [name]="torchEnabled() ? 'lucideFlashlightOff' : 'lucideFlashlight'"
+              size="1.2rem"
+              aria-hidden="true"
+            />
+            {{ torchEnabled() ? 'Licht aus' : 'Licht an' }}
+          </button>
+        }
+        <p class="absolute bottom-5 px-5 text-center text-sm font-semibold text-on-primary/90">
+          @if (isReadingImage()) {
+            QR-Code wird aus Bild gelesen …
+          } @else if (isScanning()) {
+            {{ canTapFocus() ? 'Zum Scharfstellen tippen' : 'QR-Code wird erkannt …' }}
+          } @else if (errorMessage()) {
+            Kamera nicht verfügbar
+          } @else if (isScanPaused()) {
+            Scan pausiert
+          } @else {
+            Bereit zum Scannen
+          }
+        </p>
       </div>
-      @if (focusPoint(); as point) {
-        <span class="pointer-events-none absolute z-20 size-12 -translate-x-1/2 -translate-y-1/2 rounded-xl border-2 border-on-primary shadow-soft" [style.left.%]="point.x" [style.top.%]="point.y" aria-hidden="true"></span>
-      }
-      <p class="absolute bottom-5 px-5 text-center text-sm font-semibold text-on-primary/90">
-        @if (isReadingImage()) {
-          QR-Code wird aus Bild gelesen …
-        } @else if (isScanning()) {
-          {{ canTapFocus() ? 'Zum Scharfstellen tippen' : 'QR-Code wird erkannt …' }}
-        } @else if (errorMessage()) {
-          Kamera nicht verfügbar
-        } @else if (isScanPaused()) {
-          Scan pausiert
-        } @else {
-          Bereit zum Scannen
-        }
-      </p>
-    </div>
+    }
 
-    <label class="mt-5 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 font-bold text-foreground transition hover:bg-accent focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-primary">
+    <label
+      class="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-background px-5 font-bold text-foreground transition hover:bg-accent focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-primary"
+      [class.mt-3]="usesNativeScanner"
+      [class.mt-5]="!usesNativeScanner"
+    >
       <ng-icon name="lucideFolderOpen" size="1.25rem" aria-hidden="true" />
-      Aus Ordner wählen
+      {{ usesNativeScanner ? 'Bild mit QR-Code auswählen' : 'Aus Ordner wählen' }}
       <input class="sr-only" type="file" accept="image/*" (change)="selectImage($event)" />
     </label>
 
-    @if (isScanning()) {
-      <button type="button" class="mt-3 min-h-11 w-full text-sm font-semibold text-primary underline underline-offset-4" (click)="retryCamera()">Kamera neu starten</button>
+    @if (isScanning() && !usesNativeScanner) {
+      <button
+        type="button"
+        class="mt-3 min-h-11 w-full text-sm font-semibold text-primary underline underline-offset-4"
+        (click)="retryCamera()"
+      >
+        Kamera neu starten
+      </button>
     }
 
     @if (errorMessage(); as error) {
       <div class="mt-5 rounded-xl bg-danger-soft p-4 text-sm leading-6 text-danger" role="alert">
         <p>{{ error }}</p>
-        <button type="button" class="mt-2 font-bold underline decoration-2 underline-offset-4" (click)="retryCamera()">Kamera erneut öffnen</button>
+        <button
+          type="button"
+          class="mt-2 font-bold underline decoration-2 underline-offset-4"
+          (click)="retryCamera()"
+        >
+          Kamera erneut öffnen
+        </button>
       </div>
     }
 
     @if (isScanPaused() && !errorMessage()) {
-      <div class="mt-5 rounded-xl border border-warning bg-warning-soft p-4 text-sm leading-6 text-foreground" role="status">
+      <div
+        class="mt-5 rounded-xl border border-warning bg-warning-soft p-4 text-sm leading-6 text-foreground"
+        role="status"
+      >
         <p>{{ unsupportedReceiptMessage }}</p>
-        <button type="button" class="mt-2 font-bold underline decoration-2 underline-offset-4" (click)="retryCamera()">Erneut scannen</button>
+        <button
+          type="button"
+          class="mt-2 font-bold underline decoration-2 underline-offset-4"
+          (click)="retryCamera()"
+        >
+          Erneut scannen
+        </button>
       </div>
+    }
+    @if (theme.showCustomerDebugOutput && !usesNativeScanner) {
+      <details class="mt-5 rounded-xl border border-border bg-background p-4 text-sm text-muted">
+        <summary class="cursor-pointer font-semibold">Debug: Scannerdaten</summary>
+        <app-scanner-diagnostics [diagnostics]="scannerDiagnostics()" />
+      </details>
     }
   </section>
 
-  <p class="mt-5 text-center text-sm leading-6 text-muted">Die Kamera startet automatisch. Alternativ können Sie ein Bild mit QR-Code auswählen.</p>
+  <p class="mt-5 text-center text-sm leading-6 text-muted">
+    {{
+      usesNativeScanner
+        ? 'Der Scanner öffnet sich automatisch. Nach dem Abbrechen können Sie ihn hier erneut starten.'
+        : 'Die Kamera startet automatisch. Alternativ können Sie ein Bild mit QR-Code auswählen.'
+    }}
+  </p>
 </main>
 
 @if (receiptPreview(); as receipt) {
   <div class="fixed inset-0 z-50 grid place-items-center bg-foreground/45 p-5" role="presentation">
-    <section class="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="scan-result-title">
-      <div class="grid size-12 place-items-center rounded-2xl bg-accent text-primary" aria-hidden="true">
+    <section
+      class="w-full max-w-sm rounded-3xl bg-surface p-6 shadow-2xl"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="scan-result-title"
+    >
+      <div
+        class="grid size-12 place-items-center rounded-2xl bg-accent text-primary"
+        aria-hidden="true"
+      >
         <ng-icon name="lucideQrCode" size="1.5rem" />
       </div>
       <p class="mt-5 text-sm font-semibold tracking-wide text-primary">BELEG ERKANNT</p>
-      <h2 id="scan-result-title" class="mt-1 text-2xl font-bold">{{ receipt.eligibleCents === 0 ? 'Keine Punkte für diesen Beleg' : 'Punkte gutschreiben?' }}</h2>
+      <h2 id="scan-result-title" class="mt-1 text-2xl font-bold">
+        {{ receipt.eligibleCents === 0 ? 'Keine Punkte für diesen Beleg' : 'Punkte gutschreiben?' }}
+      </h2>
       <div class="mt-5 rounded-2xl bg-background p-4">
         <p class="font-bold">{{ receipt.pharmacyName }}</p>
         <p class="mt-1 text-sm text-muted">Einkauf vom {{ receipt.purchasedAt }}</p>
         <div class="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
           <span class="text-sm font-semibold text-muted">Punktefähiger Betrag</span>
-          <span class="text-sm font-bold text-foreground">{{ receipt.eligibleCents / 100 | currency:'EUR':'symbol':'1.2-2':'de-AT' }}</span>
+          <span class="text-sm font-bold text-foreground">{{
+            receipt.eligibleCents / 100 | currency: 'EUR' : 'symbol' : '1.2-2' : 'de-AT'
+          }}</span>
         </div>
         <div class="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
           <span class="text-sm font-semibold text-muted">Ihre Punkte</span>
-          <span class="rounded-full bg-accent px-3 py-1 text-sm font-bold text-primary">+{{ receipt.earnedPoints }} Punkte</span>
+          <span class="rounded-full bg-accent px-3 py-1 text-sm font-bold text-primary"
+            >+{{ receipt.earnedPoints }} Punkte</span
+          >
         </div>
       </div>
       @if (theme.showCustomerDebugOutput) {
         <details class="mt-4 text-sm text-muted">
-          <summary class="cursor-pointer font-semibold">Debug: QR-Code-Inhalt anzeigen</summary>
-          <code class="mt-3 block break-all rounded-xl bg-background p-3 text-xs leading-5 text-foreground">{{ receipt.rawQrValue }}</code>
+          <summary class="cursor-pointer font-semibold">Debug: Scannerdaten und QR-Code</summary>
+          @if (usesNativeScanner) {
+            <p>Die native Kamera stellt keine technischen Streamdaten bereit.</p>
+            <app-scanner-diagnostics [rawQrValue]="receipt.rawQrValue" />
+          } @else {
+            <app-scanner-diagnostics
+              [diagnostics]="lastScanDiagnostics()"
+              [rawQrValue]="receipt.rawQrValue"
+            />
+          }
         </details>
       }
       @if (receipt.eligibleCents === 0) {
-        <p class="mt-5 rounded-xl border border-warning bg-warning-soft p-4 text-sm leading-6 text-foreground">{{ receiptNoEligibleAmountMessage }}</p>
-        <button type="button" class="mt-5 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeResult()" autofocus>Weiter scannen</button>
+        <p
+          class="mt-5 rounded-xl border border-warning bg-warning-soft p-4 text-sm leading-6 text-foreground"
+        >
+          {{ receiptNoEligibleAmountMessage }}
+        </p>
+        <button
+          type="button"
+          class="mt-5 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          (click)="closeResult()"
+          autofocus
+        >
+          Weiter scannen
+        </button>
       } @else {
         <button
           type="button"
@@ -119,9 +261,17 @@
           [disabled]="isImporting()"
           autofocus
         >
-          {{ isImporting() ? 'Wird gutgeschrieben …' : receipt.earnedPoints + ' Punkte gutschreiben' }}
+          {{
+            isImporting() ? 'Wird gutgeschrieben …' : receipt.earnedPoints + ' Punkte gutschreiben'
+          }}
         </button>
-        <button type="button" class="mt-3 min-h-11 w-full rounded-xl px-5 font-bold text-muted transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary" (click)="closeResult()">Abbrechen</button>
+        <button
+          type="button"
+          class="mt-3 min-h-11 w-full rounded-xl px-5 font-bold text-muted transition hover:bg-accent focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          (click)="closeResult()"
+        >
+          Abbrechen
+        </button>
       }
     </section>
   </div>

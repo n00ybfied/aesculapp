@@ -12,7 +12,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class SendChatPushCommand extends Command{
  public function __construct(private readonly ChatPushService $push,private readonly EntityManagerInterface $em,private readonly NewsPushDispatcher $newsPush){parent::__construct();}
  protected function execute(InputInterface $input,OutputInterface $output):int{
-  if(!$this->push->config()){$output->writeln('Web-Push key is not configured.');return 1;}
+  if(!$this->push->hasAnyTransport()){$output->writeln('No push transport is configured.');return 1;}
   $ids=$this->em->getConnection()->fetchFirstColumn('SELECT id FROM chat_message WHERE push_pending = 1 ORDER BY id LIMIT 20');
   foreach($ids as $id)$this->push->deliver((int)$id);
   $news = $this->newsPush->run();
