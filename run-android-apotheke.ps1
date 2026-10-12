@@ -68,7 +68,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $androidRoot 'app\google-services.js
 }
 
 $oldTarget = $env:AESCULAPP_NATIVE_TARGET
+$oldLinkHost = $env:ORG_GRADLE_PROJECT_aesculappLinkHost
 $env:AESCULAPP_NATIVE_TARGET = 'apotheke'
+$env:ORG_GRADLE_PROJECT_aesculappLinkHost = if ($ApiTarget -eq 'Floatbox') { 'aesculapp.floatbox.at' } else { 'app.stadtapotheke-trofaiach.at' }
 Push-Location $clientRoot
 try {
     Write-Host "Online-App: at.stadtapotheke.trofaiach; API-Ziel: $apiBaseUrl"
@@ -107,4 +109,5 @@ try {
 } finally {
     Pop-Location
     $env:AESCULAPP_NATIVE_TARGET = $oldTarget
+    $env:ORG_GRADLE_PROJECT_aesculappLinkHost = $oldLinkHost
 }

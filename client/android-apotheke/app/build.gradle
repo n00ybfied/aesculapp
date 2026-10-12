@@ -9,6 +9,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "0.1.0"
+        manifestPlaceholders = [aesculappLinkHost: (project.findProperty('aesculappLinkHost') ?: 'aesculapp.floatbox.at')]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +17,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (project.hasProperty('aesculappSigningStoreFile')) {
+                storeFile file(project.property('aesculappSigningStoreFile'))
+                storePassword project.property('aesculappSigningStorePassword').toString()
+                keyAlias 'aesculapp_apotheke'
+                keyPassword project.property('aesculappSigningKeyPassword').toString()
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
