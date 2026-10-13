@@ -1,12 +1,16 @@
 # Android-Testverteilung
 
-Die Online-App hat die Paketkennung `at.stadtapotheke.trofaiach`. Für die derzeitige Testphase ist `Floatbox` das Standard-API-Ziel. Die signierte APK wird so gebaut:
+Die Online-App hat die Paketkennung `at.stadtapotheke.trofaiach`. Ab Version `0.1.1` (`versionCode` 2) ist die Apotheken-API das Standardziel. Die signierte APK wird so gebaut:
 
 ```powershell
-.\build-android-apotheke-release.ps1 -ApiTarget Floatbox
+.\build-android-apotheke-release.ps1
 ```
 
-Das Skript baut Angular, synchronisiert Capacitor, erstellt eine signierte Release-APK und prüft deren Signatur. Die Datei liegt anschließend unter `client/android-apotheke/app/build/outputs/apk/release/app-release.apk`. Für einen späteren Test gegen die Apotheken-API ist ausdrücklich `-ApiTarget Apotheke` anzugeben; der App-Link-Host wechselt dabei mit. Da beide Varianten dieselbe Paketkennung haben, nicht unbemerkt zwischen den Datenbeständen wechseln oder APKs an Tester verteilen, ohne das Ziel zu nennen.
+Das Skript baut Angular, synchronisiert Capacitor, erstellt eine signierte Release-APK und prüft deren Signatur. Die Datei liegt anschließend unter `client/android-apotheke/app/build/outputs/apk/release/app-release.apk`. Für einen bewussten Test gegen die Floatbox-Demo-API ist ausdrücklich `-ApiTarget Floatbox` anzugeben; der App-Link-Host wechselt dabei mit. Da beide Varianten dieselbe Paketkennung haben, nicht unbemerkt zwischen den Datenbeständen wechseln oder APKs an Tester verteilen, ohne das Ziel zu nennen.
+
+Die signierte Apotheken-Test-APK `0.1.1` liegt auf der eigenen Download-Subdomain `https://android-apk.stadtapotheke-trofaiach.at/`. Die Installationsseite wird aus `ops/world4you/android-apk/index.html` bereitgestellt; die APK ist unter `https://android-apk.stadtapotheke-trofaiach.at/stadtapotheke-trofaiach-android-0.1.1.apk` direkt erreichbar. Der frühere Download unter der Kunden-App-Subdomain bleibt vorerst als Rückfalllink bestehen. Dieser Ordner ist von WordPress, Admin und API getrennt. Vor jeder Verteilung eines neuen Builds die Versionsnummer erhöhen, erneut signieren, mit eigenem Dateinamen hochladen und lokale sowie entfernte SHA-256-Prüfsumme vergleichen. Ein APK-Upload aktualisiert weder die Kunden-PWA noch die Symfony-API.
+
+Die APK enthält die neuen Gewinnspiel-Funktionen. Sie benötigen denselben Stand der Symfony-API auf dem Apotheken-Testserver; deshalb muss der `apotheke-test`-Deploy erfolgreich durchlaufen, bevor diese Seiten auf dem Gerät getestet werden. Die native FCM-Konfiguration (`NATIVE_PUSH_ANDROID_APP_ID` und `FCM_SERVICE_ACCOUNT_FILE`) fehlt dort noch; native Pushs sind daher vorerst nicht einsatzbereit. Vor breiterer Verteilung Anmeldung, Sitzungs-Refresh, Push und neue Seiten auf einem echten Gerät prüfen. Das Hochladen der APK ersetzt diese Schritte nicht.
 
 ## Signierschlüssel sichern
 
