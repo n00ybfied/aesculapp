@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Floatbox', 'Apotheke')]
-    [string]$ApiTarget = 'Floatbox',
+    [string]$ApiTarget = 'Apotheke',
     [switch]$InitializeSigningKey
 )
 

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Stadtapotheke Trofaiach – Android-Testapp</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #eef5f8;
+      --surface: #ffffff;
+      --foreground: #173247;
+      --muted: #526a7b;
+      --primary: #4c89b2;
+      --border: #d3e2ea;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--background);
+      color: var(--foreground);
+      font: 16px/1.5 system-ui, sans-serif;
+    }
+    main {
+      width: min(100%, 520px);
+      padding: clamp(24px, 6vw, 40px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: var(--surface);
+      box-shadow: 0 16px 40px rgb(23 50 71 / 8%);
+    }
+    h1 { margin: 0 0 12px; font-size: clamp(1.65rem, 6vw, 2.2rem); line-height: 1.2; }
+    p { margin: 0 0 18px; }
+    .eyebrow { margin-bottom: 12px; color: var(--primary); font-weight: 700; }
+    .muted { color: var(--muted); }
+    .download {
+      display: block;
+      padding: 15px 20px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+    }
+    .download:focus-visible { outline: 3px solid var(--foreground); outline-offset: 3px; }
+    ol { padding-left: 23px; }
+    li + li { margin-top: 8px; }
+    small { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Interne Testversion · Android</p>
+    <h1>Stadtapotheke Trofaiach</h1>
+    <p class="muted">Installieren Sie die Android-Testapp direkt auf Ihrem Smartphone. Diese Version verbindet sich mit dem Apotheken-Testserver.</p>
+    <p><a class="download" href="stadtapotheke-trofaiach-android-0.1.1.apk" download>Android-App herunterladen</a></p>
+    <ol>
+      <li>Öffnen Sie die heruntergeladene APK-Datei auf Ihrem Android-Gerät.</li>
+      <li>Erlauben Sie bei Bedarf die Installation aus dieser Quelle.</li>
+      <li>Bestätigen Sie die Installation und öffnen Sie die App.</li>
+    </ol>
+    <small>Testversion 0.1.1. Für iPhone ist diese APK nicht geeignet. Einzelne neue Funktionen können auf dem Testserver noch fehlen.</small>
+  </main>
+</body>
+</html>

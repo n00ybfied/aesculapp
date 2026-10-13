@@ -61,6 +61,7 @@ final class CustomerAccountDeletionService
             $this->connection->executeStatement('DELETE FROM chat_conversation WHERE tenant_id = ? AND customer_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM appointment WHERE tenant_id = ? AND customer_id = ?', [$tenantId, $userId]);
             $this->connection->executeStatement('DELETE FROM coupon_redemption WHERE tenant_id = ? AND customer_id = ?', [$tenantId, $userId]);
+            $this->connection->executeStatement('DELETE FROM prize_game_spin WHERE customer_id = ? AND game_id IN (SELECT id FROM prize_game WHERE tenant_id = ?)', [$userId, $tenantId]);
             $this->connection->executeStatement('DELETE FROM family_connection WHERE tenant_id = ? AND (participant_one_id = ? OR participant_two_id = ? OR invited_by_id = ?)', [$tenantId, $userId, $userId, $userId]);
             $this->connection->executeStatement('DELETE FROM customer_referral WHERE tenant_id = ? AND (invitee_id = ? OR inviter_id = ?)', [$tenantId, $userId, $membership['id']]);
             $this->connection->executeStatement('DELETE FROM medication WHERE tenant_id = ? AND user_id = ?', [$tenantId, $userId]);
@@ -108,6 +109,7 @@ final class CustomerAccountDeletionService
             ['chat_conversation', 'customer_id'],
             ['chat_message', 'sender_id'],
             ['coupon_redemption', 'customer_id'],
+            ['prize_game_spin', 'customer_id'],
             ['family_connection', 'participant_one_id'],
             ['family_connection', 'participant_two_id'],
             ['family_connection', 'invited_by_id'],

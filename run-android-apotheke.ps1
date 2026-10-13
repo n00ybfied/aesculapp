@@ -2,7 +2,7 @@
 param(
     [string]$DeviceSerial,
     [ValidateSet('Floatbox', 'Apotheke')]
-    [string]$ApiTarget = 'Floatbox',
+    [string]$ApiTarget = 'Apotheke',
     [switch]$BuildOnly
 )
 

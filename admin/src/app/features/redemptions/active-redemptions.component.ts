@@ -3,6 +3,7 @@ import { AdminCustomerService } from '../../core/customers/admin-customer.servic
 import {
   AdminRedemptionService,
   type ActiveCouponRedemption,
+  type ActiveWinRedemption,
   type ActiveRewardRedemption,
   type RedemptionCustomerSummary,
 } from '../../core/redemptions/admin-redemption.service';
@@ -21,6 +22,7 @@ export class ActiveRedemptionsComponent {
   protected readonly customers = inject(AdminCustomerService);
   protected readonly redemptions = this.redemptionsService.rewards;
   protected readonly couponRedemptions = this.redemptionsService.coupons;
+  protected readonly winRedemptions = this.redemptionsService.wins;
   protected readonly error = this.redemptionsService.error;
 
   constructor() {
@@ -46,6 +48,17 @@ export class ActiveRedemptionsComponent {
       await this.redemptionsService.cancelCoupon(item.id);
     } catch {
       this.error.set('Die Gutschein-Einlösung konnte nicht abgebrochen werden.');
+    }
+  }
+
+  protected async cancelWin(item: ActiveWinRedemption): Promise<void> {
+    if (!await this.dialogs.confirm(`Gewinn-Einlösung von ${item.customerDetails.displayName} abbrechen und die Gewinne wieder freigeben?`, {
+      title: 'Gewinn-Einlösung abbrechen', confirmLabel: 'Abbrechen', destructive: true,
+    })) return;
+    try {
+      await this.redemptionsService.cancelWin(item.id);
+    } catch {
+      this.error.set('Die Gewinn-Einlösung konnte nicht abgebrochen werden.');
     }
   }
 

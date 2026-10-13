@@ -71,7 +71,7 @@ final class ApiCouponRedemptionController
             $batchId = bin2hex(random_bytes(16));
             $items = [];
             foreach ($coupons as $coupon) {
-                $item = new CouponRedemption($tenant, $coupon, $user, $batchId, $now);
+                $item = new CouponRedemption($tenant, $coupon, $user, $batchId, $now, $tenant->getRedemptionDurationMinutes());
                 $this->em->persist($item);
                 $items[] = $item;
             }

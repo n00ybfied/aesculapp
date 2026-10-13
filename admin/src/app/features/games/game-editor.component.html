@@ -1,0 +1,69 @@
+<section class="editor">
+  <a class="back" routerLink="/gewinnspiele">← Alle Gewinnspiele</a>
+  <p class="eyebrow">GLÜCKSRAD</p>
+  <h2>{{ gameId === null ? 'Glücksrad anlegen' : 'Glücksrad bearbeiten' }}</h2>
+  @if (loading()) { <p>Lädt …</p> } @else {
+    @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+    @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+    <div class="panel">
+      <div class="grid">
+        <label>Titel *<input type="text" maxlength="180" [(ngModel)]="draft.title" /></label>
+        <label class="check"><input type="checkbox" [(ngModel)]="draft.isVisible" /> Für Kunden sichtbar</label>
+      </div>
+      <fieldset [disabled]="!canEditStartedGame()">
+        <legend>Spielregeln</legend>
+        <div class="grid">
+          <label>Beginn *<input type="datetime-local" [(ngModel)]="draft.availableFrom" /></label>
+          <label>Teilnahmehäufigkeit
+            <select [ngModel]="draft.participationMode" (ngModelChange)="setParticipationMode($event)">
+              <option value="once">Einmal pro Kunde</option><option value="total">Feste Gesamtzahl pro Kunde</option><option value="daily">X-mal pro Tag bis zum Ende</option>
+            </select>
+          </label>
+          @if (draft.participationMode !== 'once') { <label>Anzahl *<input type="number" min="1" max="1000" step="1" [(ngModel)]="draft.spinLimit" /></label> }
+        </div>
+        <p class="help">Die Teilnahme ist kostenlos. Bei täglicher Teilnahme zählt der Kalendertag in Wien.</p>
+      </fieldset>
+      <label>Ende *<input type="datetime-local" [(ngModel)]="draft.availableUntil" /></label>
+      <fieldset [disabled]="!canEditStartedGame()">
+        <legend>Gewinne</legend>
+        <p class="help">Chancen als Prozent mit zwei Nachkommastellen. Ein Limit ist optional; sobald ein limitierter Gewinn aufgebraucht ist, endet das gesamte Spiel.</p>
+        @for (prize of draft.prizes; track prize; let index = $index) {
+          <div class="prize">
+            <div class="prize-heading"><h3>Gewinn {{ index + 1 }}</h3><button type="button" class="link" (click)="removePrize(index)" [disabled]="draft.prizes.length === 1 || (hasSpins() && prize.id !== undefined)">Entfernen</button></div>
+            <div class="grid">
+              <label>Titel *<input type="text" maxlength="180" [(ngModel)]="prize.title" /></label>
+              <label>Kurzform auf dem Rad *<input type="text" maxlength="40" [(ngModel)]="prize.wheelLabel" /></label>
+              <label>Art *<select [ngModel]="prize.kind" (ngModelChange)="setKind(prize, $event)"><option value="points">Punktegutschrift</option><option value="coupon">Gewinngutschein</option></select></label>
+              @if (prize.kind === 'points') { <label>Punkte *<input type="number" min="1" max="100000" step="1" [(ngModel)]="prize.points" /></label> }
+              <label>Gewinnchance in % *<input type="number" min="0.01" max="100" step="0.01" [ngModel]="prize.probabilityBp / 100" (ngModelChange)="setProbability(prize, $event)" /></label>
+              <label>Maximale Stückzahl (optional)<input type="number" min="1" max="1000000" step="1" [ngModel]="prize.stockLimit" (ngModelChange)="setLimit(prize, $event)" /></label>
+            </div>
+          </div>
+        }
+        <button type="button" class="secondary" (click)="addPrize()">+ Gewinn hinzufügen</button>
+        <label class="check no-win"><input type="checkbox" [(ngModel)]="draft.noWinEnabled" /> „Leider nein“ als Ergebnis zulassen</label>
+        <p class="total" [class.invalid]="totalProbability > 10000 || (!draft.noWinEnabled && totalProbability !== 10000) || (draft.noWinEnabled && noWinProbability === 0)">
+          Gewinne: {{ totalProbability / 100 }} % · „Leider nein“: {{ draft.noWinEnabled ? noWinProbability / 100 : 0 }} %
+        </p>
+      </fieldset>
+      @if (hasSpins() && !canEditStartedGame()) { <p class="help locked">Nach der ersten Teilnahme sind Beginn, Teilnahmehäufigkeit und Gewinne gesperrt. Titel, Sichtbarkeit, Endzeit und Ausverkauft-Hinweis bleiben bearbeitbar. Der Test-Override kann in den Debug-Einstellungen aktiviert werden.</p> }
+      @if (hasSpins() && canEditStartedGame()) { <p class="help locked">Debug-Override aktiv: Änderungen an Chancen, Limits und Spielregeln gelten nur für künftige Ziehungen. Bestehende Gewinnfelder dürfen nicht entfernt oder umsortiert werden; neue Felder können ergänzt werden. Vor dem Livegang deaktivieren und entfernen.</p> }
+      <label>Hinweis nach vorzeitigem Ende<textarea rows="3" maxlength="3000" [(ngModel)]="draft.soldOutText"></textarea></label>
+      <button type="button" class="primary" [disabled]="saving()" (click)="save()">{{ saving() ? 'Speichert …' : 'Gewinnspiel speichern' }}</button>
+    </div>
+    @if (gameId !== null) {
+      <section class="panel wins">
+        <h3>Teilnahmen und Gutscheingewinne</h3>
+        <p class="help">Gewinngutscheine werden von Kunden unter „Meine Gewinne“ aktiviert und erscheinen während der Vorzeigezeit unter „Einlösungen“.</p>
+        @for (win of wins(); track win.id) {
+          <article>
+            <div><strong>{{ win.customer }}</strong> · {{ win.title }} <small>{{ win.createdAt | date:'dd.MM.yyyy HH:mm' }}</small>
+              @if (win.kind === 'points') { <span> · {{ win.points }} Punkte</span> }
+              @if (win.kind === 'coupon' && win.redeemedAt) { <span> · Eingelöst am {{ win.redeemedAt | date:'dd.MM.yyyy HH:mm' }}</span> }
+            </div>
+          </article>
+        } @empty { <p>Noch keine Teilnahmen.</p> }
+      </section>
+    }
+  }
+</section>

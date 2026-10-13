@@ -100,7 +100,7 @@ jobs:
       - name: Deploy build artifacts
         run: |
           set -euo pipefail
-          rsync -az --delete client/dist/aesculapp/browser/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-client/"
+          rsync -az --delete --exclude='/downloads/' client/dist/aesculapp/browser/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-client/"
           rsync -az --delete admin/dist/admin/browser/ "$DEPLOY_HOST:$DEPLOY_HOME/web/aesculapp-admin/"
           rsync -az --delete \
             --exclude='/.env.local' \

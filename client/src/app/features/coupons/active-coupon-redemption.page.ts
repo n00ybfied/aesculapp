@@ -18,7 +18,7 @@ import { CouponService, type CouponRedemption } from '../../core/coupons/coupon.
         <section class="w-full rounded-3xl bg-primary p-7 text-center text-on-primary shadow-soft" aria-labelledby="coupon-redemption-title">
           @if (remainingSeconds() > 0) {
             <p class="text-sm font-bold tracking-wide text-on-primary/80">DEM APOTHEKEN-TEAM ZEIGEN</p>
-            <h1 id="coupon-redemption-title" class="mt-2 text-3xl font-bold">Ihre Gutscheine</h1>
+            <h1 id="coupon-redemption-title" class="redemption-heading mt-2 text-3xl font-bold text-on-primary">Ihre Gutscheine</h1>
             <ul class="mt-5 space-y-3 text-left">
               @for (item of active.items; track item.couponId) {
                 <li class="flex items-center gap-3 rounded-2xl bg-white/12 p-3">
@@ -31,7 +31,7 @@ import { CouponService, type CouponRedemption } from '../../core/coupons/coupon.
             <p class="mt-2 text-6xl font-bold tracking-tight tabular-nums">{{ remainingTime() }}</p>
           } @else {
             <p class="text-sm font-bold tracking-wide text-on-primary/80">EINLÖSUNG ABGELAUFEN</p>
-            <h1 id="coupon-redemption-title" class="mt-2 text-3xl font-bold">Leider zu spät</h1>
+            <h1 id="coupon-redemption-title" class="redemption-heading mt-2 text-3xl font-bold text-on-primary">Leider zu spät</h1>
             <p class="mt-4 text-sm leading-6 text-on-primary/85">Diese Gutscheine können nicht mehr vorgezeigt werden und bleiben eingelöst.</p>
           }
           <button type="button" class="mt-8 min-h-12 w-full rounded-xl bg-white px-5 font-bold text-primary" (click)="back()">Zurück zu Gutscheinen</button>

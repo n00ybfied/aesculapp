@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { Router, RouterLink } from '@angular/router';
 import { CouponService, type Coupon, type CouponRedemption } from '../../core/coupons/coupon.service';
 import { AnalyticsService } from '../../core/analytics/analytics.service';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   templateUrl: './coupons.page.html',
@@ -15,6 +16,7 @@ export class CouponsPage implements OnInit, OnDestroy {
   private static readonly pageSize = 8;
   private readonly service = inject(CouponService);
   private readonly analytics = inject(AnalyticsService);
+  protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly poller = setInterval(() => void this.refreshActive(), 5_000);
 

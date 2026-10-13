@@ -178,7 +178,7 @@
           <li class="flex justify-between gap-4"><span>{{ item.quantity }}× {{ item.reward.title }}</span><span class="font-semibold text-foreground">{{ item.quantity * item.reward.requiredPoints }} P.</span></li>
         }
       </ul>
-      <p class="mt-4 text-sm leading-6 text-muted">Insgesamt werden {{ cartTotal() }} Punkte eingelöst. Die Auswahl kann danach fünf Minuten lang dem Apotheken-Team gezeigt werden.</p>
+      <p class="mt-4 text-sm leading-6 text-muted">Insgesamt werden {{ cartTotal() }} Punkte eingelöst. Die Auswahl kann danach {{ theme.redemptionDurationMinutes }} {{ theme.redemptionDurationMinutes === 1 ? 'Minute' : 'Minuten' }} lang dem Apotheken-Team gezeigt werden.</p>
       <button type="button" class="mt-6 min-h-12 w-full rounded-xl bg-primary px-5 font-bold text-on-primary shadow-soft transition hover:bg-primary-strong focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-70" (click)="redeem()" [disabled]="isRedeeming()" autofocus>
         {{ isRedeeming() ? 'Wird vorbereitet …' : 'Ja, jetzt einlösen' }}
       </button>
