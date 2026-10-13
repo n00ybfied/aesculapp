@@ -51,6 +51,8 @@ class Tenant
 
     #[ORM\Column(options: ['default' => 10])]
     private int $pointsPerEuro = 10;
+    #[ORM\Column(options: ['default' => 5])]
+    private int $redemptionDurationMinutes = 5;
     #[ORM\Column(options: ['default' => 28])]
     private int $appointmentBookingFutureDays = 28;
     #[ORM\Column(options: ['default' => 24])]
@@ -63,6 +65,8 @@ class Tenant
     private bool $allowDuplicateReceiptImports = false;
     #[ORM\Column(options: ['default' => false])]
     private bool $showCustomerDebugOutput = false;
+    #[ORM\Column(options: ['default' => false])]
+    private bool $allowStartedPrizeGameEdits = false;
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $receiptQrPrefix = null;
     #[ORM\Column(length: 2048, nullable: true)] private ?string $websiteUrl = null;
@@ -138,6 +142,8 @@ class Tenant
     public function setBirthdayBonusPoints(int $points): void { $this->birthdayBonusPoints = $points; }
     public function getPointsPerEuro(): int { return $this->pointsPerEuro; }
     public function setPointsPerEuro(int $points): void { $this->pointsPerEuro = $points; }
+    public function getRedemptionDurationMinutes(): int { return $this->redemptionDurationMinutes; }
+    public function setRedemptionDurationMinutes(int $minutes): void { $this->redemptionDurationMinutes = $minutes; }
     public function getAppointmentBookingFutureDays(): int { return $this->appointmentBookingFutureDays; }
     public function setAppointmentBookingFutureDays(int $days): void { $this->appointmentBookingFutureDays = $days; }
     public function getAppointmentCancellationHours(): int { return $this->appointmentCancellationHours; }
@@ -150,6 +156,8 @@ class Tenant
     public function setAllowDuplicateReceiptImports(bool $value): void { $this->allowDuplicateReceiptImports = $value; }
     public function showsCustomerDebugOutput(): bool { return $this->showCustomerDebugOutput; }
     public function setShowCustomerDebugOutput(bool $value): void { $this->showCustomerDebugOutput = $value; }
+    public function allowsStartedPrizeGameEdits(): bool { return $this->allowStartedPrizeGameEdits; }
+    public function setAllowStartedPrizeGameEdits(bool $value): void { $this->allowStartedPrizeGameEdits = $value; }
     public function getReceiptQrPrefix(): ?string { return $this->receiptQrPrefix; }
     public function setReceiptQrPrefix(?string $value): void { $this->receiptQrPrefix = $value; }
     public function getWebsiteUrl(): ?string { return $this->websiteUrl; } public function setWebsiteUrl(?string $value): void { $this->websiteUrl = $value; }

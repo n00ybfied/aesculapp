@@ -95,6 +95,7 @@ export const routes: Routes = [
       { path: 'gutscheine/einloesung', loadComponent: () => import('./features/coupons/active-coupon-redemption.page').then(m => m.ActiveCouponRedemptionPage), title: 'Gutscheine vorzeigen | Aesculapp' },
       { path: 'gutscheine/:id', loadComponent: () => import('./features/coupons/coupon-detail.page').then(m => m.CouponDetailPage), title: 'Gutschein | Aesculapp' },
       { path: 'gutscheine', loadComponent: () => import('./features/coupons/coupons.page').then(m => m.CouponsPage), title: 'Gutscheinheft | Aesculapp' },
+      { path: 'gewinnspiele/gewinne/einloesung', loadComponent: () => import('./features/games/active-win-redemption.page').then(m => m.ActiveWinRedemptionPage), title: 'Gewinne vorzeigen | Aesculapp' },
       { path: 'gewinnspiele/gewinne', loadComponent: () => import('./features/games/game-wins.page').then(m => m.GameWinsPage), title: 'Meine Gewinne | Aesculapp' },
       { path: 'gewinnspiele/:id', loadComponent: () => import('./features/games/game-wheel.page').then(m => m.GameWheelPage), title: 'Glücksrad | Aesculapp' },
       { path: 'gewinnspiele', loadComponent: () => import('./features/games/games.page').then(m => m.GamesPage), title: 'Gewinnspiele | Aesculapp' },

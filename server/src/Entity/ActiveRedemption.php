@@ -11,6 +11,6 @@ class ActiveRedemption {
  #[ORM\Column(length:255)] private string $summary;
  #[ORM\Column] private \DateTimeImmutable $validUntil;
  #[ORM\Column(length:20)] private string $status='active';
- public function __construct(PointAccount $account,int $points,string $summary){$this->account=$account;$this->points=$points;$this->summary=$summary;$this->validUntil=(new \DateTimeImmutable())->modify('+5 minutes');}
+ public function __construct(PointAccount $account,int $points,string $summary,int $durationMinutes=5){$this->account=$account;$this->points=$points;$this->summary=$summary;$this->validUntil=(new \DateTimeImmutable())->modify('+'.$durationMinutes.' minutes');}
  public function getId():?int{return $this->id;} public function getAccount():PointAccount{return $this->account;} public function getPoints():int{return $this->points;} public function getSummary():string{return $this->summary;} public function getValidUntil():\DateTimeImmutable{return $this->validUntil;} public function isActive():bool{return $this->status==='active'&&$this->validUntil>new \DateTimeImmutable();} public function cancel():void{$this->status='cancelled';}
 }

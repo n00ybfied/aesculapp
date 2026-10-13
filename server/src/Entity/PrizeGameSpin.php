@@ -11,6 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_prize_game_spin_request', columns: ['game_id', 'customer_id', 'request_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_prize_game_coupon_code', columns: ['coupon_code'])]
 #[ORM\Index(columns: ['game_id', 'customer_id', 'created_at'], name: 'idx_prize_game_spin_customer')]
+#[ORM\Index(columns: ['redemption_batch_id'], name: 'idx_prize_game_spin_redemption_batch')]
 class PrizeGameSpin
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -49,6 +50,12 @@ class PrizeGameSpin
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $redeemedAt = null;
 
+    #[ORM\Column(length: 32, nullable: true)]
+    private ?string $redemptionBatchId = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $redemptionValidUntil = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $redeemedBy = null;
@@ -72,6 +79,25 @@ class PrizeGameSpin
         $this->redeemedBy = $staff;
     }
 
+    public function startPresentation(string $batchId, \DateTimeImmutable $now, int $durationMinutes = 5): void
+    {
+        $this->redeemedAt = $now;
+        $this->redemptionBatchId = $batchId;
+        $this->redemptionValidUntil = $now->modify('+'.$durationMinutes.' minutes');
+    }
+
+    public function cancelPresentation(): void
+    {
+        $this->redeemedAt = null;
+        $this->redemptionBatchId = null;
+        $this->redemptionValidUntil = null;
+    }
+
+    public function isPresentationActive(): bool
+    {
+        return $this->redemptionBatchId !== null && $this->redemptionValidUntil !== null && $this->redemptionValidUntil > new \DateTimeImmutable();
+    }
+
     public function getId(): ?int { return $this->id; }
     public function getGame(): PrizeGame { return $this->game; }
     public function getCustomer(): User { return $this->customer; }
@@ -83,4 +109,6 @@ class PrizeGameSpin
     public function getCouponCode(): ?string { return $this->couponCode; }
     public function getRedeemedAt(): ?\DateTimeImmutable { return $this->redeemedAt; }
     public function getRedeemedBy(): ?User { return $this->redeemedBy; }
+    public function getRedemptionBatchId(): ?string { return $this->redemptionBatchId; }
+    public function getRedemptionValidUntil(): ?\DateTimeImmutable { return $this->redemptionValidUntil; }
 }

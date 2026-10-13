@@ -28,6 +28,15 @@ export interface ActiveCouponRedemption {
   readonly validUntil: string;
 }
 
+export interface ActiveWinRedemption {
+  readonly id: string;
+  readonly customer: string;
+  readonly customerDetails: RedemptionCustomerSummary;
+  readonly summary: string;
+  readonly items: readonly { winId: number; title: string }[];
+  readonly validUntil: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminRedemptionService {
   private readonly http = inject(HttpClient);
@@ -41,7 +50,8 @@ export class AdminRedemptionService {
 
   readonly rewards = signal<readonly ActiveRewardRedemption[]>([]);
   readonly coupons = signal<readonly ActiveCouponRedemption[]>([]);
-  readonly activeCount = computed(() => this.countAvailable() ? this.rewards().length + this.coupons().length : null);
+  readonly wins = signal<readonly ActiveWinRedemption[]>([]);
+  readonly activeCount = computed(() => this.countAvailable() ? this.rewards().length + this.coupons().length + this.wins().length : null);
   readonly error = signal('');
 
   async refresh(): Promise<void> {
@@ -52,10 +62,12 @@ export class AdminRedemptionService {
       const result = await firstValueFrom(forkJoin({
         rewards: this.http.get<{ redemptions: ActiveRewardRedemption[] }>(`${this.api}/redemptions/active`, this.options()),
         coupons: this.http.get<{ redemptions: ActiveCouponRedemption[] }>(`${this.api}/coupons/redemptions/active`, this.options()),
+        wins: this.http.get<{ redemptions: ActiveWinRedemption[] }>(`${this.api}/games/wins/redemptions/active`, this.options()),
       }));
       if (revision !== this.revision) return;
       this.rewards.set(result.rewards.redemptions);
       this.coupons.set(result.coupons.redemptions);
+      this.wins.set(result.wins.redemptions);
       this.countAvailable.set(true);
       this.error.set('');
     } catch {
@@ -79,10 +91,17 @@ export class AdminRedemptionService {
     this.coupons.update((items) => items.filter((item) => item.id !== id));
   }
 
+  async cancelWin(id: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.api}/games/wins/redemptions/${id}/cancel`, {}, this.options()));
+    this.revision += 1;
+    this.wins.update((items) => items.filter((item) => item.id !== id));
+  }
+
   clear(): void {
     this.revision += 1;
     this.rewards.set([]);
     this.coupons.set([]);
+    this.wins.set([]);
     this.countAvailable.set(false);
     this.error.set('');
   }

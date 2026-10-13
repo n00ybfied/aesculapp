@@ -36,6 +36,7 @@ function couponBasketRequest(array $couponIds): Symfony\Component\HttpFoundation
 $em->beginTransaction();
 try {
     $tenant = $provider->get();
+    $tenant->setRedemptionDurationMinutes(7);
     $foreign = new App\Entity\Tenant('Other pharmacy', 'coupon-test-'.bin2hex(random_bytes(4)));
     $em->persist($foreign);
     $users = [];
@@ -68,6 +69,11 @@ try {
     $first = $controller->redeem(couponBasketRequest([$coupon->getId(), $secondCoupon->getId()]));
     couponCheck($first->getStatusCode() === 201, 'Coupon basket redemption must succeed.');
     $firstId = json_decode((string) $first->getContent(), true, 512, JSON_THROW_ON_ERROR)['redemption']['id'];
+    $validUntil = json_decode((string) $first->getContent(), true, 512, JSON_THROW_ON_ERROR)['redemption']['validUntil'];
+    couponCheck(abs((new DateTimeImmutable($validUntil))->getTimestamp() - time() - 7 * 60) <= 3, 'Coupon presentation must use the tenant duration.');
+    $tenant->setRedemptionDurationMinutes(2);
+    $activeAfterChange = json_decode((string) $controller->customerActive(new Symfony\Component\HttpFoundation\Request())->getContent(), true, 512, JSON_THROW_ON_ERROR)['redemption'];
+    couponCheck($activeAfterChange['validUntil'] === $validUntil, 'Changing the setting must not alter an existing presentation.');
     couponCheck(count(json_decode((string) $first->getContent(), true, 512, JSON_THROW_ON_ERROR)['redemption']['items']) === 2, 'Basket must retain both coupons.');
     couponCheck($controller->redeem(couponBasketRequest([$coupon->getId()]))->getStatusCode() === 409, 'A second redemption must fail.');
     $coupon->update('Test coupon', 'One use', '<p>Test</p>', '', true, null, new DateTimeImmutable('-1 day'));

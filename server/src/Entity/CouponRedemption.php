@@ -39,14 +39,14 @@ class CouponRedemption
     #[ORM\Column(length: 32)]
     private string $batchId;
 
-    public function __construct(Tenant $tenant, Coupon $coupon, User $customer, string $batchId, ?\DateTimeImmutable $createdAt = null)
+    public function __construct(Tenant $tenant, Coupon $coupon, User $customer, string $batchId, ?\DateTimeImmutable $createdAt = null, int $durationMinutes = 5)
     {
         $this->tenant = $tenant;
         $this->coupon = $coupon;
         $this->customer = $customer;
         $this->batchId = $batchId;
         $this->createdAt = $createdAt ?? new \DateTimeImmutable();
-        $this->validUntil = $this->createdAt->modify('+5 minutes');
+        $this->validUntil = $this->createdAt->modify('+'.$durationMinutes.' minutes');
     }
 
     public function getId(): ?int { return $this->id; }

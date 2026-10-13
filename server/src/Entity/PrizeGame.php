@@ -81,4 +81,5 @@ class PrizeGame
     public function getSoldOutText(): string { return $this->soldOutText; }
     public function getSoldOutAt(): ?\DateTimeImmutable { return $this->soldOutAt; }
     public function markSoldOut(\DateTimeImmutable $at): void { $this->soldOutAt ??= $at; }
+    public function clearSoldOut(): void { $this->soldOutAt = null; }
 }

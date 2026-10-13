@@ -1,0 +1,48 @@
+name: iOS build check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build iOS simulator app (unsigned)
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      AESCULAPP_NATIVE_TARGET: apotheke
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies and build Floatbox test client
+        working-directory: client
+        run: |
+          npm ci
+          npm run build:floatbox-native
+
+      - name: Synchronize iOS project
+        working-directory: client
+        run: npx cap sync ios
+
+      - name: Compile without Apple signing
+        working-directory: client/ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/aesculapp-ios-build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build

@@ -14,7 +14,7 @@
       }
       <div class="wheel-frame" role="img" [attr.aria-label]="'Glücksrad mit ' + segments().length + ' Feldern. Gewinnchancen stehen unter dem Rad.'">
         <span class="pointer" aria-hidden="true"></span>
-        <div class="wheel" [style.background]="wheelBackground()" [style.transform]="'rotate(' + rotation() + 'deg)'" [style.transition-duration.ms]="durationMs()">
+        <div #wheel class="wheel" [style.background]="wheelBackground()" [style.transform]="'rotate(' + rotation() + 'deg)'">
           @for (segment of segments(); track segment.start) {
             <span class="wheel-label" [style.left.%]="segment.x" [style.top.%]="segment.y">{{ segment.label }}</span>
           }
