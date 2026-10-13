@@ -1,0 +1,50 @@
+<main class="game-page mx-auto max-w-[500px] bg-background px-5 py-8">
+  <a routerLink="/gewinnspiele" class="text-sm font-semibold text-primary">← Gewinnspiele</a>
+  @if (loading()) { <div class="grid min-h-64 place-items-center" role="status">Lädt …</div> }
+  @else {
+    @if (error()) { <p class="mt-4 rounded-xl bg-danger-soft p-4 text-danger" role="alert">{{ error() }}</p> }
+    @if (game(); as current) {
+      <p class="mt-5 text-sm font-bold text-primary">GLÜCKSRAD</p>
+      <h1 class="mt-1 text-3xl font-bold">{{ current.title }}</h1>
+      <p class="mt-2 text-sm text-muted">Bis {{ current.availableUntil | date:'dd.MM.yyyy HH:mm' }} · kostenlose Teilnahme</p>
+      @if (current.status === 'sold_out') {
+        <div class="mt-5 rounded-2xl border border-warning bg-warning-soft p-4 text-warning" role="status">{{ current.soldOutText }}</div>
+      } @else {
+        <p class="mt-3 text-sm text-muted">{{ current.remainingSpins }} {{ current.remainingSpins === 1 ? 'Drehung' : 'Drehungen' }} {{ current.participationMode === 'daily' ? 'heute' : 'noch' }} möglich</p>
+      }
+      <div class="wheel-frame" role="img" [attr.aria-label]="'Glücksrad mit ' + segments().length + ' Feldern. Gewinnchancen stehen unter dem Rad.'">
+        <span class="pointer" aria-hidden="true"></span>
+        <div class="wheel" [style.background]="wheelBackground()" [style.transform]="'rotate(' + rotation() + 'deg)'" [style.transition-duration.ms]="durationMs()">
+          @for (segment of segments(); track segment.start) {
+            <span class="wheel-label" [style.left.%]="segment.x" [style.top.%]="segment.y">{{ segment.label }}</span>
+          }
+          <div class="wheel-center" aria-hidden="true">★</div>
+        </div>
+      </div>
+      <button type="button" class="spin-button" [disabled]="spinning() || current.remainingSpins < 1 || current.status !== 'active'" (click)="spin()">
+        {{ spinning() ? 'Das Rad dreht sich …' : 'Jetzt drehen' }}
+      </button>
+      @if (result(); as won) {
+        <div class="result" role="status">
+          @if (won.kind === 'none') { <p>Diesmal leider kein Gewinn. Viel Glück beim nächsten Mal!</p> }
+          @else { <p class="text-sm font-bold">HERZLICHEN GLÜCKWUNSCH!</p><h2>{{ won.title }}</h2>
+            @if (won.kind === 'points') { <p>{{ won.points }} Punkte wurden Ihrem Konto gutgeschrieben.</p> }
+            @else { <p>Ihr Gutschein liegt unter <a routerLink="/gewinnspiele/gewinne">Meine Gewinne</a> bereit.</p> }
+          }
+        </div>
+      }
+      <section class="mt-8 rounded-2xl border border-border bg-surface p-4">
+        <h2 class="font-bold">Gewinnchancen</h2>
+        <ul class="mt-3 space-y-2 text-sm">
+          @for (prize of current.prizes ?? []; track prize.id) { <li class="flex justify-between gap-3"><span>{{ prize.title }}</span><span>{{ prize.probabilityBp / 100 }} %</span></li> }
+          @if (current.noWinEnabled) { <li class="flex justify-between gap-3"><span>Leider nein</span><span>{{ noWinPercent() }} %</span></li> }
+        </ul>
+      </section>
+      @if (spins().length) {
+        <section class="mt-6"><h2 class="font-bold">Meine bisherigen Drehungen</h2>
+          @for (spin of spins(); track spin.id) { <p class="mt-2 rounded-xl bg-surface p-3 text-sm">{{ spin.createdAt | date:'dd.MM.yyyy HH:mm' }} · {{ spin.title }}</p> }
+        </section>
+      }
+    }
+  }
+</main>

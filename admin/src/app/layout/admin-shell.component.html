@@ -18,6 +18,7 @@
       @if (canAccess('media')) { <a routerLink="/medien" routerLinkActive="active" (click)="closeNavigation()">Medien</a> }
       @if (canAccess('rewards')) { <a routerLink="/praemien" routerLinkActive="active" (click)="closeNavigation()">Prämien</a> }
       @if (canAccess('coupons')) { <a routerLink="/gutscheine" routerLinkActive="active" (click)="closeNavigation()">Gutscheine</a> }
+      @if (canAccess('games')) { <a routerLink="/gewinnspiele" routerLinkActive="active" (click)="closeNavigation()">Gewinnspiele</a> }
       @if (canAccess('appointments')) { <a class="appointments-link" routerLink="/termine" routerLinkActive="active" (click)="closeNavigation()">Termine <app-unseen-appointments-badge /></a> }
       <a routerLink="/meine-termine" routerLinkActive="active" (click)="closeNavigation()">Meine Termine</a>
       @if (canAccess('redemptions')) { <a class="redemptions-link" routerLink="/einloesungen" routerLinkActive="active" (click)="closeNavigation()">Einlösungen <app-active-redemptions-badge /></a> }

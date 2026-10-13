@@ -25,6 +25,7 @@ final class AdminChangeLogListener
 {
     private const AUDITED_TYPES = [
         'Tenant', 'NotificationTemplate', 'NewsPost', 'NewsCategory', 'Reward', 'Coupon',
+        'PrizeGame', 'PrizeGamePrize', 'PrizeGameSpin',
         'Appointment', 'AppointmentType', 'AppointmentResource', 'AppointmentAvailability',
         'AppointmentBlock', 'AppointmentCancellationNotice', 'DashboardSlide', 'MediaAsset',
         'ChatMessage', 'ChatConversation', 'StaffInvitation', 'TenantMembership', 'User',

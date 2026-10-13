@@ -8,8 +8,8 @@ use App\Entity\TenantMembership;
 
 final class AdminAreaPermissions
 {
-    public const AREAS = ['dashboard', 'slider', 'statistics', 'chat', 'news', 'media', 'rewards', 'coupons', 'appointments', 'redemptions', 'customers', 'users', 'settings'];
-    public const DEFAULT_STAFF_AREAS = ['dashboard', 'slider', 'chat', 'news', 'media', 'rewards', 'coupons', 'appointments', 'redemptions', 'customers'];
+    public const AREAS = ['dashboard', 'slider', 'statistics', 'chat', 'news', 'media', 'rewards', 'coupons', 'games', 'appointments', 'redemptions', 'customers', 'users', 'settings'];
+    public const DEFAULT_STAFF_AREAS = ['dashboard', 'slider', 'chat', 'news', 'media', 'rewards', 'coupons', 'games', 'appointments', 'redemptions', 'customers'];
 
     public function can(TenantMembership $membership, string $area): bool
     {
@@ -35,7 +35,7 @@ final class AdminAreaPermissions
         $prefix = explode('/', substr($path, strlen('/api/v1/admin/')))[0];
         return match ($prefix) {
             'dashboard' => 'dashboard', 'statistics' => 'statistics', 'chat' => 'chat',
-            'news' => 'news', 'media' => 'media', 'rewards' => 'rewards', 'coupons' => 'coupons',
+            'news' => 'news', 'media' => 'media', 'rewards' => 'rewards', 'coupons' => 'coupons', 'games' => 'games',
             'appointments' => 'appointments', 'redemptions' => 'redemptions',
             'customers', 'point-transactions' => 'customers', 'users' => 'users',
             'settings' => 'settings', default => 'unknown',
