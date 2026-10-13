@@ -7,9 +7,9 @@ android {
         applicationId "at.stadtapotheke.trofaiach"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "0.1.0"
-        manifestPlaceholders = [aesculappLinkHost: (project.findProperty('aesculappLinkHost') ?: 'aesculapp.floatbox.at')]
+        versionCode 2
+        versionName "0.1.1"
+        manifestPlaceholders = [aesculappLinkHost: (project.findProperty('aesculappLinkHost') ?: 'app.stadtapotheke-trofaiach.at')]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
