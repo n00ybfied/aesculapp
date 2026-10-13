@@ -81,11 +81,23 @@ final class ApiAdminBrandingController
             $tenant->setReferralBonusPoints((int) $referralBonusPoints);
         }
         foreach (['birthdayBonusPoints' => 'setBirthdayBonusPoints', 'pointsPerEuro' => 'setPointsPerEuro'] as $field => $setter) { $value = $request->request->get($field); if ($value !== null) { if ($field === 'pointsPerEuro' && $request->request->get('confirmPointsPerEuroChange') !== 'true') { return new JsonResponse(['message' => 'Bitte bestätigen Sie die Änderung des Punkteverhältnisses.'], 422); } if (!is_string($value) || !ctype_digit($value) || (int) $value > 100000) { return new JsonResponse(['message' => 'Bitte prüfen Sie die Punkte-Einstellungen.'], 422); } $tenant->$setter((int) $value); } }
+        $redemptionDuration = $request->request->get('redemptionDurationMinutes');
+        if ($redemptionDuration !== null) {
+            if (!is_string($redemptionDuration) || !ctype_digit($redemptionDuration) || (int) $redemptionDuration < 1 || (int) $redemptionDuration > 60) {
+                return new JsonResponse(['message' => 'Die Einlösezeit muss zwischen 1 und 60 Minuten liegen.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            $tenant->setRedemptionDurationMinutes((int) $redemptionDuration);
+        }
         foreach (['appointmentBookingFutureDays' => 'setAppointmentBookingFutureDays', 'appointmentCancellationHours' => 'setAppointmentCancellationHours'] as $field => $setter) { $value = $request->request->get($field); if (!is_string($value) || !ctype_digit($value) || (int) $value < 0 || (int) $value > 365) { return new JsonResponse(['message' => 'Bitte prüfen Sie die Termin-Einstellungen.'], 422); } $tenant->$setter((int) $value); }
         $tenant->setAppointmentStaffConfirmationEnabled($request->request->get('appointmentStaffConfirmationEnabled') === 'true');
         $tenant->setShowAppointmentStaffNames($request->request->get('showAppointmentStaffNames') === 'true');
         $tenant->setAllowDuplicateReceiptImports($request->request->get('allowDuplicateReceiptImports') === 'true');
         $tenant->setShowCustomerDebugOutput($request->request->get('showCustomerDebugOutput') === 'true');
+        $startedGameOverride = $request->request->get('allowStartedPrizeGameEdits');
+        if ($startedGameOverride !== null) {
+            if (!$this->isTenantAdmin()) return new JsonResponse(['message' => 'Nur Apotheken-Admins dürfen den Gewinnspiel-Debug-Override ändern.'], Response::HTTP_FORBIDDEN);
+            $tenant->setAllowStartedPrizeGameEdits($startedGameOverride === 'true');
+        }
         $familyPointSharing = $request->request->get('familyPointSharingEnabled');
         if ($familyPointSharing !== null) {
             $enabled = $familyPointSharing === 'true';
@@ -170,6 +182,14 @@ final class ApiAdminBrandingController
         return $membership !== null && [] !== array_intersect(self::ADMIN_ROLES, $membership->getRoles());
     }
 
+    private function isTenantAdmin(): bool
+    {
+        $user = $this->security->getUser();
+        if (!$user instanceof User) return false;
+        $membership = $this->memberships->findForUserAndTenant($user, $this->activeTenant->get());
+        return $membership !== null && in_array('ROLE_TENANT_ADMIN', $membership->getRoles(), true);
+    }
+
     private function clearSmtp(Tenant $tenant): void
     {
         $tenant->setSmtpHost(null);
@@ -204,7 +224,7 @@ final class ApiAdminBrandingController
     private function serialize(Tenant $tenant, Request $request, bool $includeSmtp = false): array
     {
         $origin = $request->getSchemeAndHttpHost();
-        $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'profileCompletionBonusPoints' => $tenant->getProfileCompletionBonusPoints(), 'referralBonusPoints' => $tenant->getReferralBonusPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'appointmentBookingFutureDays' => $tenant->getAppointmentBookingFutureDays(), 'appointmentCancellationHours' => $tenant->getAppointmentCancellationHours(), 'appointmentStaffConfirmationEnabled' => $tenant->isAppointmentStaffConfirmationEnabled(), 'showAppointmentStaffNames' => $tenant->showsAppointmentStaffNames(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput(), 'familyPointSharingEnabled' => $tenant->isFamilyPointSharingEnabled(), 'familyPointSharingLocked' => $tenant->isFamilyPointSharingLocked(), 'websiteUrl' => $tenant->getWebsiteUrl(), 'appNoticeEnabled' => $tenant->isAppNoticeEnabled(), 'appNoticeTitle' => $tenant->getAppNoticeTitle(), 'appNoticeHtml' => $this->richText->sanitize($tenant->getAppNoticeHtml() ?? ''), 'birthdayGreetingEnabled' => $tenant->isBirthdayGreetingEnabled(), 'birthdayGreetingTitle' => $tenant->getBirthdayGreetingTitle(), 'birthdayGreetingText' => $tenant->getBirthdayGreetingText(), 'birthdayGreetingImageUrl' => $tenant->getBirthdayGreetingImagePath() ? $origin.$tenant->getBirthdayGreetingImagePath() : null];
+        $branding = ['logoUrl' => $tenant->getLogoPath() ? $origin.$tenant->getLogoPath() : null, 'squareLogoUrl' => $tenant->getSquareLogoPath() ? $origin.$tenant->getSquareLogoPath() : null, 'faviconUrl' => $tenant->getFaviconPath() ? $origin.$tenant->getFaviconPath() : null, 'initialPoints' => $tenant->getInitialPoints(), 'profileCompletionBonusPoints' => $tenant->getProfileCompletionBonusPoints(), 'referralBonusPoints' => $tenant->getReferralBonusPoints(), 'birthdayBonusPoints' => $tenant->getBirthdayBonusPoints(), 'pointsPerEuro' => $tenant->getPointsPerEuro(), 'redemptionDurationMinutes' => $tenant->getRedemptionDurationMinutes(), 'appointmentBookingFutureDays' => $tenant->getAppointmentBookingFutureDays(), 'appointmentCancellationHours' => $tenant->getAppointmentCancellationHours(), 'appointmentStaffConfirmationEnabled' => $tenant->isAppointmentStaffConfirmationEnabled(), 'showAppointmentStaffNames' => $tenant->showsAppointmentStaffNames(), 'allowDuplicateReceiptImports' => $tenant->allowsDuplicateReceiptImports(), 'showCustomerDebugOutput' => $tenant->showsCustomerDebugOutput(), 'allowStartedPrizeGameEdits' => $tenant->allowsStartedPrizeGameEdits(), 'familyPointSharingEnabled' => $tenant->isFamilyPointSharingEnabled(), 'familyPointSharingLocked' => $tenant->isFamilyPointSharingLocked(), 'websiteUrl' => $tenant->getWebsiteUrl(), 'appNoticeEnabled' => $tenant->isAppNoticeEnabled(), 'appNoticeTitle' => $tenant->getAppNoticeTitle(), 'appNoticeHtml' => $this->richText->sanitize($tenant->getAppNoticeHtml() ?? ''), 'birthdayGreetingEnabled' => $tenant->isBirthdayGreetingEnabled(), 'birthdayGreetingTitle' => $tenant->getBirthdayGreetingTitle(), 'birthdayGreetingText' => $tenant->getBirthdayGreetingText(), 'birthdayGreetingImageUrl' => $tenant->getBirthdayGreetingImagePath() ? $origin.$tenant->getBirthdayGreetingImagePath() : null];
         if ($includeSmtp) { $branding['receiptQrPrefix'] = $tenant->getReceiptQrPrefix(); }
         if ($includeSmtp) { $branding += ['smtpHost' => $tenant->getSmtpHost(), 'smtpPort' => $tenant->getSmtpPort(), 'smtpEncryption' => $tenant->getSmtpEncryption(), 'smtpUsername' => $tenant->getSmtpUsername(), 'smtpFrom' => $tenant->getSmtpFrom(), 'smtpPasswordConfigured' => $tenant->getSmtpPasswordEncrypted() !== null]; }
         return $branding;

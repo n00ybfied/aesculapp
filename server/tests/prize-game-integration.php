@@ -54,15 +54,21 @@ function gamePayload(string $kind, int $stockLimit): array
 
 $em->beginTransaction();
 try {
+    $tenant->get()->setAllowStartedPrizeGameEdits(false);
+    $tenant->get()->setRedemptionDurationMinutes(7);
     $suffix = bin2hex(random_bytes(6));
     $customer = new App\Entity\User('game-'.$suffix.'@example.invalid', 'game-'.$suffix.'@example.invalid', 'Game Customer');
     $customer->setPassword('not-a-login');
     $staff = new App\Entity\User('game-staff-'.$suffix.'@example.invalid', 'game-staff-'.$suffix.'@example.invalid', 'Game Staff');
     $staff->setPassword('not-a-login');
+    $employee = new App\Entity\User('game-employee-'.$suffix.'@example.invalid', 'game-employee-'.$suffix.'@example.invalid', 'Game Employee');
+    $employee->setPassword('not-a-login');
     $em->persist($customer);
     $em->persist($staff);
+    $em->persist($employee);
     $em->persist(new App\Entity\TenantMembership($tenant->get(), $customer, ['ROLE_CUSTOMER']));
     $em->persist(new App\Entity\TenantMembership($tenant->get(), $staff, ['ROLE_TENANT_ADMIN']));
+    $em->persist(new App\Entity\TenantMembership($tenant->get(), $employee, ['ROLE_TENANT_STAFF']));
     $em->flush();
     $login = static function (App\Entity\User $user, array $roles) use ($storage): void {
         $storage->setToken(new Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken($user, 'api', $roles));
@@ -93,9 +99,21 @@ try {
 
     $coupon = $api->spin($couponGame['id'], gameRequest(['requestId' => '44444444-4444-4444-8444-'.substr($suffix, 0, 12)]));
     $couponSpin = gameBody($coupon)['spin'];
-    gameCheck($coupon->getStatusCode() === 201 && preg_match('/^[A-F0-9]{16}$/', $couponSpin['couponCode']) === 1, 'Coupon win needs a one-time code.');
+    gameCheck($coupon->getStatusCode() === 201 && !array_key_exists('couponCode', $couponSpin), 'Coupon win must not disclose a code.');
     gameCheck(gameBody($coupon)['game']['status'] === 'sold_out', 'Last limited prize must end the game.');
     gameCheck(count(gameBody($api->customerWins())['wins']) === 1, 'Customer must see the coupon win.');
+    $login($staff, ['ROLE_TENANT_ADMIN']);
+    $secondCouponGame = gameBody($api->create(gameRequest(gamePayload('coupon', 2))))['game'];
+    $login($customer, ['ROLE_CUSTOMER']);
+    $secondCoupon = $api->spin($secondCouponGame['id'], gameRequest(['requestId' => '55555555-5555-4555-8555-'.substr($suffix, 0, 12)]));
+    $secondCouponSpin = gameBody($secondCoupon)['spin'];
+    gameCheck($api->presentWins(gameRequest(['winIds' => [$couponSpin['id'], $couponSpin['id']]]))->getStatusCode() === 422, 'Duplicate win selection must fail.');
+    $presentation = $api->presentWins(gameRequest(['winIds' => [$couponSpin['id'], $secondCouponSpin['id']]]));
+    gameCheck($presentation->getStatusCode() === 201 && count(gameBody($presentation)['redemption']['items']) === 2, 'Two wins must be presentable together.');
+    gameCheck(abs((new DateTimeImmutable(gameBody($presentation)['redemption']['validUntil']))->getTimestamp() - time() - 7 * 60) <= 3, 'Win presentation must use the tenant duration.');
+    $batchId = gameBody($presentation)['redemption']['id'];
+    gameCheck(gameBody($api->customerActiveWins())['redemption']['id'] === $batchId, 'Customer must see active win presentation.');
+    gameCheck($api->presentWins(gameRequest(['winIds' => [$couponSpin['id']]]))->getStatusCode() === 409, 'Active or used win must not be presented twice.');
 
     $login($staff, ['ROLE_TENANT_ADMIN']);
     $changedRules = $pointPayload;
@@ -103,12 +121,47 @@ try {
     gameCheck($api->update($pointGame['id'], gameRequest($changedRules))->getStatusCode() === 409, 'Rules must remain locked after first spin.');
     $changedTitle = $pointPayload;
     $changedTitle['title'] = 'Neuer sichtbarer Titel';
-    gameCheck($api->update($pointGame['id'], gameRequest($changedTitle))->getStatusCode() === 200, 'Game title may change after first spin.');
+    $titleResponse = $api->update($pointGame['id'], gameRequest($changedTitle));
+    gameCheck($titleResponse->getStatusCode() === 200, 'Game title may change after first spin: '.$titleResponse->getContent());
+    $tenant->get()->setAllowStartedPrizeGameEdits(true);
+    gameCheck(gameBody($api->adminDetail($pointGame['id']))['game']['debugEditAllowed'] === true, 'Admin must see the active debug override.');
+    $login($employee, ['ROLE_TENANT_STAFF']);
+    gameCheck(gameBody($api->adminDetail($pointGame['id']))['game']['debugEditAllowed'] === false, 'Staff must not receive the debug override.');
+    gameCheck($api->update($pointGame['id'], gameRequest($changedRules))->getStatusCode() === 409, 'Staff must not bypass the lock.');
+    $login($staff, ['ROLE_TENANT_ADMIN']);
+    $debugEdit = $pointPayload;
+    $debugEdit['spinLimit'] = 3;
+    $debugEdit['prizes'][0]['id'] = $pointGame['prizes'][0]['id'];
+    $debugEdit['prizes'][0]['title'] = 'Neuer Testgewinn';
+    $debugEdit['prizes'][0]['probabilityBp'] = 9000;
+    $debugEdit['prizes'][0]['stockLimit'] = 3;
+    $debugEdit['prizes'][] = [
+        'title' => 'Zusätzlicher Gutschein', 'wheelLabel' => 'Gutschein', 'kind' => 'coupon',
+        'points' => 0, 'probabilityBp' => 1000, 'stockLimit' => null,
+    ];
+    $debugResponse = $api->update($pointGame['id'], gameRequest($debugEdit));
+    gameCheck($debugResponse->getStatusCode() === 200, 'Debug override must allow editing rules and appending a prize.');
+    $debugGame = gameBody($debugResponse)['game'];
+    gameCheck($debugGame['status'] === 'active' && count($debugGame['prizes']) === 2, 'Raising stock must reopen the sold-out test game.');
+    gameCheck($debugGame['prizes'][0]['id'] === $pointGame['prizes'][0]['id'], 'Existing prize identity must remain stable.');
+    $historic = gameBody($api->adminWins($pointGame['id']))['wins'];
+    gameCheck($historic[0]['title'] === 'Testgewinn' && $historic[0]['points'] === 10, 'Past results must keep their original award snapshot.');
+    $invalidRemoval = $debugEdit;
+    array_shift($invalidRemoval['prizes']);
+    $invalidRemoval['prizes'][0]['probabilityBp'] = 10000;
+    gameCheck($api->update($pointGame['id'], gameRequest($invalidRemoval))->getStatusCode() === 409, 'Existing prize fields must not be removable.');
+    $tenant->get()->setAllowStartedPrizeGameEdits(false);
+    $lockedEdit = $debugEdit;
+    $lockedEdit['spinLimit'] = 4;
+    gameCheck($api->update($pointGame['id'], gameRequest($lockedEdit))->getStatusCode() === 409, 'Disabling the override must restore the normal lock.');
     $adminWins = gameBody($api->adminWins($couponGame['id']))['wins'];
-    gameCheck($adminWins[0]['couponCode'] === null, 'Admin list must not disclose coupon code.');
-    gameCheck($api->redeem($couponSpin['id'], gameRequest(['code' => '0000000000000000']))->getStatusCode() === 422, 'Wrong code must fail.');
-    gameCheck($api->redeem($couponSpin['id'], gameRequest(['code' => $couponSpin['couponCode']]))->getStatusCode() === 200, 'Coupon redemption must succeed.');
-    gameCheck($api->redeem($couponSpin['id'], gameRequest(['code' => $couponSpin['couponCode']]))->getStatusCode() === 409, 'Coupon cannot be redeemed twice.');
+    gameCheck(!array_key_exists('couponCode', $adminWins[0]), 'Admin list must not disclose coupon code.');
+    gameCheck(count(gameBody($api->adminActiveWins(gameRequest([])))['redemptions']) === 1, 'Admin must see the active win batch.');
+    gameCheck($api->cancelWinPresentation($batchId)->getStatusCode() === 204, 'Admin must be able to cancel the win batch.');
+    $login($customer, ['ROLE_CUSTOMER']);
+    gameCheck(gameBody($api->customerActiveWins())['redemption'] === null, 'Cancelled presentation must disappear.');
+    gameCheck(gameBody($api->customerWins())['wins'][0]['redeemedAt'] === null, 'Cancelled wins must be available again.');
+    gameCheck($api->presentWins(gameRequest(['winIds' => [$couponSpin['id']]]))->getStatusCode() === 201, 'Cancelled win must be presentable again.');
     echo "Prize game integration: OK\n";
 } finally {
     $em->rollback();

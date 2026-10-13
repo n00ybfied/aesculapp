@@ -11,6 +11,7 @@ interface BrandingResponse {
     readonly squareLogoUrl: string | null;
     readonly faviconUrl: string | null;
     readonly pointsPerEuro: number;
+    readonly redemptionDurationMinutes: number;
     readonly allowDuplicateReceiptImports: boolean;
     readonly showCustomerDebugOutput: boolean;
     readonly websiteUrl: string | null;
@@ -39,6 +40,10 @@ export class ThemeService {
     return this.theme.pointsPerEuro;
   }
 
+  get redemptionDurationMinutes(): number {
+    return this.theme.redemptionDurationMinutes;
+  }
+
   get allowDuplicateReceiptImports(): boolean {
     return this.theme.allowDuplicateReceiptImports;
   }
@@ -60,6 +65,7 @@ export class ThemeService {
         squareLogoPath: branding.squareLogoUrl ?? activeTheme.squareLogoPath,
         faviconPath: branding.faviconUrl ?? activeTheme.faviconPath,
         pointsPerEuro: branding.pointsPerEuro,
+        redemptionDurationMinutes: branding.redemptionDurationMinutes ?? activeTheme.redemptionDurationMinutes,
         allowDuplicateReceiptImports: branding.allowDuplicateReceiptImports,
         showCustomerDebugOutput: branding.showCustomerDebugOutput,
         websiteUrl: branding.websiteUrl,

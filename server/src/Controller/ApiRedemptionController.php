@@ -54,7 +54,7 @@ final class ApiRedemptionController
                 if ($total === null) return new JsonResponse(['message' => 'Invalid selection.'], Response::HTTP_UNPROCESSABLE_ENTITY);
                 if ($this->familyPoints->combinedBalance($user, $tenant) < $total) return new JsonResponse(['message' => 'Insufficient points.'], Response::HTTP_UNPROCESSABLE_ENTITY);
 
-                $redemption = new ActiveRedemption($requesterAccount, $total, implode(', ', $titles));
+                $redemption = new ActiveRedemption($requesterAccount, $total, implode(', ', $titles), $tenant->getRedemptionDurationMinutes());
                 $this->em->persist($redemption);
                 $this->em->flush();
 

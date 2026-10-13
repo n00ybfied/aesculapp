@@ -35,9 +35,15 @@ export interface GameSpin {
   title: string;
   kind: 'none' | 'points' | 'coupon';
   points: number;
-  couponCode: string | null;
   createdAt: string;
   redeemedAt: string | null;
+}
+
+export interface WinRedemption {
+  id: string;
+  items: readonly { winId: number; title: string; gameTitle: string }[];
+  summary: string;
+  validUntil: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -60,6 +66,14 @@ export class GamesService {
 
   wins(): Promise<readonly GameSpin[]> {
     return firstValueFrom(this.http.get<{ wins: GameSpin[] }>(`${this.api}/games/wins`, this.options())).then((result) => result.wins);
+  }
+
+  redeemWins(winIds: readonly number[]): Promise<WinRedemption> {
+    return firstValueFrom(this.http.post<{ redemption: WinRedemption }>(`${this.api}/games/wins/redeem`, { winIds }, this.options())).then((result) => result.redemption);
+  }
+
+  activeWinRedemption(): Promise<WinRedemption | null> {
+    return firstValueFrom(this.http.get<{ redemption: WinRedemption | null }>(`${this.api}/games/wins/redemptions/active`, this.options())).then((result) => result.redemption);
   }
 
   private options(): { headers: HttpHeaders } {

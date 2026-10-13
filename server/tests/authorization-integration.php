@@ -137,9 +137,12 @@ try {
     $roundingDebits = $familyPoints->proportionalDebits([$ownerAccount, $otherAccount], 102);
     authorizationCheck($roundingDebits[$ownerAccount->getId() ?? 0] === 25 && $roundingDebits[$otherAccount->getId() ?? 0] === 77, 'A rounding point must be debited from the account with the largest balance.');
     $redemptions = new App\Controller\ApiRedemptionController($entityManager, $security, $tenantA, $memberships, new App\Service\PointAccountProvisioner($entityManager), $familyPoints);
+    $activeTenant->setRedemptionDurationMinutes(7);
     authenticate($storage, $ownerA, ['ROLE_CUSTOMER']);
     $redeem = $redemptions->redeem(new Symfony\Component\HttpFoundation\Request(content: json_encode(['selections' => [['rewardId' => $rewardA->getId(), 'quantity' => 1]],], JSON_THROW_ON_ERROR)));
     authorizationCheck($redeem->getStatusCode() === 200, 'A family member must be able to redeem from the combined balance.');
+    $rewardValidUntil = json_decode((string) $redeem->getContent(), true, 512, JSON_THROW_ON_ERROR)['redemption']['validUntil'];
+    authorizationCheck(abs((new DateTimeImmutable($rewardValidUntil))->getTimestamp() - time() - 7 * 60) <= 3, 'Reward presentation must use the tenant duration.');
     authorizationCheck(json_decode((string) $redeem->getContent(), true, 512, JSON_THROW_ON_ERROR)['remainingPoints'] === 300, 'The combined balance must be returned after redemption.');
     authorizationCheck($familyPoints->balance($ownerAccount) === 75 && $familyPoints->balance($otherAccount) === 225, 'A family redemption must debit personal accounts proportionally.');
     authenticate($storage, $otherCustomerA, ['ROLE_CUSTOMER']);
@@ -156,6 +159,10 @@ try {
 
     // A real staff membership is scoped to its tenant and cannot enumerate or edit foreign records.
     authenticate($storage, $staffA, ['ROLE_TENANT_STAFF']);
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['redemptionDurationMinutes' => '0', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 422);
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['redemptionDurationMinutes' => '61', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 422);
+    expectsStatus(fn () => $brandingA->update(new Symfony\Component\HttpFoundation\Request([], ['redemptionDurationMinutes' => '7', 'appointmentBookingFutureDays' => '28', 'appointmentCancellationHours' => '24'])), 200);
+    authorizationCheck($activeTenant->getRedemptionDurationMinutes() === 7, 'The redemption duration must be saved for this tenant.');
     expectsStatus(fn () => $rewardsA->adminOne($rewardB->getId() ?? 0, new Symfony\Component\HttpFoundation\Request()), 404);
     expectsStatus(fn () => $rewardsA->changeVisibility($rewardB->getId() ?? 0, new Symfony\Component\HttpFoundation\Request(content: json_encode(['isVisible' => false,], JSON_THROW_ON_ERROR))), 404);
     expectsStatus(fn () => $customersA->get($customerB->getId() ?? 0, new Symfony\Component\HttpFoundation\Request()), 404);

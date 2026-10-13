@@ -66,6 +66,84 @@ final class ApiPrizeGameController
         return new JsonResponse(['wins' => array_map(fn (PrizeGameSpin $spin): array => $this->spinData($spin), $spins)]);
     }
 
+    #[Route('/api/v1/games/wins/redeem', methods: ['POST'])]
+    public function presentWins(Request $request): JsonResponse
+    {
+        $customer = $this->customer();
+        if ($customer === null) return $this->unauthorized();
+        $ids = $this->payload($request)['winIds'] ?? null;
+        if (!is_array($ids) || $ids === [] || count($ids) > 50) {
+            return $this->invalid('Bitte wählen Sie gültige, unterschiedliche Gewinne aus.');
+        }
+        foreach ($ids as $id) if (!is_int($id) || $id < 1) return $this->invalid('Ungültige Gewinnauswahl.');
+        if (count(array_unique($ids)) !== count($ids)) return $this->invalid('Ein Gewinn darf nur einmal ausgewählt werden.');
+
+        return $this->em->wrapInTransaction(function () use ($customer, $ids): JsonResponse {
+            $this->em->lock($customer, LockMode::PESSIMISTIC_WRITE);
+            $spins = $this->customerCouponWins($customer);
+            if (array_any($spins, static fn (PrizeGameSpin $spin): bool => $spin->isPresentationActive())) {
+                return new JsonResponse(['message' => 'Bitte zeigen Sie zuerst Ihre aktive Gewinn-Einlösung vor.'], Response::HTTP_CONFLICT);
+            }
+            $byId = [];
+            foreach ($spins as $spin) $byId[$spin->getId()] = $spin;
+            $selected = [];
+            foreach ($ids as $id) {
+                $spin = $byId[$id] ?? null;
+                if ($spin === null || $spin->getRedeemedAt() !== null) {
+                    return new JsonResponse(['message' => 'Ein ausgewählter Gewinn ist nicht mehr verfügbar.'], Response::HTTP_CONFLICT);
+                }
+                $selected[] = $spin;
+            }
+            $batchId = bin2hex(random_bytes(16));
+            $now = new \DateTimeImmutable();
+            foreach ($selected as $spin) $spin->startPresentation($batchId, $now, $this->tenant->get()->getRedemptionDurationMinutes());
+            $this->em->flush();
+            return new JsonResponse(['redemption' => $this->winBatchData($selected)], Response::HTTP_CREATED);
+        });
+    }
+
+    #[Route('/api/v1/games/wins/redemptions/active', methods: ['GET'])]
+    public function customerActiveWins(): JsonResponse
+    {
+        $customer = $this->customer();
+        if ($customer === null) return $this->unauthorized();
+        $spins = $this->customerCouponWins($customer);
+        foreach ($spins as $spin) {
+            if (!$spin->isPresentationActive()) continue;
+            $batch = array_values(array_filter($spins, static fn (PrizeGameSpin $item): bool => $item->getRedemptionBatchId() === $spin->getRedemptionBatchId()));
+            return new JsonResponse(['redemption' => $this->winBatchData($batch)]);
+        }
+        return new JsonResponse(['redemption' => null]);
+    }
+
+    #[Route('/api/v1/admin/games/wins/redemptions/active', methods: ['GET'])]
+    public function adminActiveWins(Request $request): JsonResponse
+    {
+        if (!$this->admin()) return $this->forbidden();
+        $spins = $this->em->getRepository(PrizeGameSpin::class)->createQueryBuilder('spin')
+            ->join('spin.game', 'game')->where('game.tenant = :tenant AND spin.redemptionBatchId IS NOT NULL')
+            ->setParameter('tenant', $this->tenant->get())->orderBy('spin.id', 'DESC')->getQuery()->getResult();
+        $batches = [];
+        foreach ($spins as $spin) if ($spin->isPresentationActive()) $batches[$spin->getRedemptionBatchId()][] = $spin;
+        return new JsonResponse(['redemptions' => array_map(fn (array $batch): array => $this->winBatchData($batch, $request), array_values($batches))]);
+    }
+
+    #[Route('/api/v1/admin/games/wins/redemptions/{id}/cancel', requirements: ['id' => '[a-f0-9]{32}'], methods: ['POST'])]
+    public function cancelWinPresentation(string $id): Response
+    {
+        if (!$this->admin()) return $this->forbidden();
+        return $this->em->wrapInTransaction(function () use ($id): Response {
+            $spins = $this->em->getRepository(PrizeGameSpin::class)->findBy(['redemptionBatchId' => $id]);
+            if ($spins === [] || $spins[0]->getGame()->getTenant() !== $this->tenant->get()) return $this->notFound();
+            $this->em->lock($spins[0]->getCustomer(), LockMode::PESSIMISTIC_WRITE);
+            foreach ($spins as $spin) $this->em->refresh($spin);
+            if (!array_all($spins, static fn (PrizeGameSpin $spin): bool => $spin->isPresentationActive())) return $this->notFound();
+            foreach ($spins as $spin) $spin->cancelPresentation();
+            $this->em->flush();
+            return new Response(status: Response::HTTP_NO_CONTENT);
+        });
+    }
+
     #[Route('/api/v1/games/{id}', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function customerDetail(int $id): JsonResponse
     {
@@ -126,8 +204,7 @@ final class ApiPrizeGameController
             }
 
             $prize = $this->draw->draw($prizes, random_int(1, 10000));
-            $code = $prize?->getKind() === 'coupon' ? strtoupper(bin2hex(random_bytes(8))) : null;
-            $spin = new PrizeGameSpin($game, $customer, $prize, $requestId, $code);
+            $spin = new PrizeGameSpin($game, $customer, $prize, $requestId, null);
             $this->em->persist($spin);
             if ($prize !== null) {
                 $prize->award();
@@ -156,7 +233,7 @@ final class ApiPrizeGameController
     {
         if (!$this->admin()) return $this->forbidden();
         $game = $this->game($id);
-        return $game === null ? $this->notFound() : new JsonResponse(['game' => $this->gameData($game, null, true)]);
+        return $game === null ? $this->notFound() : new JsonResponse(['game' => $this->adminGameData($game)]);
     }
 
     #[Route('/api/v1/admin/games', methods: ['POST'])]
@@ -171,7 +248,7 @@ final class ApiPrizeGameController
         $this->em->persist($game);
         foreach ($data['prizes'] as $index => $prize) $this->em->persist(new PrizeGamePrize($game, $prize[0], $prize[1], $prize[2], $prize[3], $prize[4], $prize[5], $index));
         $this->em->flush();
-        return new JsonResponse(['game' => $this->gameData($game, null, true)], Response::HTTP_CREATED);
+        return new JsonResponse(['game' => $this->adminGameData($game)], Response::HTTP_CREATED);
     }
 
     #[Route('/api/v1/admin/games/{id}', requirements: ['id' => '\d+'], methods: ['PUT'])]
@@ -189,16 +266,42 @@ final class ApiPrizeGameController
             $this->em->refresh($game);
             $prizes = $this->prizes($game);
             $spinCount = $this->em->getRepository(PrizeGameSpin::class)->count(['game' => $game]);
-            if ($spinCount > 0) {
+            if ($spinCount > 0 && !$this->canDebugEditStartedGame()) {
                 if ($data['from'] != $game->getAvailableFrom() || $data['mode'] !== $game->getParticipationMode()
                     || $data['limit'] !== $game->getSpinLimit() || $data['noWin'] !== $game->isNoWinEnabled()
                     || count($data['prizes']) !== count($prizes)) {
                     return new JsonResponse(['message' => 'Nach der ersten Teilnahme können Spielregeln und Gewinne nicht mehr geändert werden.'], Response::HTTP_CONFLICT);
                 }
                 foreach ($prizes as $index => $prize) {
-                    if ($data['prizes'][$index] !== [$prize->getTitle(), $prize->getWheelLabel(), $prize->getKind(), $prize->getPoints(), $prize->getProbabilityBp(), $prize->getStockLimit()]) {
+                    if (array_slice($data['prizes'][$index], 0, 6) !== [$prize->getTitle(), $prize->getWheelLabel(), $prize->getKind(), $prize->getPoints(), $prize->getProbabilityBp(), $prize->getStockLimit()]) {
                         return new JsonResponse(['message' => 'Nach der ersten Teilnahme können Gewinne nicht mehr geändert werden.'], Response::HTTP_CONFLICT);
                     }
+                }
+            } elseif ($spinCount > 0) {
+                if (count($data['prizes']) < count($prizes)) {
+                    return new JsonResponse(['message' => 'Bereits vorhandene Gewinnfelder dürfen wegen der bisherigen Ziehungen nicht entfernt werden.'], Response::HTTP_CONFLICT);
+                }
+                foreach ($prizes as $index => $prize) {
+                    if ($data['prizes'][$index][6] !== $prize->getId()) {
+                        return new JsonResponse(['message' => 'Bereits vorhandene Gewinnfelder dürfen nicht umsortiert oder ersetzt werden.'], Response::HTTP_CONFLICT);
+                    }
+                }
+                foreach (array_slice($data['prizes'], count($prizes)) as $values) {
+                    if ($values[6] !== null) {
+                        return new JsonResponse(['message' => 'Neue Gewinnfelder dürfen keine bestehende Gewinn-ID verwenden.'], Response::HTTP_CONFLICT);
+                    }
+                }
+                foreach ($prizes as $index => $prize) {
+                    $values = $data['prizes'][$index];
+                    $prize->update($values[0], $values[1], $values[2], $values[3], $values[4], $values[5], $index);
+                }
+                foreach (array_slice($data['prizes'], count($prizes)) as $offset => $values) {
+                    $this->em->persist(new PrizeGamePrize($game, $values[0], $values[1], $values[2], $values[3], $values[4], $values[5], count($prizes) + $offset));
+                }
+                if (array_any($prizes, static fn (PrizeGamePrize $prize): bool => $prize->isExhausted())) {
+                    $game->markSoldOut(new \DateTimeImmutable());
+                } else {
+                    $game->clearSoldOut();
                 }
             } else {
                 foreach ($prizes as $prize) $this->em->remove($prize);
@@ -206,7 +309,7 @@ final class ApiPrizeGameController
             }
             $game->configure($data['title'], $data['visible'], $data['from'], $data['until'], $data['mode'], $data['limit'], $data['noWin'], $data['soldOutText']);
             $this->em->flush();
-            return new JsonResponse(['game' => $this->gameData($game, null, true)]);
+            return new JsonResponse(['game' => $this->adminGameData($game)]);
         });
     }
 
@@ -218,30 +321,9 @@ final class ApiPrizeGameController
         if ($game === null) return $this->notFound();
         $spins = $this->em->getRepository(PrizeGameSpin::class)->findBy(['game' => $game], ['id' => 'DESC']);
         return new JsonResponse(['wins' => array_map(fn (PrizeGameSpin $spin): array => [
-            ...$this->spinData($spin), 'couponCode' => null, 'customer' => $spin->getCustomer()->getDisplayName(),
+            ...$this->spinData($spin), 'customer' => $spin->getCustomer()->getDisplayName(),
             'redeemedBy' => $spin->getRedeemedBy()?->getDisplayName(),
         ], $spins)]);
-    }
-
-    #[Route('/api/v1/admin/games/coupons/{id}/redeem', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function redeem(int $id, Request $request): JsonResponse
-    {
-        if (!$this->admin()) return $this->forbidden();
-        $staff = $this->security->getUser();
-        if (!$staff instanceof User) return $this->forbidden();
-        $code = $this->payload($request)['code'] ?? null;
-        if (!is_string($code) || !preg_match('/^[A-F0-9]{16}$/', $code)) return $this->invalid('Ungültiger Gewinncode.');
-
-        return $this->em->wrapInTransaction(function () use ($id, $code, $staff): JsonResponse {
-            $spin = $this->em->getRepository(PrizeGameSpin::class)->find($id);
-            if (!$spin instanceof PrizeGameSpin || $spin->getGame()->getTenant() !== $this->tenant->get() || $spin->getPrizeKind() !== 'coupon') return $this->notFound();
-            $this->em->lock($spin, LockMode::PESSIMISTIC_WRITE);
-            if (!hash_equals($spin->getCouponCode() ?? '', $code)) return $this->invalid('Der Gewinncode stimmt nicht.');
-            if ($spin->getRedeemedAt() !== null) return new JsonResponse(['message' => 'Dieser Gewinn wurde bereits eingelöst.'], Response::HTTP_CONFLICT);
-            $spin->redeem($staff);
-            $this->em->flush();
-            return new JsonResponse(['win' => $this->spinData($spin)]);
-        });
     }
 
     private function game(int $id): ?PrizeGame
@@ -260,6 +342,39 @@ final class ApiPrizeGameController
     private function customerSpins(PrizeGame $game, User $customer): array
     {
         return $this->em->getRepository(PrizeGameSpin::class)->findBy(['game' => $game, 'customer' => $customer], ['id' => 'DESC']);
+    }
+
+    /** @return list<PrizeGameSpin> */
+    private function customerCouponWins(User $customer): array
+    {
+        return $this->em->getRepository(PrizeGameSpin::class)->createQueryBuilder('spin')
+            ->join('spin.game', 'game')
+            ->where('spin.customer = :customer AND game.tenant = :tenant AND spin.prizeKind = :kind')
+            ->setParameter('customer', $customer)->setParameter('tenant', $this->tenant->get())
+            ->setParameter('kind', 'coupon')->orderBy('spin.id', 'DESC')->getQuery()->getResult();
+    }
+
+    /** @param non-empty-list<PrizeGameSpin> $batch */
+    private function winBatchData(array $batch, ?Request $request = null): array
+    {
+        $customer = $batch[0]->getCustomer();
+        $items = array_map(static fn (PrizeGameSpin $spin): array => [
+            'winId' => $spin->getId(), 'title' => $spin->getPrizeTitle(), 'gameTitle' => $spin->getGame()->getTitle(),
+        ], $batch);
+        $result = [
+            'id' => $batch[0]->getRedemptionBatchId(), 'items' => $items,
+            'summary' => implode(', ', array_column($items, 'title')),
+            'validUntil' => $batch[0]->getRedemptionValidUntil()?->format(DATE_ATOM),
+        ];
+        if ($request !== null) {
+            $result['customer'] = $customer->getDisplayName();
+            $result['customerDetails'] = [
+                'id' => $customer->getId(), 'displayName' => $customer->getDisplayName(),
+                'username' => $customer->getUsername(),
+                'profileImageUrl' => $customer->getProfileImagePath() === null ? null : $request->getSchemeAndHttpHost().$customer->getProfileImagePath(),
+            ];
+        }
+        return $result;
     }
 
     /** @param list<PrizeGameSpin> $spins */
@@ -298,13 +413,19 @@ final class ApiPrizeGameController
     }
 
     /** @return array<string, mixed> */
+    private function adminGameData(PrizeGame $game): array
+    {
+        return $this->gameData($game, null, true) + ['debugEditAllowed' => $this->canDebugEditStartedGame()];
+    }
+
+    /** @return array<string, mixed> */
     private function spinData(PrizeGameSpin $spin): array
     {
         return [
             'id' => $spin->getId(), 'gameId' => $spin->getGame()->getId(), 'gameTitle' => $spin->getGame()->getTitle(),
             'prizeId' => $spin->getPrize()?->getId(), 'wheelIndex' => $spin->getPrize()?->getPosition(),
             'title' => $spin->getPrizeTitle() ?? 'Leider nein', 'kind' => $spin->getPrizeKind() ?? 'none',
-            'points' => $spin->getPoints(), 'couponCode' => $spin->getCouponCode(),
+            'points' => $spin->getPoints(),
             'createdAt' => $spin->getCreatedAt()->format(DATE_ATOM), 'redeemedAt' => $spin->getRedeemedAt()?->format(DATE_ATOM),
         ];
     }
@@ -316,7 +437,7 @@ final class ApiPrizeGameController
         catch (\Throwable) { return []; }
     }
 
-    /** @return array{title:string,visible:bool,from:\DateTimeImmutable,until:\DateTimeImmutable,mode:string,limit:int,noWin:bool,soldOutText:string,prizes:list<array{string,string,string,int,int,?int}>}|null */
+    /** @return array{title:string,visible:bool,from:\DateTimeImmutable,until:\DateTimeImmutable,mode:string,limit:int,noWin:bool,soldOutText:string,prizes:list<array{string,string,string,int,int,?int,?int}>}|null */
     private function validatedGameData(array $payload): ?array
     {
         if (!is_string($payload['title'] ?? null) || !is_string($payload['soldOutText'] ?? null)) return null;
@@ -346,13 +467,15 @@ final class ApiPrizeGameController
             $points = $raw['points'] ?? 0;
             $probability = $raw['probabilityBp'] ?? null;
             $stock = $raw['stockLimit'] ?? null;
+            $id = $raw['id'] ?? null;
             if ($prizeTitle === '' || mb_strlen($prizeTitle) > 180 || $label === '' || mb_strlen($label) > 40
                 || !in_array($kind, ['points', 'coupon'], true) || !is_int($points) || $points < 0 || $points > 100000
                 || ($kind === 'points' && $points < 1) || ($kind === 'coupon' && $points !== 0)
                 || !is_int($probability) || $probability < 1 || $probability > 10000
-                || ($stock !== null && (!is_int($stock) || $stock < 1 || $stock > 1000000))) return null;
+                || ($stock !== null && (!is_int($stock) || $stock < 1 || $stock > 1000000))
+                || ($id !== null && (!is_int($id) || $id < 1))) return null;
             $sum += $probability;
-            $prizes[] = [$prizeTitle, $label, $kind, $points, $probability, $stock];
+            $prizes[] = [$prizeTitle, $label, $kind, $points, $probability, $stock, $id];
         }
         if ($sum > 10000 || (!$noWin && $sum !== 10000) || ($noWin && $sum >= 10000)) return null;
         return compact('title', 'visible', 'from', 'until', 'mode', 'limit', 'noWin', 'soldOutText', 'prizes');
@@ -377,6 +500,15 @@ final class ApiPrizeGameController
         if (!$user instanceof User) return false;
         $membership = $this->memberships->findForUserAndTenant($user, $this->tenant->get());
         return $membership !== null && [] !== array_intersect(['ROLE_TENANT_STAFF', 'ROLE_TENANT_ADMIN'], $membership->getRoles());
+    }
+
+    private function canDebugEditStartedGame(): bool
+    {
+        if (!$this->tenant->get()->allowsStartedPrizeGameEdits()) return false;
+        $user = $this->security->getUser();
+        if (!$user instanceof User) return false;
+        $membership = $this->memberships->findForUserAndTenant($user, $this->tenant->get());
+        return $membership !== null && in_array('ROLE_TENANT_ADMIN', $membership->getRoles(), true);
     }
 
     private function unauthorized(): JsonResponse { return new JsonResponse(['message' => 'Unauthorized.'], Response::HTTP_UNAUTHORIZED); }

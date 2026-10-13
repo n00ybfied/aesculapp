@@ -10,7 +10,7 @@
         <label>Titel *<input type="text" maxlength="180" [(ngModel)]="draft.title" /></label>
         <label class="check"><input type="checkbox" [(ngModel)]="draft.isVisible" /> Für Kunden sichtbar</label>
       </div>
-      <fieldset [disabled]="hasSpins()">
+      <fieldset [disabled]="!canEditStartedGame()">
         <legend>Spielregeln</legend>
         <div class="grid">
           <label>Beginn *<input type="datetime-local" [(ngModel)]="draft.availableFrom" /></label>
@@ -24,12 +24,12 @@
         <p class="help">Die Teilnahme ist kostenlos. Bei täglicher Teilnahme zählt der Kalendertag in Wien.</p>
       </fieldset>
       <label>Ende *<input type="datetime-local" [(ngModel)]="draft.availableUntil" /></label>
-      <fieldset [disabled]="hasSpins()">
+      <fieldset [disabled]="!canEditStartedGame()">
         <legend>Gewinne</legend>
         <p class="help">Chancen als Prozent mit zwei Nachkommastellen. Ein Limit ist optional; sobald ein limitierter Gewinn aufgebraucht ist, endet das gesamte Spiel.</p>
         @for (prize of draft.prizes; track prize; let index = $index) {
           <div class="prize">
-            <div class="prize-heading"><h3>Gewinn {{ index + 1 }}</h3><button type="button" class="link" (click)="removePrize(index)" [disabled]="draft.prizes.length === 1">Entfernen</button></div>
+            <div class="prize-heading"><h3>Gewinn {{ index + 1 }}</h3><button type="button" class="link" (click)="removePrize(index)" [disabled]="draft.prizes.length === 1 || (hasSpins() && prize.id !== undefined)">Entfernen</button></div>
             <div class="grid">
               <label>Titel *<input type="text" maxlength="180" [(ngModel)]="prize.title" /></label>
               <label>Kurzform auf dem Rad *<input type="text" maxlength="40" [(ngModel)]="prize.wheelLabel" /></label>
@@ -46,23 +46,21 @@
           Gewinne: {{ totalProbability / 100 }} % · „Leider nein“: {{ draft.noWinEnabled ? noWinProbability / 100 : 0 }} %
         </p>
       </fieldset>
-      @if (hasSpins()) { <p class="help locked">Nach der ersten Teilnahme sind Beginn, Teilnahmehäufigkeit und Gewinne gesperrt. Titel, Sichtbarkeit, Endzeit und Ausverkauft-Hinweis bleiben bearbeitbar.</p> }
+      @if (hasSpins() && !canEditStartedGame()) { <p class="help locked">Nach der ersten Teilnahme sind Beginn, Teilnahmehäufigkeit und Gewinne gesperrt. Titel, Sichtbarkeit, Endzeit und Ausverkauft-Hinweis bleiben bearbeitbar. Der Test-Override kann in den Debug-Einstellungen aktiviert werden.</p> }
+      @if (hasSpins() && canEditStartedGame()) { <p class="help locked">Debug-Override aktiv: Änderungen an Chancen, Limits und Spielregeln gelten nur für künftige Ziehungen. Bestehende Gewinnfelder dürfen nicht entfernt oder umsortiert werden; neue Felder können ergänzt werden. Vor dem Livegang deaktivieren und entfernen.</p> }
       <label>Hinweis nach vorzeitigem Ende<textarea rows="3" maxlength="3000" [(ngModel)]="draft.soldOutText"></textarea></label>
       <button type="button" class="primary" [disabled]="saving()" (click)="save()">{{ saving() ? 'Speichert …' : 'Gewinnspiel speichern' }}</button>
     </div>
     @if (gameId !== null) {
       <section class="panel wins">
         <h3>Teilnahmen und Gutscheingewinne</h3>
-        <p class="help">Zur Einlösung lässt sich die Apotheke den Code aus „Meine Gewinne“ zeigen und gibt ihn hier ein. Der Code ist nur einmal verwendbar.</p>
+        <p class="help">Gewinngutscheine werden von Kunden unter „Meine Gewinne“ aktiviert und erscheinen während der Vorzeigezeit unter „Einlösungen“.</p>
         @for (win of wins(); track win.id) {
           <article>
             <div><strong>{{ win.customer }}</strong> · {{ win.title }} <small>{{ win.createdAt | date:'dd.MM.yyyy HH:mm' }}</small>
               @if (win.kind === 'points') { <span> · {{ win.points }} Punkte</span> }
-              @if (win.kind === 'coupon' && win.redeemedAt) { <span> · Eingelöst am {{ win.redeemedAt | date:'dd.MM.yyyy HH:mm' }} von {{ win.redeemedBy }}</span> }
+              @if (win.kind === 'coupon' && win.redeemedAt) { <span> · Eingelöst am {{ win.redeemedAt | date:'dd.MM.yyyy HH:mm' }}</span> }
             </div>
-            @if (win.kind === 'coupon' && !win.redeemedAt) {
-              <div class="redeem"><label [for]="'win-code-' + win.id">Gewinncode</label><input [id]="'win-code-' + win.id" maxlength="16" [(ngModel)]="redemptionCodes[win.id]" autocomplete="off" /><button type="button" class="secondary" (click)="redeem(win)">Einlösen</button></div>
-            }
           </article>
         } @empty { <p>Noch keine Teilnahmen.</p> }
       </section>

@@ -140,6 +140,11 @@ input {
   font-weight: 400;
 }
 
+[data-theme='sta'] .redemption-heading {
+  color: var(--color-on-primary);
+  font-weight: 700;
+}
+
 button:not(:disabled) {
   cursor: pointer;
 }

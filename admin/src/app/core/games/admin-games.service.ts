@@ -25,6 +25,7 @@ export interface AdminGame {
   noWinEnabled: boolean;
   soldOutText: string;
   soldOutAt: string | null;
+  debugEditAllowed?: boolean;
   status: 'draft' | 'scheduled' | 'active' | 'sold_out' | 'ended';
   prizes: GamePrize[];
 }
@@ -34,7 +35,6 @@ export interface GameWin {
   title: string;
   kind: 'none' | 'points' | 'coupon';
   points: number;
-  couponCode: string | null;
   createdAt: string;
   redeemedAt: string | null;
   customer: string;
@@ -67,10 +67,6 @@ export class AdminGamesService {
 
   wins(id: number): Promise<readonly GameWin[]> {
     return firstValueFrom(this.http.get<{ wins: GameWin[] }>(`${this.api}/admin/games/${id}/wins`, this.options())).then((result) => result.wins);
-  }
-
-  redeem(id: number, code: string): Promise<void> {
-    return firstValueFrom(this.http.post(`${this.api}/admin/games/coupons/${id}/redeem`, { code }, this.options())).then(() => undefined);
   }
 
   private options(): { headers: HttpHeaders } {
