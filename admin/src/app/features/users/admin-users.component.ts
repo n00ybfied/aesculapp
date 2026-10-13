@@ -23,11 +23,11 @@ export class AdminUsersComponent {
   protected readonly areas = [
     ['dashboard', 'Übersicht'], ['slider', 'Dashboard-Slider'], ['statistics', 'Statistik'],
     ['chat', 'Anfragen'], ['news', 'Inhalte'], ['media', 'Medien'],
-    ['rewards', 'Prämien'], ['coupons', 'Gutscheine'], ['appointments', 'Termine'],
+    ['rewards', 'Prämien'], ['coupons', 'Gutscheine'], ['games', 'Gewinnspiele'], ['appointments', 'Termine'],
     ['redemptions', 'Einlösungen'], ['customers', 'Kunden'], ['users', 'Benutzer'],
     ['settings', 'Einstellungen'],
   ] as const;
-  private readonly defaultPermissions = ['dashboard', 'slider', 'chat', 'news', 'media', 'rewards', 'coupons', 'appointments', 'redemptions', 'customers'];
+  private readonly defaultPermissions = ['dashboard', 'slider', 'chat', 'news', 'media', 'rewards', 'coupons', 'games', 'appointments', 'redemptions', 'customers'];
   protected readonly selectedPermissions = signal<string[]>(this.defaultPermissions.filter((area) => this.auth.canAccess(area)));
   protected readonly creationMode = signal<'invite' | 'direct'>('invite');
   protected readonly editingUserId = signal<number | null>(null);
