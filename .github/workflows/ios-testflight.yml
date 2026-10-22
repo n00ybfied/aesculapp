@@ -87,6 +87,7 @@ jobs:
         working-directory: client
         run: |
           npm ci
+          npm run test:links
           npm run build:apotheke-native
           npx cap sync ios
 

@@ -10,6 +10,7 @@
     "android:run": "npm run build && cap run android",
     "build:apotheke-native": "ng build --configuration apotheke-native",
     "build:floatbox-native": "ng build --configuration floatbox-native",
+    "test:links": "node --test tests/customer-email-links.test.mjs",
     "extract-i18n": "ng extract-i18n --format=json --output-path=src/locale --out-file=messages.de.json",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
