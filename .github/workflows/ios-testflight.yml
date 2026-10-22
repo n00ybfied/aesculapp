@@ -63,6 +63,10 @@ jobs:
             echo 'Das Provisioning Profile gehört nicht zur iOS-Test-App.' >&2
             exit 1
           fi
+          if ! /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' "$profile_plist" >/dev/null 2>&1; then
+            echo 'Das Provisioning Profile enthält die Associated-Domains-Berechtigung nicht. Capability im Apple Developer Portal aktivieren, neues App-Store-Profil laden und IOS_TESTFLIGHT_PROFILE_BASE64 aktualisieren.' >&2
+            exit 1
+          fi
 
           security create-keychain -p "$keychain_password" "$keychain_path"
           security set-keychain-settings -lut 21600 "$keychain_path"

@@ -1,5 +1,9 @@
 Options -Indexes
 
+<Files "apple-app-site-association">
+    ForceType application/json
+</Files>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteCond %{REQUEST_FILENAME} !-f
