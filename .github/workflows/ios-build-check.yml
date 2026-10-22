@@ -12,7 +12,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 45
     env:
-      AESCULAPP_NATIVE_TARGET: apotheke
+      AESCULAPP_NATIVE_TARGET: ios-test
 
     steps:
       - name: Check out source
@@ -25,11 +25,11 @@ jobs:
           cache: npm
           cache-dependency-path: client/package-lock.json
 
-      - name: Install dependencies and build Floatbox test client
+      - name: Install dependencies and build pharmacy test client
         working-directory: client
         run: |
           npm ci
-          npm run build:floatbox-native
+          npm run build:apotheke-native
 
       - name: Synchronize iOS project
         working-directory: client
