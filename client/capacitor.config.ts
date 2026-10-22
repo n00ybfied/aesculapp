@@ -1,14 +1,25 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-const pharmacyBuild = process.env['AESCULAPP_NATIVE_TARGET'] === 'apotheke';
+const nativeTarget = process.env['AESCULAPP_NATIVE_TARGET'];
+const pharmacyBuild = nativeTarget === 'apotheke';
+const iosTestBuild = nativeTarget === 'ios-test';
+const onlineBuild = pharmacyBuild || iosTestBuild;
 
 const config: CapacitorConfig = {
-  appId: pharmacyBuild ? 'at.stadtapotheke.trofaiach' : 'at.floatbox.aesculapp.dev',
-  appName: pharmacyBuild ? 'Stadtapotheke Trofaiach' : 'AesculApp Dev',
+  appId: iosTestBuild
+    ? 'at.floatbox.aesculapp.sta.test'
+    : pharmacyBuild
+      ? 'at.stadtapotheke.trofaiach'
+      : 'at.floatbox.aesculapp.dev',
+  appName: iosTestBuild
+    ? 'Stadtapotheke Trofaiach Test'
+    : pharmacyBuild
+      ? 'Stadtapotheke Trofaiach'
+      : 'AesculApp Dev',
   webDir: 'dist/aesculapp/browser',
   android: { path: pharmacyBuild ? 'android-apotheke' : 'android' },
   // HTTP und Cleartext bleiben ausschließlich im lokalen USB-Entwicklungsbuild.
-  ...(pharmacyBuild ? {} : { server: { androidScheme: 'http', cleartext: true } }),
+  ...(onlineBuild ? {} : { server: { androidScheme: 'http', cleartext: true } }),
   plugins: {
     PushNotifications: {
       presentationOptions: ['alert', 'sound'],

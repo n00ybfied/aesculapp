@@ -1,4 +1,13 @@
-import { nativeCustomerPath } from './native-link.service';
+import { isSupportedNativeAppId, nativeCustomerPath } from './native-link.service';
+
+describe('isSupportedNativeAppId', () => {
+  it('accepts the signed iOS TestFlight app as well as the existing Android apps', () => {
+    expect(isSupportedNativeAppId('at.floatbox.aesculapp.sta.test')).toBe(true);
+    expect(isSupportedNativeAppId('at.floatbox.aesculapp.dev')).toBe(true);
+    expect(isSupportedNativeAppId('at.stadtapotheke.trofaiach')).toBe(true);
+    expect(isSupportedNativeAppId('at.unknown.app')).toBe(false);
+  });
+});
 
 describe('nativeCustomerPath', () => {
   const origin = 'https://app.stadtapotheke-trofaiach.at';

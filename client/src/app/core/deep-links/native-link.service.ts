@@ -4,7 +4,15 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { customerLinkOrigin } from '../api/api.config';
 
-const supportedAppIds = new Set(['at.floatbox.aesculapp.dev', 'at.stadtapotheke.trofaiach']);
+const supportedAppIds = new Set([
+  'at.floatbox.aesculapp.dev',
+  'at.stadtapotheke.trofaiach',
+  'at.floatbox.aesculapp.sta.test',
+]);
+
+export function isSupportedNativeAppId(id: string): boolean {
+  return supportedAppIds.has(id);
+}
 
 const tokenPaths = new Set([
   '/passwort-zuruecksetzen',
@@ -68,7 +76,7 @@ export class NativeLinkService {
     }
 
     const { id } = await CapacitorApp.getInfo();
-    if (!supportedAppIds.has(id)) {
+    if (!isSupportedNativeAppId(id)) {
       return;
     }
 
