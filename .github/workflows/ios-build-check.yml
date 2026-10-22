@@ -29,6 +29,7 @@ jobs:
         working-directory: client
         run: |
           npm ci
+          npm run test:links
           npm run build:apotheke-native
 
       - name: Synchronize iOS project
