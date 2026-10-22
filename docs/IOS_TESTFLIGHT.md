@@ -33,4 +33,10 @@ Für die `.p8`-Datei denselben Befehl mit ihrem tatsächlichen Pfad verwenden. D
 
 Unter **Actions → iOS TestFlight build → Run workflow** den gewünschten Branch auswählen. Für den ersten Durchlauf die Upload-Option deaktiviert lassen. Nach erfolgreichem Build die IPA unter **Artifacts** prüfen; der Workflow bewahrt sie sieben Tage auf. Erst danach bei einem neuen manuellen Lauf die Upload-Option aktivieren. App Store Connect verarbeitet einen erfolgreichen Upload asynchron; erst nach dieser Verarbeitung wird er unter TestFlight sichtbar. Der iOS-Buildzähler verwendet die GitHub-Run-Nummer.
 
-Vor einem iPhone-Funktionstest muss die Apotheken-API `APP_NATIVE_IOS_ORIGIN=capacitor://localhost` und den entsprechenden CORS-Ursprung unterstützen. Native iOS-Pushs und Universal Links sind noch nicht fertiggestellt.
+Vor einem iPhone-Funktionstest muss die Apotheken-API `APP_NATIVE_IOS_ORIGIN=capacitor://localhost` und den entsprechenden CORS-Ursprung unterstützen.
+
+## Kundenlinks in der iOS-Test-App
+
+Für E-Mail-Links muss in Apple Developer unter **Certificates, Identifiers & Profiles → Identifiers → `at.floatbox.aesculapp.sta.test`** die Capability **Associated Domains** aktiviert werden. Danach ein neues App-Store-Connect-Provisioning-Profile für dieselbe App-ID erstellen beziehungsweise das bestehende neu generieren. Die neue `.mobileprovision` lokal sicher ablegen und `IOS_TESTFLIGHT_PROFILE_BASE64` mit deren Base64-Inhalt aktualisieren; Zertifikat, P12 und API-Schlüssel bleiben unverändert. Der Workflow prüft die Associated Domain im Profil vor dem Build.
+
+Die Kunden-PWA muss `/.well-known/apple-app-site-association` auf `app.stadtapotheke-trofaiach.at` direkt mit Status 200 und JSON-Inhalt ausliefern. Die Datei liegt unter `client/public/.well-known/` und wird erst mit dem Apotheken-PWA-Deploy öffentlich. Die iOS-App verwendet `applinks:app.stadtapotheke-trofaiach.at`; die bestehende TestFlight-Version 0.1.0 (3) enthält diese Entitlement noch nicht. Nach Capability, Profil und PWA-Deploy ist daher ein **neuer TestFlight-Build** nötig. Die App verarbeitet nur die Kundenrouten aus `docs/KUNDENLINKS.md`; ohne native Installation bleiben dieselben URLs im Browser verfügbar. Native iOS-Pushs sind noch nicht implementiert.

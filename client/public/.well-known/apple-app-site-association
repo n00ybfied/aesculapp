@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "R328924CNP.at.floatbox.aesculapp.sta.test",
+        "paths": [
+          "/passwort-zuruecksetzen",
+          "/e-mail-bestaetigen",
+          "/e-mail-aendern",
+          "/registrierung",
+          "/familie",
+          "/termine/meine",
+          "/chat",
+          "/news/*",
+          "/freunde-einladen",
+          "/profil/bearbeiten"
+        ]
+      }
+    ]
+  }
+}
