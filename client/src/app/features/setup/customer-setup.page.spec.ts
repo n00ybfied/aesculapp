@@ -9,7 +9,18 @@ import { AchievementCelebrationService } from '../../core/achievements/achieveme
 import { CustomerSetupPage } from './customer-setup.page';
 
 describe('CustomerSetupPage', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('moves through all three steps and saves the selected interests once', async () => {
+    let notifyResize: (() => void) | undefined;
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        notifyResize = () => callback([], this as ResizeObserver);
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    });
     let submitted: CustomerSetupDetails | null = null;
     const celebrate = vi.fn();
     const profile = {
@@ -43,10 +54,22 @@ describe('CustomerSetupPage', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     expect(root.textContent).toContain('Sie können später genauere Einstellungen auf Ihrer Profilseite treffen.');
+    expect(root.querySelector('header')?.classList.contains('sticky')).toBe(true);
+    expect(Array.from(root.querySelectorAll('input:not([type="checkbox"]), select'))
+      .every((field) => field.classList.contains('text-base'))).toBe(true);
+    expect(root.querySelector('[formControlName="birthDate"]')?.classList.contains('min-w-0')).toBe(true);
     const viewport = root.querySelector<HTMLElement>('form > div');
     const contactHeading = root.querySelector<HTMLElement>('#setup-contact-title');
     expect(viewport).not.toBeNull();
     expect(contactHeading).not.toBeNull();
+    const panelHeights = [320, 560, 740];
+    root.querySelectorAll<HTMLElement>('section[aria-labelledby^="setup-"]').forEach((panel, index) => {
+      Object.defineProperty(panel, 'offsetHeight', { get: () => panelHeights[index] });
+    });
+    window.dispatchEvent(new Event('resize'));
+    fixture.detectChanges();
+    expect(viewport!.style.height).toBe('320px');
+    expect(viewport!.firstElementChild?.classList.contains('items-start')).toBe(true);
     const focusContact = vi.spyOn(contactHeading!, 'focus');
     const activePanel = (): string | undefined => root.querySelector<HTMLElement>('section[aria-hidden="false"] > p')?.textContent?.trim();
     const setInput = (selector: string, value: string): void => {
@@ -66,12 +89,22 @@ describe('CustomerSetupPage', () => {
     await submit();
     expect(root.textContent).toContain('Schritt 2 von 3');
     expect(activePanel()).toBe('02 · KONTAKT');
+    fixture.detectChanges();
+    expect(viewport!.style.height).toBe('560px');
     expect(viewport!.scrollLeft).toBe(0);
     expect(focusContact).toHaveBeenCalledWith({ preventScroll: true });
+    panelHeights[1] = 680;
+    expect(notifyResize).toBeDefined();
+    notifyResize?.();
+    fixture.detectChanges();
+    expect(viewport!.style.height).toBe('680px');
     Array.from(root.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Zurück')?.click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(root.textContent).toContain('Schritt 1 von 3');
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+    expect(viewport!.style.height).toBe('320px');
 
     setInput('[formControlName="salutation"]', 'frau');
     setInput('[formControlName="firstName"]', 'Erika');

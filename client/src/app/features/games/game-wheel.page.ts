@@ -11,6 +11,7 @@ interface WheelSegment {
   center: number;
   x: number;
   y: number;
+  labelRotation: number;
   color: string;
 }
 
@@ -138,7 +139,12 @@ export class GameWheelPage {
   private segment(label: string, start: number, end: number, color: string): WheelSegment {
     const center = (start + end) / 2;
     const angle = (center - 90) * Math.PI / 180;
-    return { label, start, end, center, color, x: 50 + Math.cos(angle) * 31, y: 50 + Math.sin(angle) * 31 };
+    return {
+      label, start, end, center, color,
+      x: 50 + Math.cos(angle) * 31,
+      y: 50 + Math.sin(angle) * 31,
+      labelRotation: (center + 90) % 360,
+    };
   }
 
   private async load(showLoading = true): Promise<void> {

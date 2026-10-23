@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ElementRef, computed, inject, signal, viewChild, viewChildren } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal, viewChild, viewChildren } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -66,7 +66,16 @@ export class CustomerSetupPage {
     );
   });
 
-  constructor() { void this.load(); }
+  constructor() {
+    effect((onCleanup) => {
+      const panel = this.panels()[this.step()]?.nativeElement;
+      if (!panel || typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(() => this.updatePanelHeight());
+      observer.observe(panel);
+      onCleanup(() => observer.disconnect());
+    });
+    void this.load();
+  }
 
   protected async load(): Promise<void> {
     this.loading.set(true);
@@ -151,6 +160,7 @@ export class CustomerSetupPage {
   }
 
   private goTo(nextStep: number): void {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     this.step.set(nextStep);
     this.focusStep(nextStep);
   }
@@ -194,6 +204,7 @@ export class CustomerSetupPage {
     try {
       const details = this.setupDetails();
       const profile = skipped ? await this.profiles.skipSetup(details) : await this.profiles.completeSetup(details);
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       await this.navigateAfterSetup();
       if (!this.achievementCompletedBeforeSetup && (profile.profileComplete || profile.profileCompletionBonusAwarded)) {
         this.celebrations.celebrate({ title: 'Profil vervollständigen', points: profile.profileCompletionBonusAwarded ? profile.profileCompletionBonusPoints : 0 });
