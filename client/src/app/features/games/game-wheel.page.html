@@ -16,7 +16,7 @@
         <span class="pointer" aria-hidden="true"></span>
         <div #wheel class="wheel" [style.background]="wheelBackground()" [style.transform]="'rotate(' + rotation() + 'deg)'">
           @for (segment of segments(); track segment.start) {
-            <span class="wheel-label" [style.left.%]="segment.x" [style.top.%]="segment.y">{{ segment.label }}</span>
+            <span class="wheel-label" [style.left.%]="segment.x" [style.top.%]="segment.y" [style.transform]="'translate(-50%, -50%) rotate(' + segment.labelRotation + 'deg)'">{{ segment.label }}</span>
           }
           <div class="wheel-center" aria-hidden="true">★</div>
         </div>

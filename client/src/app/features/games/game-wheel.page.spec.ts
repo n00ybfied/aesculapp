@@ -5,7 +5,7 @@ import { CustomerGame, GameSpin, GamesService } from '../../core/games/games.ser
 import { GameWheelPage } from './game-wheel.page';
 
 describe('GameWheelPage', () => {
-  it('visibly turns before revealing the server-selected result', async () => {
+  it('aims the labels inward and visibly turns before revealing the server-selected result', async () => {
     const game: CustomerGame = {
       id: 1,
       title: 'Test-Glücksrad',
@@ -49,8 +49,13 @@ describe('GameWheelPage', () => {
     const page = harness.routeNativeElement as HTMLElement;
     const wheel = page.querySelector<HTMLElement>('.wheel');
     const button = page.querySelector<HTMLButtonElement>('.spin-button');
+    const labels = page.querySelectorAll<HTMLElement>('.wheel-label');
     expect(wheel).not.toBeNull();
     expect(button).not.toBeNull();
+    expect(Array.from(labels, (label) => label.style.transform)).toEqual([
+      'translate(-50%, -50%) rotate(180deg)',
+      'translate(-50%, -50%) rotate(0deg)',
+    ]);
 
     const frames: FrameRequestCallback[] = [];
     const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
