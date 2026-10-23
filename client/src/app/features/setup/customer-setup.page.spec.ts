@@ -9,7 +9,18 @@ import { AchievementCelebrationService } from '../../core/achievements/achieveme
 import { CustomerSetupPage } from './customer-setup.page';
 
 describe('CustomerSetupPage', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('moves through all three steps and saves the selected interests once', async () => {
+    let notifyResize: (() => void) | undefined;
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(callback: ResizeObserverCallback) {
+        notifyResize = () => callback([], this as ResizeObserver);
+      }
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    });
     let submitted: CustomerSetupDetails | null = null;
     const celebrate = vi.fn();
     const profile = {
@@ -43,6 +54,10 @@ describe('CustomerSetupPage', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     expect(root.textContent).toContain('Sie können später genauere Einstellungen auf Ihrer Profilseite treffen.');
+    expect(root.querySelector('header')?.classList.contains('sticky')).toBe(true);
+    expect(Array.from(root.querySelectorAll('input:not([type="checkbox"]), select'))
+      .every((field) => field.classList.contains('text-base'))).toBe(true);
+    expect(root.querySelector('[formControlName="birthDate"]')?.classList.contains('min-w-0')).toBe(true);
     const viewport = root.querySelector<HTMLElement>('form > div');
     const contactHeading = root.querySelector<HTMLElement>('#setup-contact-title');
     expect(viewport).not.toBeNull();
@@ -78,6 +93,11 @@ describe('CustomerSetupPage', () => {
     expect(viewport!.style.height).toBe('560px');
     expect(viewport!.scrollLeft).toBe(0);
     expect(focusContact).toHaveBeenCalledWith({ preventScroll: true });
+    panelHeights[1] = 680;
+    expect(notifyResize).toBeDefined();
+    notifyResize?.();
+    fixture.detectChanges();
+    expect(viewport!.style.height).toBe('680px');
     Array.from(root.querySelectorAll('button')).find((button) => button.textContent?.trim() === 'Zurück')?.click();
     await fixture.whenStable();
     fixture.detectChanges();

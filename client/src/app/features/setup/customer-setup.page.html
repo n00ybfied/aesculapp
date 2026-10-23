@@ -1,9 +1,11 @@
-<main class="min-h-dvh w-full max-w-full overflow-x-clip bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] text-foreground sm:px-6">
+<main class="min-h-dvh w-full min-w-0 max-w-full overflow-x-clip bg-background px-4 pb-[max(2rem,env(safe-area-inset-bottom))] text-foreground sm:px-6">
   <div class="mx-auto w-full min-w-0 max-w-[620px]">
-    <header class="mb-6 flex items-center gap-4">
-      <img [src]="theme.logoPath" class="h-12 w-auto max-w-36 object-contain" [alt]="theme.pharmacyName" />
-      <div class="min-w-0 flex-1"><p class="text-sm font-bold text-primary">WILLKOMMEN</p><p class="text-sm text-muted">Richten Sie Ihre App ein</p></div>
-      <button type="button" class="min-h-11 text-sm font-semibold text-muted underline underline-offset-4" (click)="logout()">Abmelden</button>
+    <header class="sticky top-0 z-20 mb-5 bg-background pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <div class="flex min-w-0 items-center justify-between gap-3">
+        <img [src]="theme.logoPath" class="h-10 w-auto max-w-[min(55%,12rem)] object-contain" [alt]="theme.pharmacyName" />
+        <button type="button" class="min-h-11 shrink-0 text-sm font-semibold text-muted underline underline-offset-4" (click)="logout()">Abmelden</button>
+      </div>
+      <div class="mt-1 flex flex-wrap items-baseline gap-x-2 text-sm"><p class="font-bold text-primary">WILLKOMMEN</p><p class="text-muted">Richten Sie Ihre App ein</p></div>
     </header>
     @if (loading()) {
       <div class="grid min-h-64 place-items-center" aria-label="Einrichtung wird geladen"><span class="size-10 animate-spin rounded-full border-4 border-accent border-t-primary"></span></div>
@@ -19,9 +21,9 @@
             <p class="text-sm font-bold text-primary">01 · ÜBER SIE</p><h1 #stepHeading id="setup-person-title" tabindex="-1" class="mt-2 text-2xl font-bold outline-none">Wie dürfen wir Sie ansprechen?</h1>
             <p class="mt-2 text-sm leading-6 text-muted">Alle Angaben sind freiwillig. Sie können Ihr Profil jederzeit später vervollständigen und dafür Punkte sammeln.</p>
             <div class="mt-7 space-y-5">
-              <label class="block text-sm font-semibold">Anrede<select formControlName="salutation" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4"><option value="">Keine Angabe</option><option value="frau">Frau</option><option value="herr">Herr</option><option value="divers">Divers</option></select></label>
-              <label class="block text-sm font-semibold">Vorname<input formControlName="firstName" autocomplete="given-name" maxlength="80" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" [attr.aria-invalid]="form.controls.firstName.invalid && form.controls.firstName.touched" /></label>
-              <label class="block text-sm font-semibold">Nachname<input formControlName="lastName" autocomplete="family-name" maxlength="80" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" [attr.aria-invalid]="form.controls.lastName.invalid && form.controls.lastName.touched" /></label>
+              <label class="block text-sm font-semibold">Anrede<select formControlName="salutation" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base"><option value="">Keine Angabe</option><option value="frau">Frau</option><option value="herr">Herr</option><option value="divers">Divers</option></select></label>
+              <label class="block text-sm font-semibold">Vorname<input formControlName="firstName" autocomplete="given-name" maxlength="80" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base" [attr.aria-invalid]="form.controls.firstName.invalid && form.controls.firstName.touched" /></label>
+              <label class="block text-sm font-semibold">Nachname<input formControlName="lastName" autocomplete="family-name" maxlength="80" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base" [attr.aria-invalid]="form.controls.lastName.invalid && form.controls.lastName.touched" /></label>
             </div>
           </section>
           <section #stepPanel class="w-full min-w-0 shrink-0 p-5 sm:p-8" [attr.aria-hidden]="step() !== 1" [attr.inert]="step() !== 1 ? '' : null" aria-labelledby="setup-contact-title">
@@ -29,10 +31,10 @@
             <p class="mt-2 text-sm leading-6 text-muted">Telefon, Adresse und Geburtsdatum können Sie auch später im Profil ergänzen.</p>
             @if (bonusPoints() > 0) { <p class="mt-4 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-foreground">Für ein vollständig ausgefülltes Profil erhalten Sie einmalig {{ bonusPoints() }} Punkte – zusätzlich zum Startguthaben. Dafür benötigen wir alle Angaben auf dieser Seite.</p> }
             <div class="mt-7 space-y-5">
-              <label class="block text-sm font-semibold">Telefon<input formControlName="phone" type="tel" autocomplete="tel" maxlength="40" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label>
-              <label class="block text-sm font-semibold">Straße und Hausnummer<input formControlName="streetAddress" autocomplete="street-address" maxlength="160" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label>
-              <div class="grid grid-cols-[7rem_minmax(0,1fr)] gap-3"><label class="block min-w-0 text-sm font-semibold">PLZ<input formControlName="postalCode" autocomplete="postal-code" maxlength="20" class="mt-2 min-h-12 w-full min-w-0 rounded-xl border border-border bg-background px-4" /></label><label class="block min-w-0 text-sm font-semibold">Ort<input formControlName="city" autocomplete="address-level2" maxlength="120" class="mt-2 min-h-12 w-full min-w-0 rounded-xl border border-border bg-background px-4" /></label></div>
-              <label class="block text-sm font-semibold">Geburtsdatum<input formControlName="birthDate" type="date" autocomplete="bday" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4" /></label>
+              <label class="block text-sm font-semibold">Telefon<input formControlName="phone" type="tel" autocomplete="tel" maxlength="40" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base" /></label>
+              <label class="block text-sm font-semibold">Straße und Hausnummer<input formControlName="streetAddress" autocomplete="street-address" maxlength="160" class="mt-2 min-h-12 w-full rounded-xl border border-border bg-background px-4 text-base" /></label>
+              <div class="grid grid-cols-[7rem_minmax(0,1fr)] gap-3"><label class="block min-w-0 text-sm font-semibold">PLZ<input formControlName="postalCode" autocomplete="postal-code" maxlength="20" class="mt-2 min-h-12 w-full min-w-0 rounded-xl border border-border bg-background px-4 text-base" /></label><label class="block min-w-0 text-sm font-semibold">Ort<input formControlName="city" autocomplete="address-level2" maxlength="120" class="mt-2 min-h-12 w-full min-w-0 rounded-xl border border-border bg-background px-4 text-base" /></label></div>
+              <label class="block min-w-0 text-sm font-semibold">Geburtsdatum<input formControlName="birthDate" type="date" autocomplete="bday" class="mt-2 block min-h-12 w-full min-w-0 max-w-full rounded-xl border border-border bg-background px-4 text-base" /></label>
             </div>
           </section>
           <section #stepPanel class="w-full min-w-0 shrink-0 p-5 sm:p-8" [attr.aria-hidden]="step() !== 2" [attr.inert]="step() !== 2 ? '' : null" aria-labelledby="setup-interests-title">

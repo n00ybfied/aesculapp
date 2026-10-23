@@ -104,6 +104,9 @@
 html {
   min-height: 100%;
   background: var(--color-background);
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -111,6 +114,7 @@ body {
   min-height: 100dvh;
   margin: 0;
   background: var(--color-background);
+  overflow-x: clip;
   color: var(--color-foreground);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
