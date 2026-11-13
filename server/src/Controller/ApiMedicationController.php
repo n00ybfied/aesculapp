@@ -6,7 +6,7 @@ namespace App\Controller;
 
 use App\Entity\{FamilyConnection, Medication, User};
 use App\Repository\TenantMembershipRepository;
-use App\Service\{ActiveTenantProvider, ChatCipher};
+use App\Service\{ActiveTenantProvider, ChatCipher, MedicineCatalogue};
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\{File\UploadedFile, JsonResponse, Request, Response};
@@ -21,6 +21,7 @@ final class ApiMedicationController
         private readonly TenantMembershipRepository $memberships,
         private readonly EntityManagerInterface $entityManager,
         private readonly ChatCipher $cipher,
+        private readonly MedicineCatalogue $catalogue,
     ) {
     }
 
@@ -94,6 +95,10 @@ final class ApiMedicationController
         $schedule = $this->schedule($request->request->get('schedule'));
         $notes = $this->text($request->request->get('notes'), 0, 2000, true);
         $refillDate = $this->date($request->request->get('refillDate'));
+        $pzn = $request->request->get('cataloguePzn');
+        if ($pzn !== null && $pzn !== '' && (!is_string($pzn) || !preg_match('/^\d{7}$/D', $pzn) || $this->catalogue->find($pzn, (int) $medication->tenant->getId()) === null)) {
+            throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'Bitte wählen Sie einen gültigen Katalogartikel.');
+        }
         if ($name === false || $dosage === false || $schedule === false || $notes === false || $refillDate === false) {
             throw new HttpException(Response::HTTP_UNPROCESSABLE_ENTITY, 'Bitte prüfen Sie Ihre Angaben.');
         }
@@ -102,6 +107,9 @@ final class ApiMedicationController
         $medication->encryptedDosage = $dosage === null ? null : $this->cipher->encrypt($dosage, $this->context($medication, 'dosage'));
         $medication->encryptedSchedule = $schedule === null ? null : $this->cipher->encrypt($schedule, $this->context($medication, 'schedule'));
         $medication->encryptedNotes = $notes === null ? null : $this->cipher->encrypt($notes, $this->context($medication, 'notes'));
+        if ($request->request->has('cataloguePzn')) {
+            $medication->encryptedCataloguePzn = $pzn === null || $pzn === '' ? null : $this->cipher->encrypt($pzn, $this->context($medication, 'catalogue-pzn'));
+        }
         $medication->refillDate = $refillDate;
         $image = $request->files->get('image');
         if ($image instanceof UploadedFile) {
@@ -157,9 +165,12 @@ final class ApiMedicationController
     /** @return array<string, bool|int|string|null> */
     private function serialize(Medication $medication): array
     {
+        $pzn = $medication->encryptedCataloguePzn === null ? null : $this->cipher->decrypt($medication->encryptedCataloguePzn, $this->context($medication, 'catalogue-pzn'));
         return [
             'id' => $medication->id,
             'name' => $this->cipher->decrypt($medication->encryptedName, $this->context($medication, 'name')),
+            'cataloguePzn' => $pzn,
+            'availability' => $pzn === null ? null : ($this->catalogue->find($pzn, (int) $medication->tenant->getId()) ?? ['pzn' => $pzn, 'name' => 'Katalogartikel nicht mehr vorhanden', 'pack' => '', 'status' => 'unknown']),
             'dosage' => $medication->encryptedDosage === null ? null : $this->cipher->decrypt($medication->encryptedDosage, $this->context($medication, 'dosage')),
             'schedule' => $medication->encryptedSchedule === null ? null : $this->cipher->decrypt($medication->encryptedSchedule, $this->context($medication, 'schedule')),
             'notes' => $medication->encryptedNotes === null ? null : $this->cipher->decrypt($medication->encryptedNotes, $this->context($medication, 'notes')),

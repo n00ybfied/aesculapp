@@ -3,10 +3,13 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../api/api.config';
 import { AuthService } from '../auth/auth.service';
+import { CatalogueMedicine } from '../medicines/medicine-catalogue.service';
 
 export interface Medication {
   readonly id: number;
   readonly name: string;
+  readonly cataloguePzn?: string | null;
+  readonly availability?: CatalogueMedicine | null;
   readonly dosage: string | null;
   readonly schedule: string | null;
   readonly notes: string | null;
@@ -17,6 +20,7 @@ export interface Medication {
 
 export interface MedicationDraft {
   readonly name: string;
+  readonly cataloguePzn?: string | null;
   readonly dosage: string;
   readonly schedule: string;
   readonly notes: string;
@@ -43,7 +47,7 @@ export class MedicationService {
 
   private formData(draft: MedicationDraft): FormData {
     const form = new FormData();
-    form.set('name', draft.name); form.set('dosage', draft.dosage); form.set('schedule', draft.schedule); form.set('notes', draft.notes); form.set('refillDate', draft.refillDate);
+    form.set('name', draft.name); form.set('cataloguePzn', draft.cataloguePzn ?? ''); form.set('dosage', draft.dosage); form.set('schedule', draft.schedule); form.set('notes', draft.notes); form.set('refillDate', draft.refillDate);
     if (draft.image !== null) form.set('image', draft.image, draft.image.name);
     return form;
   }

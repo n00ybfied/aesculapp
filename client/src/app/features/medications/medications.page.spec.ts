@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { FamilyService } from '../../core/family/family.service';
 import { MedicationService, type MedicationDraft } from '../../core/medications/medication.service';
 import { MedicationReminderService } from '../../core/medications/medication-reminder.service';
+import { MedicineCatalogueService } from '../../core/medicines/medicine-catalogue.service';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 import { parseMedicationDose } from './medication-dose';
@@ -27,6 +28,7 @@ describe('medication dose editing', () => {
     TestBed.configureTestingModule({ providers: [
       { provide: MedicationService, useValue: { create, load: async () => ({ medications: [], access: { ownerId: 1, canManage: true } }) } },
       { provide: MedicationReminderService, useValue: { refresh: async () => undefined } },
+      { provide: MedicineCatalogueService, useValue: { search: async () => [] } },
       { provide: FamilyService, useValue: { connections: signal([]) } },
       { provide: StatusMessageService, useValue: { show: vi.fn(), error: vi.fn() } },
       { provide: ConfirmDialogService, useValue: {} },
@@ -46,5 +48,29 @@ describe('medication dose editing', () => {
 
     expect(page.formError()).toBeNull();
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ schedule: '1-0.5-0-2' }));
+  });
+
+  it('keeps a catalogue link when the customer gives the medicine a personal display name', async () => {
+    const create = vi.fn(async (draft: MedicationDraft) => ({
+      id: 2, name: draft.name, cataloguePzn: draft.cataloguePzn, dosage: null, schedule: draft.schedule,
+      notes: null, refillDate: null, hasImage: false, updatedAt: '',
+    }));
+    TestBed.configureTestingModule({ providers: [
+      { provide: MedicationService, useValue: { create, load: async () => ({ medications: [], access: { ownerId: 1, canManage: true } }) } },
+      { provide: MedicineCatalogueService, useValue: { search: async () => [] } },
+      { provide: MedicationReminderService, useValue: { refresh: async () => undefined } },
+      { provide: FamilyService, useValue: { connections: signal([]) } },
+      { provide: StatusMessageService, useValue: { show: vi.fn(), error: vi.fn() } },
+      { provide: ConfirmDialogService, useValue: {} },
+    ] });
+    const page = TestBed.runInInjectionContext(() => new MedicationsPage()) as unknown as {
+      form: { name: string; cataloguePzn: string | null };
+      selectCatalogue(item: { pzn: string; name: string; pack: string; status: 'unknown' }): void;
+      save(): Promise<void>;
+    };
+    page.selectCatalogue({ pzn: '0001181', name: 'AGIOLAX GRAN', pack: '100 G', status: 'unknown' });
+    page.form.name = 'Mein Mittel';
+    await page.save();
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Mein Mittel', cataloguePzn: '0001181' }));
   });
 });

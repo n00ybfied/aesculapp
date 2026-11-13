@@ -142,6 +142,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/medications/medications.page').then((module) => module.MedicationsPage),
         title: 'Medikamentenplan | Aesculapp',
       },
+      { path: 'medikamente/verfuegbarkeit', loadComponent: () => import('./features/medicine-availability/medicine-availability.page').then((module) => module.MedicineAvailabilityPage), title: 'Medikamentenverfügbarkeit | Aesculapp' },
       { path: 'familie', loadComponent: () => import('./features/family/family.page').then((module) => module.FamilyPage), title: 'Familienzugang | Aesculapp' },
       { path: 'kontakt', loadComponent: () => import('./features/contact/contact.page').then((module) => module.ContactPage), title: 'Kontakt | Aesculapp' },
       {

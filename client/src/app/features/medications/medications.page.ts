@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { NgIcon } from '@ng-icons/core';
 import { StatusMessageService } from '../../core/feedback/status-message.service';
 import { FamilyService } from '../../core/family/family.service';
@@ -8,9 +9,11 @@ import { Medication, MedicationDraft, MedicationService } from '../../core/medic
 import { ConfirmDialogService } from '../../shared/feedback/confirm-dialog.service';
 import { parseMedicationDose } from './medication-dose';
 import { MedicationReminderService } from '../../core/medications/medication-reminder.service';
+import { CatalogueMedicine, MedicineCatalogueService, availabilityLabel } from '../../core/medicines/medicine-catalogue.service';
 
 interface MedicationForm {
   name: string;
+  cataloguePzn: string | null;
   dosage: string;
   morningDose: string | number | null;
   noonDose: string | number | null;
@@ -21,9 +24,10 @@ interface MedicationForm {
   image: File | null;
 }
 
-@Component({ selector: 'app-medications-page', imports: [DatePipe, FormsModule, NgIcon], templateUrl: './medications.page.html' })
+@Component({ selector: 'app-medications-page', imports: [DatePipe, FormsModule, RouterLink, NgIcon], templateUrl: './medications.page.html' })
 export class MedicationsPage implements OnDestroy {
   private readonly medicationsApi = inject(MedicationService);
+  private readonly catalogue = inject(MedicineCatalogueService);
   private readonly reminders = inject(MedicationReminderService);
   private readonly messages = inject(StatusMessageService);
   private readonly familyApi = inject(FamilyService);
@@ -40,14 +44,20 @@ export class MedicationsPage implements OnDestroy {
   protected readonly editorOpen = signal(false);
   protected readonly editingId = signal<number | null>(null);
   protected readonly photoPreview = signal<string | null>(null);
-  protected readonly form: MedicationForm = { name: '', dosage: '', morningDose: '0', noonDose: '0', eveningDose: '0', nightDose: '0', notes: '', refillDate: '', image: null };
+  protected readonly catalogueResults = signal<readonly CatalogueMedicine[]>([]);
+  protected readonly catalogueError = signal(false);
+  protected readonly labelAvailability = availabilityLabel;
+  protected readonly form: MedicationForm = { name: '', cataloguePzn: null, dosage: '', morningDose: '0', noonDose: '0', eveningDose: '0', nightDose: '0', notes: '', refillDate: '', image: null };
+  private catalogueTimer?: ReturnType<typeof setTimeout>;
+  private catalogueRevision = 0;
 
   async ngOnInit(): Promise<void> { try { await this.familyApi.load(); } catch { /* Medication access remains available without a family list. */ } await this.reload(); }
-  ngOnDestroy(): void { Object.values(this.imageUrls()).forEach(URL.revokeObjectURL); this.revokePreview(); }
+  ngOnDestroy(): void { clearTimeout(this.catalogueTimer); Object.values(this.imageUrls()).forEach(URL.revokeObjectURL); this.revokePreview(); }
 
   protected openCreate(): void { if (!this.canManage()) return; this.resetForm(); this.editorOpen.set(true); }
   protected openEdit(item: Medication): void {
     this.form.name = item.name;
+    this.form.cataloguePzn = item.cataloguePzn ?? null;
     this.form.dosage = item.dosage ?? '';
     this.setSchedule(item.schedule);
     this.form.notes = item.notes ?? '';
@@ -59,6 +69,25 @@ export class MedicationsPage implements OnDestroy {
     this.editorOpen.set(true);
   }
   protected closeEditor(): void { this.editorOpen.set(false); this.resetForm(); }
+  protected catalogueInput(event: Event): void { this.searchCatalogue((event.target as HTMLInputElement).value); }
+  protected searchCatalogue(value: string): void {
+    this.catalogueResults.set([]); this.catalogueError.set(false);
+    clearTimeout(this.catalogueTimer);
+    const revision = ++this.catalogueRevision;
+    if (value.trim().length < 2) return;
+    this.catalogueTimer = setTimeout(async () => {
+      try { const results = await this.catalogue.search(value.trim()); if (revision === this.catalogueRevision) this.catalogueResults.set(results); }
+      catch { if (revision === this.catalogueRevision) this.catalogueError.set(true); }
+    }, 250);
+  }
+  protected selectCatalogue(item: CatalogueMedicine): void {
+    this.form.cataloguePzn = item.pzn;
+    this.form.name = item.name;
+    this.catalogueResults.set([]);
+    clearTimeout(this.catalogueTimer);
+    ++this.catalogueRevision;
+  }
+  protected unlinkCatalogue(): void { this.form.cataloguePzn = null; }
   protected selectImage(event: Event): void { const input = event.target as HTMLInputElement; const image = input.files?.[0] ?? null; input.value = ''; if (image === null) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(image.type) || image.size > 5 * 1024 * 1024) { this.messages.error('Bitte wählen Sie JPEG, PNG oder WebP bis maximal 5 MB.'); return; } this.revokePreview(); this.form.image = image; this.photoPreview.set(URL.createObjectURL(image)); }
   protected async save(): Promise<void> {
     if (this.saving()) return;
@@ -88,6 +117,7 @@ export class MedicationsPage implements OnDestroy {
   private draft(doses: readonly number[]): MedicationDraft {
     return {
       name: this.form.name,
+      cataloguePzn: this.form.cataloguePzn,
       dosage: this.form.dosage,
       schedule: doses.join('-'),
       notes: this.form.notes,
@@ -101,6 +131,6 @@ export class MedicationsPage implements OnDestroy {
     [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose] = values?.slice(1) ?? ['0', '0', '0', '0'];
   }
 
-  private resetForm(): void { this.form.name = ''; this.form.dosage = ''; [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose] = ['0', '0', '0', '0']; this.form.notes = ''; this.form.refillDate = ''; this.form.image = null; this.editingId.set(null); this.revokePreview(); this.photoPreview.set(null); this.formError.set(null); }
+  private resetForm(): void { clearTimeout(this.catalogueTimer); ++this.catalogueRevision; this.form.name = ''; this.form.cataloguePzn = null; this.catalogueResults.set([]); this.form.dosage = ''; [this.form.morningDose, this.form.noonDose, this.form.eveningDose, this.form.nightDose] = ['0', '0', '0', '0']; this.form.notes = ''; this.form.refillDate = ''; this.form.image = null; this.editingId.set(null); this.revokePreview(); this.photoPreview.set(null); this.formError.set(null); }
   private revokePreview(): void { const preview = this.photoPreview(); if (preview !== null && !Object.values(this.imageUrls()).includes(preview)) URL.revokeObjectURL(preview); }
 }
