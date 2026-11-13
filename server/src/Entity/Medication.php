@@ -34,6 +34,9 @@ class Medication
     #[ORM\Column(type: 'text', nullable: true)]
     public ?string $encryptedImage = null;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    public ?string $encryptedCataloguePzn = null;
+
     #[ORM\Column(type: 'date_immutable', nullable: true)]
     public ?\DateTimeImmutable $refillDate = null;
 

@@ -23,6 +23,7 @@ $security = new Symfony\Bundle\SecurityBundle\Security($services);
 $memberships = $entityManager->getRepository(App\Entity\TenantMembership::class);
 $tenantA = new App\Service\ActiveTenantProvider($entityManager, $_ENV['APP_TENANT_SLUG']);
 $cipher = new App\Service\ChatCipher(new App\Service\PrivateDataKeyPath(dirname(__DIR__)));
+$catalogueService = new App\Service\MedicineCatalogue($entityManager->getConnection());
 
 function authorizationCheck(bool $condition, string $message): void
 {
@@ -69,14 +70,16 @@ try {
     $ownerA = createUser($entityManager, $activeTenant, 'Owner A', ['ROLE_CUSTOMER']);
     $otherCustomerA = createUser($entityManager, $activeTenant, 'Other Customer A', ['ROLE_CUSTOMER']);
     $staffA = createUser($entityManager, $activeTenant, 'Staff A', ['ROLE_TENANT_STAFF']);
+    $adminA = createUser($entityManager, $activeTenant, 'Admin A', ['ROLE_TENANT_ADMIN']);
     $customerB = createUser($entityManager, $foreignTenant, 'Customer B', ['ROLE_CUSTOMER']);
     $staffB = createUser($entityManager, $foreignTenant, 'Staff B', ['ROLE_TENANT_STAFF']);
     $rewardB = new App\Entity\Reward($foreignTenant, 'Foreign reward', 'Private tenant data', '<p>Never visible in tenant A.</p>', '', 100, true);
     $entityManager->persist($rewardB);
     $entityManager->flush();
 
-    $medicationsA = new App\Controller\ApiMedicationController($security, $tenantA, $memberships, $entityManager, $cipher);
-    $medicationsB = new App\Controller\ApiMedicationController($security, $tenantB, $memberships, $entityManager, $cipher);
+    $medicationsA = new App\Controller\ApiMedicationController($security, $tenantA, $memberships, $entityManager, $cipher, $catalogueService);
+    $medicationsB = new App\Controller\ApiMedicationController($security, $tenantB, $memberships, $entityManager, $cipher, $catalogueService);
+    $catalogueApiA = new App\Controller\ApiMedicineCatalogueController($security, $tenantA, $memberships, $catalogueService);
     $rewardsA = new App\Controller\ApiRewardController($tenantA, $memberships, $security, $entityManager, new App\Service\ImageProcessor(), new App\Service\RichTextSanitizer());
     $rewardsB = new App\Controller\ApiRewardController($tenantB, $memberships, $security, $entityManager, new App\Service\ImageProcessor(), new App\Service\RichTextSanitizer());
     $customersA = new App\Controller\ApiAdminCustomerController($security, $tenantA, $memberships, $entityManager, new App\Service\PointAccountProvisioner($entityManager));
@@ -85,7 +88,17 @@ try {
     // Unauthenticated calls never reveal a medication plan.
     $storage->setToken(null);
     expectsStatus(fn () => $medicationsA->list(new Symfony\Component\HttpFoundation\Request()), 403);
+    $medicineQuery = Symfony\Component\HttpFoundation\Request::create('/api/v1/medicines/search', 'POST', [], [], [], [], '{"q":"TEST"}');
+    expectsStatus(fn () => $catalogueApiA->search($medicineQuery), 403);
 
+    authenticate($storage, $ownerA, ['ROLE_CUSTOMER']);
+    expectsStatus(fn () => $catalogueApiA->search($medicineQuery), 200);
+    expectsStatus(fn () => $catalogueApiA->debug(new Symfony\Component\HttpFoundation\Request()), 403);
+    authenticate($storage, $staffA, ['ROLE_TENANT_ADMIN']);
+    expectsStatus(fn () => $catalogueApiA->search($medicineQuery), 403);
+    expectsStatus(fn () => $catalogueApiA->debug(new Symfony\Component\HttpFoundation\Request()), 403);
+    authenticate($storage, $adminA, ['ROLE_TENANT_ADMIN']);
+    expectsStatus(fn () => $catalogueApiA->debug(new Symfony\Component\HttpFoundation\Request()), 200);
     authenticate($storage, $ownerA, ['ROLE_CUSTOMER']);
     $created = $medicationsA->create(new Symfony\Component\HttpFoundation\Request([], [
         'name' => 'Private medication', 'dosage' => '500 mg', 'schedule' => '1-0-0-1', 'notes' => 'Owner A only', 'refillDate' => '',

@@ -24,6 +24,7 @@
       @if (canAccess('redemptions')) { <a class="redemptions-link" routerLink="/einloesungen" routerLinkActive="active" (click)="closeNavigation()">Einlösungen <app-active-redemptions-badge /></a> }
       @if (canAccess('customers')) { <a routerLink="/kunden" routerLinkActive="active" (click)="closeNavigation()">Kunden</a> }
       @if (canAccess('users')) { <a routerLink="/benutzer" routerLinkActive="active" (click)="closeNavigation()">Benutzer</a> }
+      @if (isTenantAdmin()) { <a routerLink="/medikamenten-debug" routerLinkActive="active" (click)="closeNavigation()">Medikamenten-Debug</a> }
       @if (canAccess('settings')) { <a routerLink="/nachrichtenvorlagen" routerLinkActive="active" (click)="closeNavigation()">Nachrichtenvorlagen</a> }
       @if (canAccess('settings')) { <a routerLink="/einstellungen" routerLinkActive="active" (click)="closeNavigation()">Einstellungen</a> }
     </nav>

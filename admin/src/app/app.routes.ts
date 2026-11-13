@@ -51,6 +51,7 @@ export const routes: Routes = [
       { path: 'buchungen', pathMatch: 'full', redirectTo: 'kunden' },
       { path: 'kunden', loadComponent: () => import('./features/customers/admin-customers.component').then((module) => module.AdminCustomersComponent) },
       { path: 'benutzer', loadComponent: () => import('./features/users/admin-users.component').then((module) => module.AdminUsersComponent) },
+      { path: 'medikamenten-debug', loadComponent: () => import('./features/medicines/medicine-debug.page').then((module) => module.MedicineDebugPage) },
       { path: 'einstellungen', loadComponent: () => import('./features/settings/tenant-branding.component').then((module) => module.TenantBrandingComponent) },
       { path: 'nachrichtenvorlagen', loadComponent: () => import('./features/settings/notification-templates.component').then((module) => module.NotificationTemplatesComponent) },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
